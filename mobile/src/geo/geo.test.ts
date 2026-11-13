@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { Prioridade } from '../models/ocorrencia.ts';
+import type { OcorrenciaDetalhe, Prioridade, RegistroHistorico } from '../models/ocorrencia.ts';
 import { parseRegioes } from '../validation/regioes.ts';
 import { agruparPontos } from './agrupamento.ts';
 import amostra from './amostra-regioes.json' with { type: 'json' };
 import { CORES_DENSIDADE, COR_SEM_DADOS, classeDensidade, corDaRegiao } from './densidade.ts';
 import { aplicarResultadoMapa, avisoFalhaMapa, textoAtualizadoHa } from './estadoMapa.ts';
 import { montarEndereco } from './endereco.ts';
+import { podeConfirmarNoMapa, tempoDesde, ultimaAtualizacaoEquipe } from './cartaoMapa.ts';
 import { interpretarModo, origemDoModo } from './modo.ts';
 import {
   CENTRO_SP,
@@ -15,6 +16,8 @@ import {
   distanciaMetros,
   formatarDistancia,
   regiaoDaCaixa,
+  ampliarCaixa,
+  caixaContem,
   regiaoDaEtapaLocal,
   regiaoInicial,
 } from './distancia.ts';
@@ -90,6 +93,41 @@ describe('agrupamento de pontos', () => {
     );
   });
 
+  it('pontos fora da área visível não inflam os grupos da borda', () => {
+    const dentro = gerarPontos(50, CENTRO_SP, 0.03);
+    const longe = gerarPontos(20, { latitude: CENTRO_SP.latitude + 0.5, longitude: CENTRO_SP.longitude + 0.5 }, 0.01);
+    const regiao = { ...CENTRO_SP, latitudeDelta: 0.1, longitudeDelta: 0.1 };
+    const itens = agruparPontos([...dentro, ...longe], regiao);
+    assert.equal(
+      itens.reduce((soma, item) => soma + (item.tipo === 'grupo' ? item.quantidade : 1), 0),
+      50,
+    );
+    for (const item of itens) {
+      const { latitude, longitude } = item.tipo === 'grupo' ? item : item.ponto;
+      assert.ok(Math.abs(latitude - regiao.latitude) <= 0.06 && Math.abs(longitude - regiao.longitude) <= 0.06);
+    }
+  });
+
+  it('arrastar um pouco o mapa não reagrupa nem move as bolhas', () => {
+    const pontos = gerarPontos(300, CENTRO_SP, 0.05);
+    const assinatura = (regiao: { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number }) =>
+      agruparPontos(pontos, regiao)
+        .map((item) =>
+          item.tipo === 'grupo'
+            ? `g${item.quantidade}@${item.latitude.toFixed(6)},${item.longitude.toFixed(6)}`
+            : `p${item.ponto.id}`,
+        )
+        .sort();
+    const antes = assinatura({ ...CENTRO_SP, latitudeDelta: 0.4, longitudeDelta: 0.4 });
+    const depois = assinatura({
+      latitude: CENTRO_SP.latitude + 0.004,
+      longitude: CENTRO_SP.longitude - 0.003,
+      latitudeDelta: 0.4,
+      longitudeDelta: 0.4,
+    });
+    assert.deepEqual(depois, antes);
+  });
+
   it('com zoom próximo não agrupa', () => {
     const poucos = gerarPontos(30, CENTRO_SP, 0.004);
     const itens = agruparPontos(poucos, { ...CENTRO_SP, latitudeDelta: 0.01, longitudeDelta: 0.01 });
@@ -139,6 +177,15 @@ describe('distâncias e região inicial', () => {
       latitudeDelta: 0.004,
       longitudeDelta: 0.004,
     });
+  });
+
+  it('pede a área com folga e reaproveita enquanto a tela couber nela', () => {
+    const visivel = { minLon: -46.7, minLat: -23.6, maxLon: -46.6, maxLat: -23.5 };
+    const ampla = ampliarCaixa(visivel, 0.5);
+    assert.deepEqual(ampla, { minLon: -46.75, minLat: -23.65, maxLon: -46.55, maxLat: -23.45 });
+    assert.equal(caixaContem(ampla, visivel), true);
+    assert.equal(caixaContem(ampla, { minLon: -46.72, minLat: -23.62, maxLon: -46.62, maxLat: -23.52 }), true);
+    assert.equal(caixaContem(ampla, { minLon: -46.8, minLat: -23.6, maxLon: -46.7, maxLat: -23.5 }), false);
   });
 
   it('converte a área visível em caixa', () => {
@@ -284,5 +331,65 @@ describe('modo dos dados (Ao vivo ou Exemplo)', () => {
   it('Exemplo consulta só os fictícios; Ao vivo só os reais', () => {
     assert.equal(origemDoModo('exemplo'), 'SIMULADA');
     assert.equal(origemDoModo('aovivo'), 'APP');
+  });
+});
+
+describe('cartão da ocorrência no mapa', () => {
+  const agora = Date.parse('2026-11-13T12:00:00Z');
+
+  it('diz há quanto tempo, em linguagem simples', () => {
+    assert.equal(tempoDesde('2026-11-13T11:59:30Z', agora), 'agora há pouco');
+    assert.equal(tempoDesde('2026-11-13T11:55:00Z', agora), 'há 5 min');
+    assert.equal(tempoDesde('2026-11-13T09:00:00Z', agora), 'há 3 h');
+    assert.equal(tempoDesde('2026-11-11T12:00:00Z', agora), 'há 2 dias');
+    assert.equal(tempoDesde('2026-11-12T11:00:00Z', agora), 'há 1 dia');
+    assert.equal(tempoDesde('2026-10-16T12:00:00Z', agora), 'há 4 semanas');
+    assert.equal(tempoDesde('invalida', agora), '');
+  });
+
+  it('mostra a última atualização da equipe (não o registro inicial)', () => {
+    const criacao: RegistroHistorico = { statusAnterior: null, statusNovo: 'ABERTA', observacao: 'Ocorrência registrada.', alteradoEm: '2026-11-10T10:00:00Z' };
+    assert.equal(ultimaAtualizacaoEquipe([criacao]), null);
+    const historico: RegistroHistorico[] = [
+      criacao,
+      { statusAnterior: 'ABERTA', statusNovo: 'EM_ANALISE', observacao: 'Vistoria agendada.', alteradoEm: '2026-11-11T10:00:00Z' },
+      { statusAnterior: 'EM_ANALISE', statusNovo: 'EM_ANDAMENTO', observacao: null, alteradoEm: '2026-11-12T10:00:00Z' },
+    ];
+    assert.deepEqual(ultimaAtualizacaoEquipe(historico), { quando: '2026-11-12T10:00:00Z', texto: 'Status: Em andamento' });
+    assert.deepEqual(ultimaAtualizacaoEquipe(historico.slice(0, 2)), { quando: '2026-11-11T10:00:00Z', texto: 'Vistoria agendada.' });
+  });
+
+  it('"Eu também vi" no mapa só em aberta, real e de outra pessoa', () => {
+    const base: OcorrenciaDetalhe = {
+      id: 5,
+      titulo: 'Buraco na rua',
+      descricao: 'Buraco perto da guia.',
+      categoria: 'BURACO',
+      latitude: -23.55,
+      longitude: -46.63,
+      endereco: null,
+      subprefeitura: null,
+      confirmacoes: 0,
+      origem: 'APP',
+      riscoImediato: false,
+      bloqueiaPassagem: false,
+      afetaAcessibilidade: false,
+      status: 'ABERTA',
+      prioridade: 'MEDIA',
+      prioridadePontuacao: 4,
+      prioridadeJustificativa: 'Teste',
+      imagemUrl: null,
+      analiseIa: { status: 'INDISPONIVEL', categoriaSugerida: null, confianca: null, versaoModelo: null, analisadaEm: null },
+      criadoEm: '2026-11-10T10:00:00Z',
+      atualizadoEm: '2026-11-10T10:00:00Z',
+      historico: [],
+      avisosNaoResolvido: 0,
+      minhaRelacao: { registrei: false, confirmei: false, aviseiNaoResolvido: false },
+    };
+    const caso = (extra: Partial<OcorrenciaDetalhe>): OcorrenciaDetalhe => ({ ...base, ...extra });
+    assert.equal(podeConfirmarNoMapa(caso({})), true);
+    assert.equal(podeConfirmarNoMapa(caso({ minhaRelacao: { registrei: true, confirmei: false, aviseiNaoResolvido: false } })), false);
+    assert.equal(podeConfirmarNoMapa(caso({ status: 'RESOLVIDA' })), false);
+    assert.equal(podeConfirmarNoMapa(caso({ origem: 'SIMULADA' })), false);
   });
 });

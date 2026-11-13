@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-import { caminhoLinha, indiceMaisProximo, marcasEixo, resumoSemanal } from '../../analises/graficos';
+import { caminhoLinha, indiceMaisProximo, marcasEixo, posicoesMarcas, resumoSemanal } from '../../analises/graficos';
 import { ALVO_TOQUE, coresGrafico, cores, espaco, fontes } from '../../theme/tema';
 import { Texto } from '../Texto';
 
@@ -20,6 +20,7 @@ const ALTURA = 150;
 const EIXO_Y = 34;
 const MARGEM = 6; // folga para os marcadores não serem cortados na borda
 const TRACEJADO = '6 4';
+const ALTURA_ROTULO = 14;
 
 function diaMes(iso: string): string {
   const [, mes, dia] = iso.split('-');
@@ -57,6 +58,7 @@ export function GraficoSemanal({ semanas }: { semanas: readonly SemanaGrafico[] 
   const larguraPlot = Math.max(0, largura - EIXO_Y - MARGEM * 2);
   const alturaPlot = ALTURA - MARGEM * 2;
   const registradas = caminhoLinha(semanas.map((s) => s.registradas), larguraPlot, alturaPlot, maximo);
+  const posicoesY = posicoesMarcas(marcas, alturaPlot, MARGEM, maximo);
   const resolvidas = caminhoLinha(semanas.map((s) => s.resolvidas), larguraPlot, alturaPlot, maximo);
 
   const indice = selecionada !== null && selecionada < semanas.length ? selecionada : semanas.length - 1;
@@ -76,8 +78,8 @@ export function GraficoSemanal({ semanas }: { semanas: readonly SemanaGrafico[] 
 
       <View style={styles.grafico} accessible accessibilityLabel={resumo} onLayout={(e) => setLargura(e.nativeEvent.layout.width)}>
         <View style={styles.eixoY}>
-          {[...marcas].reverse().map((m) => (
-            <Texto key={m} style={styles.marca}>
+          {marcas.map((m, i) => (
+            <Texto key={m} style={[styles.marca, styles.marcaY, { top: (posicoesY[i] ?? 0) - ALTURA_ROTULO / 2 }]}>
               {m}
             </Texto>
           ))}
@@ -163,7 +165,8 @@ const styles = StyleSheet.create({
   textoLegenda: { fontFamily: fontes.semibold, fontSize: 13, color: cores.asfalto },
   leitura: { fontFamily: fontes.extrabold, fontSize: 14, color: cores.asfalto },
   grafico: { flexDirection: 'row', height: ALTURA },
-  eixoY: { width: EIXO_Y, justifyContent: 'space-between', paddingVertical: MARGEM - 7, alignItems: 'flex-end', paddingRight: 4 },
+  eixoY: { width: EIXO_Y },
+  marcaY: { position: 'absolute', right: 4, height: ALTURA_ROTULO },
   plot: { flex: 1 },
   marca: { fontFamily: fontes.regular, fontSize: 11, lineHeight: 14, color: cores.textoSuave, fontVariant: ['tabular-nums'] },
   eixoX: { flexDirection: 'row', justifyContent: 'space-between', paddingLeft: EIXO_Y + MARGEM },

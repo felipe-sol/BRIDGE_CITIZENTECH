@@ -14,12 +14,12 @@ from sqlalchemy.orm import Session
 
 from app.enums import OrigemOcorrencia
 from app.errors import ErroAPI, nao_encontrado
-from app.models import Confirmacao, Identificacao, Ocorrencia
+from app.models import AvisoNaoResolvido, Confirmacao, Identificacao, Ocorrencia
 from app.schemas import RelacaoResposta
 from app.services.transicoes import STATUS_ABERTOS
 
 
-def _ocorrencia_e_identificacao(db: Session, ocorrencia_id: int, identificacao_id: uuid.UUID) -> Ocorrencia:
+def ocorrencia_e_identificacao(db: Session, ocorrencia_id: int, identificacao_id: uuid.UUID) -> Ocorrencia:
     ocorrencia = db.get(Ocorrencia, ocorrencia_id)
     if ocorrencia is None:
         raise nao_encontrado("Ocorrência")
@@ -39,7 +39,7 @@ def contar(db: Session, ocorrencia_id: int) -> int:
 
 def confirmar(db: Session, ocorrencia_id: int, identificacao_id: uuid.UUID) -> tuple[int, bool]:
     """Registra a confirmação. Devolve (total de confirmações, criada_agora)."""
-    ocorrencia = _ocorrencia_e_identificacao(db, ocorrencia_id, identificacao_id)
+    ocorrencia = ocorrencia_e_identificacao(db, ocorrencia_id, identificacao_id)
     if ocorrencia.origem == OrigemOcorrencia.SIMULADA:
         raise ErroAPI(
             http.HTTP_409_CONFLICT, "OCORRENCIA_SIMULADA", "Esta ocorrência é um dado fictício de demonstração."
@@ -74,7 +74,7 @@ def confirmar(db: Session, ocorrencia_id: int, identificacao_id: uuid.UUID) -> t
 
 def desfazer(db: Session, ocorrencia_id: int, identificacao_id: uuid.UUID) -> int:
     """Remove a confirmação (idempotente). Devolve o total restante."""
-    _ocorrencia_e_identificacao(db, ocorrencia_id, identificacao_id)
+    ocorrencia_e_identificacao(db, ocorrencia_id, identificacao_id)
     db.execute(
         delete(Confirmacao).where(
             Confirmacao.ocorrencia_id == ocorrencia_id, Confirmacao.identificacao_id == identificacao_id
@@ -91,4 +91,13 @@ def relacao(db: Session, ocorrencia: Ocorrencia, identificacao_id: uuid.UUID) ->
             Confirmacao.ocorrencia_id == ocorrencia.id, Confirmacao.identificacao_id == identificacao_id
         )
     )
-    return RelacaoResposta(registrei=ocorrencia.identificacao_id == identificacao_id, confirmei=confirmei is not None)
+    avisei = db.scalar(
+        select(AvisoNaoResolvido.id).where(
+            AvisoNaoResolvido.ocorrencia_id == ocorrencia.id, AvisoNaoResolvido.identificacao_id == identificacao_id
+        )
+    )
+    return RelacaoResposta(
+        registrei=ocorrencia.identificacao_id == identificacao_id,
+        confirmei=confirmei is not None,
+        avisei_nao_resolvido=avisei is not None,
+    )

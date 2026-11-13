@@ -11,10 +11,12 @@ import type {
   Origem,
   PaginaOcorrencias,
   Prioridade,
+  ResultadoAviso,
   ResultadoConfirmacao,
   StatusOcorrencia,
 } from '../models/ocorrencia';
 import {
+  parseAvisoNaoResolvido,
   parseConfirmacao,
   parseOcorrencia,
   parseOcorrenciaDetalhe,
@@ -84,6 +86,21 @@ export function listarProximas(ponto: Coordenada, categoria: Categoria, raioM = 
 export function confirmarOcorrencia(id: number, identificacaoId: string): Promise<ResultadoConfirmacao> {
   return requisitarJson(`/ocorrencias/${id}/confirmacoes`, parseConfirmacao, {
     metodo: 'POST',
+    cabecalhos: { 'X-Identificacao-Id': identificacaoId },
+  });
+}
+
+/** "Ainda não foi resolvido? Avise": só em ocorrência resolvida; não reabre (idempotente). */
+export function avisarNaoResolvido(id: number, identificacaoId: string): Promise<ResultadoAviso> {
+  return requisitarJson(`/ocorrencias/${id}/nao-resolvido`, parseAvisoNaoResolvido, {
+    metodo: 'POST',
+    cabecalhos: { 'X-Identificacao-Id': identificacaoId },
+  });
+}
+
+export function desfazerAvisoNaoResolvido(id: number, identificacaoId: string): Promise<ResultadoAviso> {
+  return requisitarJson(`/ocorrencias/${id}/nao-resolvido`, parseAvisoNaoResolvido, {
+    metodo: 'DELETE',
     cabecalhos: { 'X-Identificacao-Id': identificacaoId },
   });
 }

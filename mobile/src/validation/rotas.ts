@@ -6,6 +6,7 @@
  * Estrutura: abas em src/app/(tabs) (Início, Mapa, Andamento, Perfil);
  * telas por cima das abas: registrar (modal), ocorrencias/[id] e regiao/[codigo] (folha).
  */
+import type { PaginaSobre } from '../conteudo/paginas.ts';
 import type { ModoDados } from '../geo/modo.ts';
 
 export const ROTAS = {
@@ -45,6 +46,11 @@ export function rotaRegiao(codigo: string, modo: ModoDados = 'aovivo') {
  */
 export function rotaMapa(modo: ModoDados = 'aovivo', regiao?: string) {
   return { pathname: '/mapa', params: { modo, ...(regiao ? { regiao } : {}) } } as const;
+}
+
+/** Páginas informativas do Perfil (prioridade, alertas, privacidade, equipe). */
+export function rotaSobre(pagina: PaginaSobre) {
+  return { pathname: '/sobre/[pagina]', params: { pagina } } as const;
 }
 
 function primeiro(valor: string | string[] | undefined): string | undefined {

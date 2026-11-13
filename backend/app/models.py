@@ -189,3 +189,28 @@ Ocorrencia.confirmacoes_total = column_property(
     .correlate_except(Confirmacao)
     .scalar_subquery()
 )
+
+
+class AvisoNaoResolvido(Base):
+    """Uma identificação avisa que uma ocorrência RESOLVIDA ainda não foi resolvida no local.
+
+    Não reabre a ocorrência (RESOLVIDA continua sendo status final): só conta e aparece no detalhe.
+    """
+
+    __tablename__ = "avisos_nao_resolvido"
+    __table_args__ = (UniqueConstraint("ocorrencia_id", "identificacao_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    ocorrencia_id: Mapped[int] = mapped_column(ForeignKey("ocorrencias.id", ondelete="CASCADE"), index=True)
+    identificacao_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("identificacoes.id", ondelete="RESTRICT"), index=True
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+Ocorrencia.avisos_nao_resolvido_total = column_property(
+    select(func.count(AvisoNaoResolvido.id))
+    .where(AvisoNaoResolvido.ocorrencia_id == Ocorrencia.id)
+    .correlate_except(AvisoNaoResolvido)
+    .scalar_subquery()
+)

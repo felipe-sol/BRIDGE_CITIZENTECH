@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { TextoEscalavel as Text } from './Texto';
 
 import { ALVO_TOQUE, cores, espaco, raio, fontes } from '../theme/tema';
 

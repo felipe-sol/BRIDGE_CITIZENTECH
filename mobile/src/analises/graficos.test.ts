@@ -7,6 +7,7 @@ import {
   escalaBarras,
   formatarDias,
   indiceMaisProximo,
+  posicoesMarcas,
   marcasEixo,
   resumoCategorias,
   resumoRanking,
@@ -35,6 +36,11 @@ describe('escalas dos gráficos', () => {
     assert.equal(indiceMaisProximo(-5, 300, 4), 0);
     assert.equal(indiceMaisProximo(120, 300, 1), 0);
     assert.equal(indiceMaisProximo(10, 300, 0), -1);
+  });
+
+  it('rótulos do eixo Y alinhados às linhas da grade', () => {
+    assert.deepEqual(posicoesMarcas([0, 5, 10], 100, 6, 10), [106, 56, 6]);
+    assert.deepEqual(posicoesMarcas([0, 1], 50, 0, 0), [50, 50]);
   });
 
   it('marcas redondas do eixo cobrindo o máximo', () => {

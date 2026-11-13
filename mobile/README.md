@@ -46,12 +46,13 @@ demonstração, sempre com a faixa "DADOS FICTÍCIOS").
 |---|---|---|
 | Identificação | `/identificacao` | Cria o apelido salvo no aparelho (só aparece sem identificação) |
 | Início | `/` (aba) | Placa com o bairro e a subprefeitura de onde a pessoa está, faixa do **Alerta Bridge** mais relevante (ou "Sem alertas na sua região"), mapa real pequeno e as ocorrências que ela acompanha |
-| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Regiões em **Alerta Bridge** ganham contorno tracejado. Tem busca por região, endereço ou texto, filtros, atualização automática a cada 15 s (Ao vivo) e o modo **Exemplo** |
+| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Regiões em **Alerta Bridge** ganham contorno tracejado. Tocar num ponto abre um **cartão completo** (foto que abre em tela cheia com zoom, prioridade, relatos, última atualização da equipe, "Eu também vi" e "Ver detalhe"). Tem busca por região, endereço ou texto, filtros, atualização automática a cada 15 s (Ao vivo) e o modo **Exemplo** |
 | Andamento | `/andamento` (aba) | O que a pessoa registrou ou confirmou, com etapas e o selo "Atualizada"; tem estados de carregando, erro e vazio e puxar para atualizar |
 | Análises | `/analises` (aba) | Indicadores (registradas, % resolvidas, tempo médio até resolver, regiões em alerta) e gráficos: por categoria, evolução semanal (registradas × resolvidas, com leitura ao tocar e tabela) e regiões com mais relatos; Ao vivo ou Exemplo |
-| Perfil | `/perfil` (aba) | Apelido, participação, privacidade, equipe e criar nova identificação |
+| Perfil | `/perfil` (aba) | Apelido (com troca), o que a pessoa já fez (registradas, confirmadas, resolvidas que acompanha, avisos), ajustes **Texto maior** e **Avisos de atualização no app**, links para as páginas informativas, versão e criar nova identificação |
+| Sobre | `/sobre/[pagina]` | Páginas: como a prioridade é calculada, como funcionam os alertas, privacidade e dados, sobre o Bridge e equipe (nomes vindos de `authors`) |
 | Registrar | `/registrar` | Etapas: local no mapa (pino central e endereço sugerido) → categoria → parecidos a até 100 m (confirmar ou "é outro") → foto e detalhes → revisão e envio |
-| Detalhe | `/ocorrencias/[id]` | Foto, local no mapa, prioridade e justificativa, "Eu também vi", linha do tempo com a equipe responsável, compartilhar e análise de IA |
+| Detalhe | `/ocorrencias/[id]` | Foto (toque → tela cheia com zoom), local no mapa, prioridade e justificativa, "Eu também vi", **"Ainda não foi resolvido? Avise"** nas resolvidas, linha do tempo com a equipe responsável, compartilhar e análise de IA |
 | Região | `/regiao/[codigo]` | Folha com os números de uma subprefeitura (total, abertas, alta gravidade, resolvidas, densidade) e o nível do Alerta Bridge com o motivo |
 
 ## Tecnologias
@@ -134,9 +135,9 @@ npm run lint         # ESLint (eslint-config-expo)
 npx expo-doctor      # compatibilidade das dependências com o SDK
 ```
 
-Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase2.txt`:
+Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt`:
 - `tsc` sem erros e ESLint sem problemas;
-- **83/83 testes** (82 da fase 2 + 1 da revisão final);
+- **106/106 testes**;
 - expo-doctor 20/20;
 - bundle iOS gerado;
 - nenhum `any` ou `@ts-ignore`;
@@ -156,7 +157,9 @@ src/
 ├── components/      # componentes visuais (Texto, Icone, MarcadorGravidade, LinhaDoTempo…) e mapa/, registro/
 ├── geo/             # funções puras de mapa: regiões, agrupamento, distância, densidade, endereço
 ├── registro/        # redutor puro das etapas do registro
-├── acompanhamento/  # selo "Atualizada", etapas do status, compartilhamento
+├── acompanhamento/  # selo "Atualizada", avisos no app, etapas, detalhe ("ainda não resolvido"), compartilhamento
+├── conteudo/        # páginas informativas do Perfil e equipe (de `authors`)
+├── preferencias/    # Texto maior e avisos no app (guardados no aparelho)
 ├── alertas/         # Alerta Bridge: texto do motivo e qual alerta o Início mostra
 ├── analises/        # escalas, marcas de eixo e resumos em texto dos gráficos
 ├── hooks/           # atualização periódica do "ao vivo"
@@ -187,9 +190,12 @@ src/
 - **IA:** o modelo do colega ainda não foi entregue. O detalhe mostra "Análise
   indisponível" e nada é inventado.
 - **Testes no aparelho:**
-  - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e a fase 1
-    do Bridge 2.0 em 13/11/2026;
-  - **a fase 2 (Análises, modo Exemplo, alertas) ainda precisa do teste manual no iPhone**;
+  - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e as fases 1
+    e 2 do Bridge 2.0 em 13/11/2026;
+  - **a fase 3 (Perfil completo, "ainda não foi resolvido", cartão do mapa com foto) ainda
+    precisa do teste manual no iPhone**;
+  - o zoom de pinça da foto em tela cheia usa o recurso do iOS; no Android a foto aparece
+    inteira, sem zoom;
   - Android não foi testado em aparelho físico.
 - Sem modo offline: sem conexão, o app mostra o erro e permite tentar de novo. Os dados
   digitados continuam no formulário.
@@ -203,11 +209,12 @@ O contrato está em `docs/CONTRATO_API.md` do repositório. Rotas usadas:
 - `/ocorrencias/minhas`;
 - `/ocorrencias/proximas`;
 - `/ocorrencias/{id}`;
-- `/ocorrencias/{id}/confirmacoes`;
+- `/ocorrencias/{id}/confirmacoes` e `/ocorrencias/{id}/nao-resolvido`;
 - `/ocorrencias/{id}/imagem`;
 - `/regioes`;
 - `/estatisticas/regioes` e `/estatisticas/resumo`;
-- `/identificacoes` e `/identificacoes/atual`.
+- `/identificacoes`, `/identificacoes/atual` (consultar e trocar apelido) e
+  `/identificacoes/atual/participacao`.
 
 O UUID da identificação vai sempre no cabeçalho `X-Identificacao-Id`, nunca na URL.
 As decisões de projeto estão em [`DECISOES.md`](DECISOES.md).

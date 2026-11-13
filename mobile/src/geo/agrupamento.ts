@@ -1,7 +1,11 @@
 /**
- * Agrupamento de marcadores para o mapa não travar com muitos pontos:
- * com zoom afastado, divide a área visível numa grade 8×8 e junta os pontos de
- * cada célula num grupo com contagem (no máximo 64 itens desenhados).
+ * Agrupamento de marcadores para o mapa não travar com muitos pontos.
+ *
+ * Com zoom afastado, junta os pontos numa grade e mostra um grupo com contagem por célula
+ * (no máximo 64 itens desenhados). A grade é PRESA AO MAPA, não à tela: as células têm
+ * tamanho fixo por nível de zoom (potência de 2, em graus), então arrastar o mapa não
+ * reagrupa nem move as bolhas. Pontos fora da área visível (mais uma margem de 10%) não
+ * entram — senão inflariam os grupos da borda com o que nem está na tela.
  */
 import type { Prioridade } from '../models/ocorrencia.ts';
 import type { ItemMapa, PontoMapa, RegiaoMapa } from './tipos.ts';
@@ -9,25 +13,35 @@ import type { ItemMapa, PontoMapa, RegiaoMapa } from './tipos.ts';
 const CELULAS_POR_LADO = 8;
 /** Abaixo disso (≈ 2 km de altura visível) cada ocorrência aparece sozinha. */
 const DELTA_SEM_AGRUPAR = 0.02;
+/** Fração da área visível incluída além de cada borda (marcadores entram suavemente ao arrastar). */
+const MARGEM = 0.1;
 
 const PESO: Record<Prioridade, number> = { BAIXA: 1, MEDIA: 2, ALTA: 3 };
 
-function celula(valor: number, inicio: number, tamanho: number): number {
-  const indice = Math.floor((valor - inicio) / tamanho);
-  return Math.min(CELULAS_POR_LADO - 1, Math.max(0, indice));
+/**
+ * Lado da célula: a menor potência de 2 (em graus) que faz a área coberta caber em
+ * CELULAS_POR_LADO − 1 células; desalinhada da grade, ela cruza no máximo CELULAS_POR_LADO.
+ */
+function tamanhoCelula(deltaCoberto: number): number {
+  return 2 ** Math.ceil(Math.log2(deltaCoberto / (CELULAS_POR_LADO - 1)));
+}
+
+function naArea(ponto: PontoMapa, regiao: RegiaoMapa): boolean {
+  const meiaLat = (regiao.latitudeDelta / 2) * (1 + 2 * MARGEM);
+  const meiaLon = (regiao.longitudeDelta / 2) * (1 + 2 * MARGEM);
+  return Math.abs(ponto.latitude - regiao.latitude) <= meiaLat && Math.abs(ponto.longitude - regiao.longitude) <= meiaLon;
 }
 
 export function agruparPontos(pontos: readonly PontoMapa[], regiao: RegiaoMapa): ItemMapa[] {
-  if (regiao.latitudeDelta < DELTA_SEM_AGRUPAR) return pontos.map((ponto) => ({ tipo: 'ponto', ponto }));
+  const visiveis = pontos.filter((ponto) => naArea(ponto, regiao));
+  if (regiao.latitudeDelta < DELTA_SEM_AGRUPAR) return visiveis.map((ponto) => ({ tipo: 'ponto', ponto }));
 
-  const tamanhoLat = regiao.latitudeDelta / CELULAS_POR_LADO;
-  const tamanhoLon = regiao.longitudeDelta / CELULAS_POR_LADO;
-  const inicioLat = regiao.latitude - regiao.latitudeDelta / 2;
-  const inicioLon = regiao.longitude - regiao.longitudeDelta / 2;
+  const tamanhoLat = tamanhoCelula(regiao.latitudeDelta * (1 + 2 * MARGEM));
+  const tamanhoLon = tamanhoCelula(regiao.longitudeDelta * (1 + 2 * MARGEM));
 
   const celulas = new Map<string, PontoMapa[]>();
-  for (const ponto of pontos) {
-    const chave = `${celula(ponto.latitude, inicioLat, tamanhoLat)}-${celula(ponto.longitude, inicioLon, tamanhoLon)}`;
+  for (const ponto of visiveis) {
+    const chave = `${Math.floor(ponto.latitude / tamanhoLat)}:${Math.floor(ponto.longitude / tamanhoLon)}`;
     const grupo = celulas.get(chave);
     if (grupo) grupo.push(ponto);
     else celulas.set(chave, [ponto]);

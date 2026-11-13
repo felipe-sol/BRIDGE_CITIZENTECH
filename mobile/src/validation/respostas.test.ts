@@ -7,6 +7,8 @@ import {
   parseErroApi,
   parseEstatisticasRegioes,
   parseIdentificacao,
+  parseAvisoNaoResolvido,
+  parseParticipacao,
   parsePontosMapa,
   parseResumo,
   parseOcorrencia,
@@ -49,6 +51,7 @@ describe('parsers de resposta da API', () => {
     const detalhe = parseOcorrenciaDetalhe({
       ...OCORRENCIA_API,
       historico_status: [{ status_anterior: null, status_novo: 'ABERTA', observacao: null, alterado_em: 'x' }],
+      avisos_nao_resolvido: 0,
     });
     assert.deepEqual(detalhe.historico, [{ statusAnterior: null, statusNovo: 'ABERTA', observacao: null, alteradoEm: 'x' }]);
     assert.equal(detalhe.minhaRelacao, null);
@@ -64,9 +67,10 @@ describe('parsers de resposta da API', () => {
     const detalhe = parseOcorrenciaDetalhe({
       ...OCORRENCIA_API,
       historico_status: [],
-      minha_relacao: { registrei: false, confirmei: true },
+      avisos_nao_resolvido: 0,
+      minha_relacao: { registrei: false, confirmei: true, avisei_nao_resolvido: false },
     });
-    assert.deepEqual(detalhe.minhaRelacao, { registrei: false, confirmei: true });
+    assert.deepEqual(detalhe.minhaRelacao, { registrei: false, confirmei: true, aviseiNaoResolvido: false });
   });
 
   it('lê proximidade, confirmação e estatísticas por região', () => {
@@ -234,5 +238,41 @@ describe('respostas da fase 2', () => {
     assert.throws(() => parseResumo({ ...RESUMO_API, percentual_resolvidas: '50' }), ErroFormato);
     const { titulo: _semTitulo, ...semTitulo } = PONTOS_API.itens[0]!;
     assert.throws(() => parsePontosMapa({ ...PONTOS_API, itens: [semTitulo] }), ErroFormato);
+  });
+});
+
+describe('respostas da fase 3', () => {
+  it('lê os avisos de "ainda não foi resolvido" no detalhe e na relação', () => {
+    const detalhe = parseOcorrenciaDetalhe({
+      ...OCORRENCIA_API,
+      status: 'RESOLVIDA',
+      historico_status: [],
+      avisos_nao_resolvido: 3,
+      minha_relacao: { registrei: true, confirmei: false, avisei_nao_resolvido: true },
+    });
+    assert.equal(detalhe.avisosNaoResolvido, 3);
+    assert.deepEqual(detalhe.minhaRelacao, { registrei: true, confirmei: false, aviseiNaoResolvido: true });
+    assert.deepEqual(parseAvisoNaoResolvido({ ocorrencia_id: 4, avisos_nao_resolvido: 1, avisado: true }), {
+      ocorrenciaId: 4,
+      avisosNaoResolvido: 1,
+      avisado: true,
+    });
+  });
+
+  it('lê a participação da pessoa', () => {
+    assert.deepEqual(
+      parseParticipacao({ registradas: 2, confirmadas: 1, resolvidas_acompanhadas: 2, avisos_nao_resolvido: 0 }),
+      { registradas: 2, confirmadas: 1, resolvidasAcompanhadas: 2, avisosNaoResolvido: 0 },
+    );
+  });
+
+  it('recusa contagem negativa ou em texto', () => {
+    const base = { ...OCORRENCIA_API, historico_status: [] };
+    assert.throws(() => parseOcorrenciaDetalhe({ ...base, avisos_nao_resolvido: -1 }), ErroFormato);
+    assert.throws(() => parseOcorrenciaDetalhe({ ...base, avisos_nao_resolvido: '2' }), ErroFormato);
+    assert.throws(
+      () => parseParticipacao({ registradas: -1, confirmadas: 0, resolvidas_acompanhadas: 0, avisos_nao_resolvido: 0 }),
+      ErroFormato,
+    );
   });
 });

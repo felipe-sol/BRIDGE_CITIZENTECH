@@ -8,6 +8,9 @@ import { cores, fontes } from '../../theme/tema';
 import { MarcadorGravidade } from '../MarcadorGravidade';
 import { Texto } from '../Texto';
 
+/** O símbolo fica centrado na coordenada (no Android o padrão seria a base, como um alfinete). */
+const CENTRO = { x: 0.5, y: 0.5 };
+
 interface PropsCamadaPontos {
   itens: readonly ItemMapa[];
   onPonto: (ponto: PontoMapa) => void;
@@ -24,6 +27,7 @@ export function CamadaPontos({ itens, onPonto, onGrupo }: PropsCamadaPontos) {
             coordinate={{ latitude: item.ponto.latitude, longitude: item.ponto.longitude }}
             onPress={() => onPonto(item.ponto)}
             tracksViewChanges={false}
+            anchor={CENTRO}
             accessibilityLabel={`${item.ponto.titulo}, gravidade ${ROTULO_PRIORIDADE[item.ponto.prioridade].toLowerCase()}`}
           >
             <View style={styles.alvo}>
@@ -36,6 +40,7 @@ export function CamadaPontos({ itens, onPonto, onGrupo }: PropsCamadaPontos) {
             coordinate={{ latitude: item.latitude, longitude: item.longitude }}
             onPress={() => onGrupo(item.latitude, item.longitude)}
             tracksViewChanges={false}
+            anchor={CENTRO}
             accessibilityLabel={`${item.quantidade} ocorrências nesta área`}
           >
             <View style={[styles.grupo, item.maiorPrioridade === 'ALTA' && styles.grupoAlta]}>

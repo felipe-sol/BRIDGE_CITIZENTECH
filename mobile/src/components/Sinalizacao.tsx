@@ -3,7 +3,8 @@
  * por PADRÃO (zebrado = alta, tracejado = média, contínuo = baixa), e selos de
  * texto. A informação nunca depende só da cor: o texto sempre acompanha.
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { TextoEscalavel as Text } from './Texto';
 
 import {
   ROTULO_PRIORIDADE,

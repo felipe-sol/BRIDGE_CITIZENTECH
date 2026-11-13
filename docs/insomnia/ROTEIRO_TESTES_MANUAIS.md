@@ -98,19 +98,21 @@ python -c "open(r'C:\temp\grande.jpg','wb').write(b'\xff\xd8' + b'0' * 6 * 1024 
 - Marque ☑ nesta tabela e atualize `docs/REQUISITOS.md` (S4) para
   "Verificado manualmente" somente depois disso.
 
-## 4. Rodada 2 — Bridge 2.0, fases 1 e 2 (pastas 09 a 13)
+## 4. Rodada 2 — Bridge 2.0, fases 1 a 3 (pastas 09 a 14)
 
 Testa as rotas novas: endereço e região, mapa e densidade, proximidade (duplicatas),
 "eu também vi", a lista do Andamento e, na pasta 13, a identificação pelo cabeçalho, os
-pontos do mapa, o Alerta Bridge e o resumo da aba Análises. Pode ser feita depois da Rodada 1, **no mesmo
+pontos do mapa, o Alerta Bridge e o resumo da aba Análises; na pasta 14, trocar o apelido,
+a participação da pessoa e o aviso "ainda não foi resolvido". Pode ser feita depois da Rodada 1, **no mesmo
 banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificações).
 
 **Preparação**
-1. A API precisa estar com o código da fase 2 (reiniciada depois da atualização).
+1. A API precisa estar com o código da fase 3 (reiniciada depois da atualização) e o banco
+   na migração 0004 (`alembic upgrade head`).
    Para a pasta 13, gere antes os dados fictícios (na pasta `backend/`):
    `python scripts/dados_ficticios.py gerar` (se já existirem, use `--recriar`).
 2. No Insomnia, importe de novo `bridge-insomnia.json`. A coleção mantém os mesmos IDs
-   e ganha as pastas 09 a 13. Se aparecer uma cópia duplicada, apague a antiga.
+   e ganha as pastas 09 a 14. Se aparecer uma cópia duplicada, apague a antiga.
 3. No ambiente "Local (demonstração)", confira `identificacao_id`, `outra_identificacao_id`
    e `admin_token` (os mesmos da Rodada 1). A variável nova `terceira_ocorrencia_id` é
    preenchida na 09.1.
@@ -148,6 +150,15 @@ banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificaç�
 | 13.8 | GET /estatisticas/resumo (reais) | 200; indicadores, 5 categorias, semanas, ranking | ☐ `13-8-resumo-reais.png` |
 | 13.9 | GET /estatisticas/resumo?origem=SIMULADA | 200; `total` 1200, cerca de 18 semanas | ☐ `13-9-resumo-ficticios.png` |
 | 13.10 | GET /estatisticas/resumo?dias=0 | 422 `VALIDACAO` | ☐ `13-10-resumo-dias-invalido.png` |
+| 14.1 | PATCH /identificacoes/atual (trocar apelido) | 200; mesmo `id`, apelido novo | ☐ `14-1-trocar-apelido.png` |
+| 14.2 | PATCH /identificacoes/atual apelido "A" | 422 `VALIDACAO` | ☐ `14-2-apelido-curto.png` |
+| 14.3 | PATCH /identificacoes/atual (UUID inexistente) | 404 `NAO_ENCONTRADO` | ☐ `14-3-apelido-inexistente.png` |
+| 14.4 | GET /identificacoes/atual/participacao | 200; registradas, confirmadas, resolvidas acompanhadas, avisos | ☐ `14-4-participacao.png` |
+| 14.5 | POST /ocorrencias/1/nao-resolvido (outra pessoa) | 201; `avisos_nao_resolvido` 1, `avisado` true | ☐ `14-5-aviso-nao-resolvido.png` |
+| 14.6 | POST repetido | 200; continua 1 | ☐ `14-6-aviso-repetido.png` |
+| 14.7 | POST na ocorrência 2 (aberta) | 409 `OCORRENCIA_NAO_RESOLVIDA` | ☐ `14-7-aviso-em-aberta.png` |
+| 14.8 | GET detalhe com o cabeçalho da outra pessoa | 200; RESOLVIDA, `avisos_nao_resolvido` 1, `avisei_nao_resolvido` true | ☐ `14-8-detalhe-com-aviso.png` |
+| 14.9 | DELETE /ocorrencias/1/nao-resolvido | 200; `avisos_nao_resolvido` 0 | ☐ `14-9-desfazer-aviso.png` |
 
 Observação: os números da 13.5, 13.7 e 13.9 valem para os fictícios recém-gerados com a
 semente padrão; com o passar dos dias, os alertas (janela de 30 dias) podem diminuir —

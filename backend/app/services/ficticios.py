@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.enums import CategoriaOcorrencia, NivelAlerta, OrigemOcorrencia, Prioridade, StatusAnaliseIA
 from app.enums import StatusOcorrencia as S
-from app.models import Confirmacao, HistoricoStatus, Identificacao, Ocorrencia
+from app.models import AvisoNaoResolvido, Confirmacao, HistoricoStatus, Identificacao, Ocorrencia
 from app.services.alertas import JANELA_ALERTA_DIAS, alerta_de
 from app.services.prioridade import calcular_prioridade
 from app.services.regioes import Regiao, carregar_regioes, localizar_regiao
@@ -307,6 +307,14 @@ def remover_ficticios(db: Session) -> tuple[int, int]:
     """Apaga SOMENTE as ocorrências SIMULADA (histórico e confirmações vão em cascata) e as
     identificações fictícias. Devolve (ocorrências, identificações) removidas."""
     ocorrencias = db.execute(delete(Ocorrencia).where(Ocorrencia.origem == OrigemOcorrencia.SIMULADA)).rowcount
-    identificacoes = db.execute(delete(Identificacao).where(Identificacao.id.in_(IDENTIFICACOES_FICTICIAS))).rowcount
+    # Uma identificação fictícia usada para dado real (o UUID é previsível) fica onde está.
+    identificacoes = db.execute(
+        delete(Identificacao).where(
+            Identificacao.id.in_(IDENTIFICACOES_FICTICIAS),
+            ~exists().where(Ocorrencia.identificacao_id == Identificacao.id),
+            ~exists().where(Confirmacao.identificacao_id == Identificacao.id),
+            ~exists().where(AvisoNaoResolvido.identificacao_id == Identificacao.id),
+        )
+    ).rowcount
     db.commit()
     return ocorrencias, identificacoes

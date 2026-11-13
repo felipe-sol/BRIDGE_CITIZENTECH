@@ -67,7 +67,7 @@ def client(banco_migrado: object) -> Iterator[object]:
     assert isinstance(banco_migrado, Engine)
     with banco_migrado.begin() as conn:
         conn.execute(
-            text("TRUNCATE confirmacoes, historico_status, ocorrencias, identificacoes RESTART IDENTITY CASCADE")
+            text("TRUNCATE avisos_nao_resolvido, confirmacoes, historico_status, ocorrencias, identificacoes RESTART IDENTITY CASCADE")
         )
     shutil.rmtree(UPLOAD_DIR_TESTE, ignore_errors=True)
     UPLOAD_DIR_TESTE.mkdir(parents=True, exist_ok=True)

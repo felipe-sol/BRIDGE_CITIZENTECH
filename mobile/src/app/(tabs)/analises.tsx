@@ -29,6 +29,7 @@ import { mensagemDeErro } from '../../services/http';
 import { resumoEstatisticas } from '../../services/estatisticasService';
 import { cores, espaco, raio } from '../../theme/tema';
 import { formatarDecimal } from '../../utils/formatacao';
+import { deveExecutar, type UltimaExecucao } from '../../utils/limitador';
 
 const INTERVALO_AO_VIVO_MS = 15_000;
 const VAZIO: EstadoDadosMapa<ResumoEstatisticas> = { dados: null, atualizadoEm: null, erro: null, chave: null };
@@ -52,12 +53,17 @@ export default function TelaAnalises() {
 
   // Resposta de outro modo nunca é exibida (real e fictício não se misturam).
   const modoAtual = useRef(modo);
+  const ultimaConsulta = useRef<UltimaExecucao | null>(null);
   useEffect(() => {
     modoAtual.current = modo;
   }, [modo]);
 
   const carregar = useCallback(async () => {
     const pedido: ModoDados = modo;
+    // Abrir a aba disparava duas consultas iguais (montagem + foco): a segunda é ignorada.
+    const inicio = Date.now();
+    if (!deveExecutar(ultimaConsulta.current, pedido, inicio)) return;
+    ultimaConsulta.current = { chave: pedido, em: inicio };
     let resultado: Parameters<typeof aplicarResultadoMapa<ResumoEstatisticas>>[1];
     try {
       resultado = { ok: true, dados: await resumoEstatisticas(origemDoModo(pedido)), agora: Date.now(), chave: pedido };

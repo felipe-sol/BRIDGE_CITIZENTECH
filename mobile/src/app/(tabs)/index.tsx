@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { juntarAcompanhadas } from '../../acompanhamento/lista';
 import { alertaParaInicio } from '../../alertas/alertas';
-import { estaAtualizada } from '../../acompanhamento/novidades';
+import { contarAtualizadas, estaAtualizada, textoAvisoAtualizadas } from '../../acompanhamento/novidades';
 import { Aviso } from '../../components/Aviso';
 import { Botao } from '../../components/Botao';
 import { BotaoFlutuante } from '../../components/BotaoFlutuante';
@@ -22,6 +22,7 @@ import { Icone } from '../../components/Icone';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
 import { Texto } from '../../components/Texto';
 import { useIdentificacao } from '../../context/IdentificacaoContext';
+import { usePreferencias } from '../../context/PreferenciasContext';
 import { regiaoInicial } from '../../geo/distancia';
 import { localizarRegiao } from '../../geo/regioes';
 import type { RegiaoSP } from '../../geo/tipos';
@@ -45,7 +46,7 @@ const LIMITE_ACOMPANHANDO = 3;
 type EstadoLista =
   | { tipo: 'carregando' }
   | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'ok'; itens: Ocorrencia[]; vistos: Readonly<Record<string, string>> };
+  | { tipo: 'ok'; itens: Ocorrencia[]; vistos: Readonly<Record<string, string>>; atualizadas: number };
 
 interface Lugar {
   bairro: string | null;
@@ -73,6 +74,7 @@ export default function TelaInicio() {
   const [localizacao, setLocalizacao] = useState<ResultadoLocalizacao | null>(null);
   const [lugar, setLugar] = useState<Lugar>({ bairro: null, regiao: null });
   const [lista, setLista] = useState<EstadoLista>({ tipo: 'carregando' });
+  const { preferencias } = usePreferencias();
   const [atualizando, setAtualizando] = useState(false);
   // Só dados reais no Início. null = ainda não carregou (ou falhou: a faixa não aparece).
   const [cidade, setCidade] = useState<{ regioes: RegiaoSP[]; estatisticas: EstatisticaRegiao[] } | null>(null);
@@ -99,6 +101,8 @@ export default function TelaInicio() {
       setLista({
         tipo: 'ok',
         itens: juntarAcompanhadas(registradas.itens, confirmadas.itens, LIMITE_ACOMPANHANDO),
+        // O aviso considera TODAS as acompanhadas da 1ª página (não só as 3 do cartão).
+        atualizadas: contarAtualizadas(juntarAcompanhadas(registradas.itens, confirmadas.itens, Infinity), vistos),
         vistos,
       });
     } catch (erro: unknown) {
@@ -169,6 +173,19 @@ export default function TelaInicio() {
               : undefined
           }
         />
+
+        {preferencias.avisosNoApp && lista.tipo === 'ok' && textoAvisoAtualizadas(lista.atualizadas) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint="Abre o Andamento"
+            onPress={() => router.navigate(ROTAS.andamento)}
+            style={[styles.avisoNovidades, sombra.cartao]}
+          >
+            <Icone nome="progress-check" tamanho={22} cor={cores.papel} />
+            <Texto style={styles.avisoNovidadesTexto}>{textoAvisoAtualizadas(lista.atualizadas)}</Texto>
+            <Icone nome="chevron-right" tamanho={20} cor={cores.papel} />
+          </Pressable>
+        ) : null}
 
         {cidade ? <FaixaAlerta alerta={alerta} onAbrir={(codigo) => router.push(rotaRegiao(codigo))} /> : null}
 
@@ -277,6 +294,15 @@ export default function TelaInicio() {
 }
 
 const styles = StyleSheet.create({
+  avisoNovidades: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.sm,
+    backgroundColor: cores.placa,
+    borderRadius: raio.lg,
+    padding: espaco.md,
+  },
+  avisoNovidadesTexto: { flex: 1, fontFamily: fontes.extrabold, fontSize: 15, lineHeight: 20, color: cores.papel },
   convite: {
     flexDirection: 'row',
     alignItems: 'center',

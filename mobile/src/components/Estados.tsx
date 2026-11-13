@@ -1,5 +1,6 @@
 /** Estados de tela: carregando, erro e vazio — sempre com texto e ação. */
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { TextoEscalavel as Text } from './Texto';
 
 import { cores, espaco, texto, fontes } from '../theme/tema';
 import { Botao } from './Botao';

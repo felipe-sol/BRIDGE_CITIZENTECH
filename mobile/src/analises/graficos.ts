@@ -40,6 +40,11 @@ export function indiceMaisProximo(x: number, largura: number, quantidade: number
   return Math.min(quantidade - 1, Math.max(0, Math.round(x / passo)));
 }
 
+/** y do centro de cada rótulo do eixo, igual ao das linhas da grade (y cresce para baixo). */
+export function posicoesMarcas(marcas: readonly number[], alturaPlot: number, margem: number, maximo: number): number[] {
+  return marcas.map((m) => arredondar(margem + (maximo > 0 ? alturaPlot - (m / maximo) * alturaPlot : alturaPlot)));
+}
+
 /** Marcas "redondas" do eixo (passos de 1, 2 ou 5 vezes uma potência de 10), de 0 até cobrir o máximo. */
 export function marcasEixo(maximo: number): number[] {
   if (maximo <= 0) return [0, 1];

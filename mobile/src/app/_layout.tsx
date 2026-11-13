@@ -2,16 +2,16 @@
  * Layout raiz: carrega as fontes, lê a identificação salva e decide o que mostrar.
  *
  * - Sem identificação: só a tela de identificação fica acessível.
- * - Com identificação: abas + telas por cima (registrar, detalhe, região).
+ * - Com identificação: abas + telas por cima (registrar, detalhe, região, páginas do Perfil).
+ * As preferências do Perfil (Texto maior, avisos) valem para o app inteiro.
  * Stack.Protected faz o redirecionamento sozinho quando a identificação muda.
  */
-import {
-  Overpass_400Regular,
-  Overpass_600SemiBold,
-  Overpass_800ExtraBold,
-  Overpass_900Black,
-  useFonts,
-} from '@expo-google-fonts/overpass';
+// Só os 4 pesos usados (o índice do pacote puxaria os 18 arquivos para o bundle).
+import { Overpass_400Regular } from '@expo-google-fonts/overpass/400Regular';
+import { Overpass_600SemiBold } from '@expo-google-fonts/overpass/600SemiBold';
+import { Overpass_800ExtraBold } from '@expo-google-fonts/overpass/800ExtraBold';
+import { Overpass_900Black } from '@expo-google-fonts/overpass/900Black';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -20,6 +20,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { Carregando, EstadoErro } from '../components/Estados';
 import { IdentificacaoProvider, useIdentificacao } from '../context/IdentificacaoContext';
+import { PreferenciasProvider } from '../context/PreferenciasContext';
 import { cores, fontes } from '../theme/tema';
 
 function Navegacao() {
@@ -76,6 +77,7 @@ function Navegacao() {
             headerShown: false,
           }}
         />
+        <Stack.Screen name="sobre/[pagina]" options={{ title: 'Sobre o Bridge' }} />
       </Stack.Protected>
       <Stack.Protected guard={!temIdentificacao}>
         <Stack.Screen name="identificacao" options={{ title: 'Identificação' }} />
@@ -94,11 +96,13 @@ export default function LayoutRaiz() {
 
   return (
     <SafeAreaProvider>
-      <IdentificacaoProvider>
-        <StatusBar style="dark" />
-        {/* Se a fonte falhar, o app segue com a fonte do sistema em vez de travar. */}
-        {fontesProntas || erroFontes ? <Navegacao /> : null}
-      </IdentificacaoProvider>
+      <PreferenciasProvider>
+        <IdentificacaoProvider>
+          <StatusBar style="dark" />
+          {/* Se a fonte falhar, o app segue com a fonte do sistema em vez de travar. */}
+          {fontesProntas || erroFontes ? <Navegacao /> : null}
+        </IdentificacaoProvider>
+      </PreferenciasProvider>
     </SafeAreaProvider>
   );
 }

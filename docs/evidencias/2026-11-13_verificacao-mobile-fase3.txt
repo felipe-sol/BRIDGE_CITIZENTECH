@@ -1,0 +1,210 @@
+# Verificação do app — Bridge 2.0, fase 3 (Expo SDK 58)
+Data: 2026-11-13 14:36:48 -0300
+
+$ npx tsc --noEmit
+
+[código de saída: 0]
+
+$ npx eslint .
+
+[código de saída: 0]
+
+$ npm test
+✔ posiciona cada status no seu passo (1.6527ms)
+  ✔ rejeitada é um estado próprio, fora da sequência (0.1221ms)
+✔ etapaDoStatus (barra de 4 passos) (2.5354ms)
+  ✔ junta registradas e confirmadas sem repetir e ordena pela atualização mais recente (0.2573ms)
+  ✔ respeita o limite (0.145ms)
+✔ juntarAcompanhadas (Início) (0.5696ms)
+  ✔ só em ocorrência resolvida e real (0.223ms)
+  ✔ conta as pessoas que avisaram (0.1771ms)
+  ✔ falha ao atualizar mantém a ocorrência na tela, com aviso; só a 1ª carga vira erro (0.74ms)
+✔ "Ainda não foi resolvido? Avise" no detalhe (1.457ms)
+  ✔ anexa a próxima página sem repetir ocorrência que mudou de página (0.5324ms)
+✔ Carregar mais no Andamento (0.8645ms)
+  ✔ só marca quando houve atualização depois da última visita (1.0748ms)
+  ✔ sem visita registrada ou com data inválida, não marca (0.459ms)
+✔ estaAtualizada (selo "Atualizada") (4.1162ms)
+  ✔ conta as acompanhadas que mudaram depois da última visita (0.591ms)
+  ✔ texto do aviso (0.3479ms)
+✔ avisos de atualização no app (1.2368ms)
+  ✔ resume a ocorrência sem coordenadas e sem link (0.7686ms)
+  ✔ sem endereço usa a região; nunca passa de 500 caracteres (1.1931ms)
+  ✔ ocorrência fictícia sai rotulada no compartilhamento (0.4947ms)
+✔ textoCompartilhamento (2.9822ms)
+  ✔ nunca se apresenta como oficial (1.1175ms)
+  ✔ explica o motivo com os números da região (0.1518ms)
+  ✔ a região da própria pessoa em atenção vem primeiro, com distância 0 (0.346ms)
+  ✔ senão, a região em ALERTA mais próxima, com a distância até ela (0.2649ms)
+  ✔ sem localização, a região em ALERTA de maior índice; sem alerta, nada (0.1755ms)
+✔ Alerta Bridge (4.0699ms)
+  ✔ barras proporcionais ao maior valor, sem NaN com zeros (2.2107ms)
+  ✔ linha SVG dentro da área; vazia sem dados; na base com máximo 0 (0.4428ms)
+  ✔ toque no gráfico escolhe a semana mais próxima (0.268ms)
+  ✔ rótulos do eixo Y alinhados às linhas da grade (0.3647ms)
+  ✔ marcas redondas do eixo cobrindo o máximo (0.599ms)
+✔ escalas dos gráficos (6.2109ms)
+  ✔ resumem os dados ou dizem que não há dados (0.5416ms)
+  ✔ formata dias e o aviso de corte do mapa (0.2064ms)
+✔ textos dos gráficos (leitores de tela) (1.0155ms)
+  ✔ cada página tem título e ao menos 2 seções com texto (0.5689ms)
+  ✔ alertas cita os limites e diz que não é oficial; prioridade diz que não é avaliação oficial (0.1386ms)
+  ✔ aceita só as quatro páginas (0.1301ms)
+✔ páginas informativas do Perfil (2.503ms)
+  ✔ com marcador PREENCHER não mostra nome nenhum (0.979ms)
+  ✔ com todos os nomes preenchidos devolve os nomes (0.1487ms)
+  ✔ formato inesperado conta como pendente (0.1107ms)
+✔ equipe vinda do package.json (1.4559ms)
+  ✔ localiza pontos reais e devolve null fora de SP (0.6824ms)
+  ✔ lê nome de exibição, área e caixa (0.2158ms)
+  ✔ rejeita resposta fora do formato (0.2802ms)
+  ✔ busca sem acento, com mínimo de 2 letras (1.5453ms)
+✔ regiões (3.6347ms)
+  ✔ limita a 64 itens com zoom afastado e preserva a contagem (2.0064ms)
+  ✔ com zoom próximo não agrupa (0.2075ms)
+  ✔ o grupo herda a maior prioridade (0.1964ms)
+✔ agrupamento de pontos (2.6014ms)
+  ✔ mede e formata distâncias (0.2811ms)
+  ✔ sem permissão de localização, abre no centro de São Paulo (0.1575ms)
+  ✔ com localização, abre perto da pessoa (0.1509ms)
+  ✔ ao voltar à etapa Local, reabre no ponto já escolhido (não no centro da cidade) (0.1113ms)
+  ✔ converte a área visível em caixa (0.1236ms)
+✔ distâncias e região inicial (1.1393ms)
+  ✔ classifica ocorrências por km² em 5 faixas fixas (0.0929ms)
+  ✔ região sem estatística carregada não é pintada como "Nenhuma" (0.0833ms)
+✔ densidade (0.2405ms)
+  ✔ monta "Rua, número — Bairro" e omite o que falta (0.1572ms)
+  ✔ nunca passa de 200 caracteres (0.0843ms)
+✔ endereço legível (0.3242ms)
+  ✔ copia só o que o marcador precisa (0.1194ms)
+✔ ponto do mapa a partir da ocorrência (0.1642ms)
+  ✔ erro de atualização preserva os dados anteriores (0.1559ms)
+  ✔ resposta atrasada de outro modo ou filtro é descartada (não mistura real e fictício) (0.0493ms)
+  ✔ falha sem nenhum dado não deixa o mapa vazio parecer "nada registrado" (0.0529ms)
+  ✔ diz há quanto tempo foi a última atualização (0.0668ms)
+✔ estado do mapa ao vivo (0.4148ms)
+  ✔ centraliza na caixa com uma folga de 15% (0.0854ms)
+✔ enquadrar uma região (0.1279ms)
+  ✔ abre sempre no Ao vivo, salvo pedido explícito do Exemplo (0.0904ms)
+  ✔ Exemplo consulta só os fictícios; Ao vivo só os reais (0.2269ms)
+✔ modo dos dados (Ao vivo ou Exemplo) (0.4139ms)
+  ✔ diz há quanto tempo, em linguagem simples (0.2372ms)
+  ✔ mostra a última atualização da equipe (não o registro inicial) (0.2005ms)
+  ✔ "Eu também vi" no mapa só em aberta, real e de outra pessoa (0.2274ms)
+✔ cartão da ocorrência no mapa (0.8003ms)
+  ✔ aproveita campos válidos e usa o padrão no resto, sem lançar erro (4.1073ms)
+✔ preferências guardadas no aparelho (7.3913ms)
+  ✔ escala o tamanho e a altura da linha juntos (o texto não fica cortado) (0.7675ms)
+✔ Texto maior (1.1124ms)
+  ✔ começa no local e, ao escolher a categoria, fica verificando parecidos (2.4378ms)
+  ✔ sem parecidos vai direto para os detalhes (0.4358ms)
+  ✔ com parecidos para na etapa de parecidos; "é outro" segue para os detalhes (0.8109ms)
+  ✔ falha na consulta de parecidos segue para os detalhes com aviso (1.0855ms)
+  ✔ voltar dos detalhes leva à categoria; da categoria, ao local (0.2036ms)
+  ✔ avançar dos detalhes leva à revisão, e voltar retorna aos detalhes (0.1209ms)
+  ✔ ignora (0, 0) e coordenadas inválidas ao confirmar o local (0.1074ms)
+  ✔ ignora resposta atrasada de parecidos depois de voltar (0.1044ms)
+✔ fluxo do registro em etapas (7.7831ms)
+  ✔ evita repetir a MESMA consulta dentro de 1 s, mas nunca segura uma consulta diferente (0.513ms)
+✔ limitador de chamadas repetidas (1.1824ms)
+  ✔ normaliza espaços e aceita 2 a 60 caracteres (1.047ms)
+  ✔ dá mensagens específicas (0.1657ms)
+✔ validarApelido (2.036ms)
+  ✔ aceita só inteiros positivos (0.2ms)
+✔ interpretarIdRota (0.3025ms)
+  ✔ remove barra final e identifica localhost (0.3741ms)
+  ✔ recusa ausente ou malformada (0.0939ms)
+✔ interpretarUrlApi (0.5862ms)
+  ✔ aceita só dois dígitos (código de subprefeitura) (0.2208ms)
+  ✔ monta a rota da folha da região (0.2107ms)
+  ✔ a rota do Mapa sempre diz o modo, para "Ao vivo" nunca herdar o Exemplo (0.1448ms)
+  ✔ monta a rota das páginas informativas do Perfil (0.0882ms)
+✔ interpretarCodigoRegiao (0.9448ms)
+  ✔ usa vírgula e corta casas inúteis (0.2301ms)
+✔ formatarDecimal (0.2931ms)
+  ✔ pega a primeira letra da primeira e da última palavra (0.4231ms)
+✔ iniciais (0.478ms)
+  ✔ aceita ponto ou vírgula decimal e sinal (0.6441ms)
+  ✔ recusa textos que não são número (0.1317ms)
+✔ interpretarCoordenada (2.5505ms)
+  ✔ aceita formulário válido, apara textos e arredonda para 6 casas (0.813ms)
+  ✔ formulário vazio gera mensagem específica para cada campo (0.6296ms)
+  ✔ valida tamanhos de texto (0.4448ms)
+  ✔ valida faixa das coordenadas (0.2866ms)
+  ✔ recusa (0, 0) como localização ausente (0.2465ms)
+  ✔ recusa coordenada em formato inválido (0.1463ms)
+✔ validarOcorrencia (3.3148ms)
+  ✔ aceita JPEG/PNG até 5 MB e tamanho desconhecido (0.1597ms)
+  ✔ recusa formato e tamanho excedente (0.1323ms)
+✔ validarFoto (0.4178ms)
+  ✔ apara o endereço e transforma vazio em null (0.2759ms)
+  ✔ recusa endereço com mais de 200 caracteres (0.1072ms)
+✔ endereço no formulário (0.461ms)
+  ✔ converte página e detalhe para camelCase (2.0669ms)
+  ✔ lê os campos do Bridge 2.0 (endereço, região, confirmações, origem, relação) (0.2253ms)
+  ✔ lê proximidade, confirmação e estatísticas por região (0.4896ms)
+  ✔ recusa campos ausentes, tipos errados e valores fora do enum (1.2471ms)
+  ✔ lê erro padronizado e ignora formatos desconhecidos (0.5028ms)
+✔ parsers de resposta da API (6.7462ms)
+  ✔ lê o resumo das análises (0.3813ms)
+  ✔ aceita resumo vazio (nada registrado ainda) (0.1422ms)
+  ✔ lê os pontos do mapa e o aviso de corte (0.1739ms)
+  ✔ recusa nível de alerta desconhecido, percentual como texto e ponto sem título (0.2488ms)
+✔ respostas da fase 2 (1.1915ms)
+  ✔ lê os avisos de "ainda não foi resolvido" no detalhe e na relação (0.3427ms)
+  ✔ lê a participação da pessoa (0.1454ms)
+  ✔ recusa contagem negativa ou em texto (0.3336ms)
+✔ respostas da fase 3 (0.9662ms)
+ℹ tests 106
+ℹ suites 39
+ℹ pass 106
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 456.1991
+[código de saída: 0]
+
+$ npx expo-doctor
+Running 20 checks on your project...
+20/20 checks passed. No issues detected!
+[código de saída: 0]
+
+$ npx expo export --platform ios --output-dir <rascunho> --clear
+iOS Bundled 18719ms node_modules\expo-router\entry.js (1447 modules)
+node_modules\expo-router\assets\error.png (469B)
+Exported: <rascunho>
+[código de saída: 0]
+
+## Buscas no código e no bundle
+Uso de 'any' em src/ (anotação, 'as any' ou genérico <any>):
+0
+@ts-ignore / @ts-expect-error / eslint-disable em src/:
+0
+Bundle: entry-1fe73f26de50cf84945dcb423007cb3d.hbc (3268 KB)
+Ocorrências no bundle de: token administrativo, DATABASE_URL, senha do banco, X-Admin-Token:
+  ADMIN_TOKEN: 0
+  DATABASE_URL: 0
+  bridge_dev: 0
+  X-Admin-Token: 0
+
+## Adendo — correções do Mapa (pedido de 13/11: "100% funcional, sem erros de visualização e requisição")
+Data: 2026-11-13 14:55:35 -0300
+Defeitos achados pela leitura do código e dos logs (API: todas as respostas 200; Metro: "Could not connect to development server").
+1. Agrupamento: pontos fora da tela entravam nos grupos da borda (contagens infladas) e a grade andava com a tela (bolhas mudavam ao arrastar).
+2. Requisições: a cada arrastada o app pedia a área exata e as estatísticas de novo; agora pede a área com folga, reaproveita enquanto a tela cabe nela e só pede estatísticas ao mudar de modo ou no ciclo de 15 s.
+3. Visual: com o cartão aberto, filtros/seletores/botão de localização saem do topo (sem sobreposição); trocar de camada ou de filtro fecha o cartão; marcadores centrados na coordenada.
+Testes novos (falharam antes da correção, passam depois):
+  ✔ pontos fora da área visível não inflam os grupos da borda (0.5437ms)
+  ✔ arrastar um pouco o mapa não reagrupa nem move as bolhas (0.8487ms)
+  ✔ pede a área com folga e reaproveita enquanto a tela couber nela (0.2671ms)
+$ npm test
+ℹ tests 109
+ℹ pass 109
+ℹ fail 0
+[código de saída: 0]
+$ npx tsc --noEmit  /  npx eslint .
+(sem saída: nenhum erro)
+$ npx expo export --platform ios (pasta temporária)
+iOS Bundled 24521ms node_modules\expo-router\entry.js (1447 modules)
+[código de saída: 0]

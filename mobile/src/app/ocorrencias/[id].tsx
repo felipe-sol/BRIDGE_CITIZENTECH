@@ -3,6 +3,7 @@
  * "eu também vi", linha do tempo com a equipe responsável e compartilhar.
  * Abrir o detalhe marca a ocorrência como vista (some o selo "Atualizada").
  */
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
@@ -15,6 +16,7 @@ import { Botao } from '../../components/Botao';
 import { EstadoErro } from '../../components/Estados';
 import { Esqueleto } from '../../components/Esqueleto';
 import { FaixaFicticia } from '../../components/FaixaFicticia';
+import { FotoTelaCheia } from '../../components/FotoTelaCheia';
 import { ICONE_CATEGORIA, Icone } from '../../components/Icone';
 import { LinhaDoTempo } from '../../components/LinhaDoTempo';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
@@ -29,16 +31,23 @@ import {
   type OcorrenciaDetalhe,
 } from '../../models/ocorrencia';
 import { ErroApi, mensagemDeErro, urlAbsoluta } from '../../services/http';
-import { confirmarOcorrencia, desfazerConfirmacao, obterOcorrencia } from '../../services/ocorrenciasService';
+import {
+  aplicarAtualizacaoDetalhe,
+  podeAvisarNaoResolvido,
+  textoAvisosNaoResolvido,
+  type EstadoDetalhe,
+} from '../../acompanhamento/detalhe';
+import {
+  avisarNaoResolvido,
+  confirmarOcorrencia,
+  desfazerAvisoNaoResolvido,
+  desfazerConfirmacao,
+  obterOcorrencia,
+} from '../../services/ocorrenciasService';
 import { marcarVisto } from '../../services/vistos';
 import { ALVO_TOQUE, cores, espaco, fontes, raio, sombra } from '../../theme/tema';
 import { formatarPercentual } from '../../utils/formatacao';
 import { ROTAS, interpretarIdRota, type ParametrosDetalhe } from '../../validation/rotas';
-
-type EstadoDetalhe =
-  | { tipo: 'carregando' }
-  | { tipo: 'erro'; titulo: string; mensagem: string; podeTentar: boolean }
-  | { tipo: 'pronto'; ocorrencia: OcorrenciaDetalhe };
 
 /** Texto da análise de IA. Nunca inventa previsão quando ela não existe. */
 function descreverAnalise(analise: AnaliseIA): { titulo: string; texto: string } {
@@ -68,6 +77,7 @@ function descreverAnalise(analise: AnaliseIA): { titulo: string; texto: string }
 
 function FotoRemota({ caminho }: { caminho: string }) {
   const [estado, setEstado] = useState<'carregando' | 'ok' | 'erro'>('carregando');
+  const [telaCheia, setTelaCheia] = useState(false);
   let uri: string | null = null;
   try {
     uri = urlAbsoluta(caminho);
@@ -79,15 +89,28 @@ function FotoRemota({ caminho }: { caminho: string }) {
   }
   return (
     <View>
-      <Image
-        source={{ uri }}
-        style={styles.foto}
-        resizeMode="cover"
-        accessibilityLabel="Foto do problema enviada pelo cidadão"
-        onLoad={() => setEstado('ok')}
-        onError={() => setEstado('erro')}
-      />
+      <Pressable
+        accessibilityRole="imagebutton"
+        accessibilityLabel="Foto do problema enviada pelo cidadão. Toque para abrir em tela cheia."
+        disabled={estado !== 'ok'}
+        onPress={() => setTelaCheia(true)}
+      >
+        <Image
+          source={{ uri }}
+          style={styles.foto}
+          resizeMode="cover"
+          onLoad={() => setEstado('ok')}
+          onError={() => setEstado('erro')}
+        />
+        {estado === 'ok' ? (
+          <View style={styles.ampliar} accessibilityElementsHidden>
+            <Icone nome="magnify" tamanho={18} cor={cores.papel} />
+            <Texto style={styles.ampliarTexto}>Ampliar</Texto>
+          </View>
+        ) : null}
+      </Pressable>
       {estado === 'carregando' ? <ActivityIndicator style={styles.carregandoFoto} color={cores.placa} /> : null}
+      <FotoTelaCheia uri={uri} visivel={telaCheia} onFechar={() => setTelaCheia(false)} />
     </View>
   );
 }
@@ -105,6 +128,8 @@ export default function TelaDetalheOcorrencia() {
   const [atualizando, setAtualizando] = useState(false);
   const [relatando, setRelatando] = useState(false);
   const [erroRelato, setErroRelato] = useState<string | null>(null);
+  const [avisando, setAvisando] = useState(false);
+  const [erroAviso, setErroAviso] = useState<string | null>(null);
 
   /** Busca a ocorrência e devolve o próximo estado da tela (sem efeitos colaterais). */
   const buscar = useCallback(async (): Promise<EstadoDetalhe> => {
@@ -114,7 +139,7 @@ export default function TelaDetalheOcorrencia() {
     try {
       const ocorrencia = await obterOcorrencia(id, identificacaoId);
       await marcarVisto(ocorrencia.id, ocorrencia.atualizadoEm);
-      return { tipo: 'pronto', ocorrencia };
+      return { tipo: 'pronto', ocorrencia, aviso: null };
     } catch (erro: unknown) {
       const naoExiste = erro instanceof ErroApi && erro.status === 404;
       return {
@@ -141,9 +166,15 @@ export default function TelaDetalheOcorrencia() {
     void buscar().then(setEstado);
   }
 
+  /** Busca de novo sem perder a tela: uma falha vira aviso (aplicarAtualizacaoDetalhe). */
+  async function recarregar(): Promise<void> {
+    const proximo = await buscar();
+    setEstado((anterior) => aplicarAtualizacaoDetalhe(anterior, proximo));
+  }
+
   async function atualizar(): Promise<void> {
     setAtualizando(true);
-    setEstado(await buscar());
+    await recarregar();
     setAtualizando(false);
   }
 
@@ -154,11 +185,27 @@ export default function TelaDetalheOcorrencia() {
     try {
       if (o.minhaRelacao?.confirmei) await desfazerConfirmacao(o.id, identificacaoId);
       else await confirmarOcorrencia(o.id, identificacaoId);
-      setEstado(await buscar());
+      await recarregar();
     } catch (erro: unknown) {
       setErroRelato(mensagemDeErro(erro));
     } finally {
       setRelatando(false);
+    }
+  }
+
+  async function alternarAviso(o: OcorrenciaDetalhe) {
+    if (avisando || identificacaoId === undefined) return;
+    setAvisando(true);
+    setErroAviso(null);
+    try {
+      if (o.minhaRelacao?.aviseiNaoResolvido) await desfazerAvisoNaoResolvido(o.id, identificacaoId);
+      else await avisarNaoResolvido(o.id, identificacaoId);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      await recarregar();
+    } catch (erro: unknown) {
+      setErroAviso(mensagemDeErro(erro));
+    } finally {
+      setAvisando(false);
     }
   }
 
@@ -192,6 +239,11 @@ export default function TelaDetalheOcorrencia() {
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={atualizar} />}
     >
       {o.origem === 'SIMULADA' ? <FaixaFicticia singular /> : null}
+      {estado.aviso ? (
+        <Aviso tom="atencao" titulo="Não foi possível atualizar">
+          {`${estado.aviso} Mostrando os últimos dados.`}
+        </Aviso>
+      ) : null}
 
       {acabouDeCriar ? (
         <Aviso tom="sucesso" titulo="Registro enviado">
@@ -287,6 +339,37 @@ export default function TelaDetalheOcorrencia() {
         {erroRelato ? <Aviso tom="erro">{erroRelato}</Aviso> : null}
       </View>
 
+      {podeAvisarNaoResolvido(o) ? (
+        <View style={[styles.bloco, sombra.cartao]}>
+          <View style={styles.linha}>
+            <Icone nome="alert-outline" tamanho={22} cor={cores.asfalto} />
+            <Texto variante="subtitulo" style={styles.flex}>
+              Foi resolvido mesmo?
+            </Texto>
+          </View>
+          {textoAvisosNaoResolvido(o.avisosNaoResolvido) ? (
+            <Texto style={styles.contagemAvisos}>{textoAvisosNaoResolvido(o.avisosNaoResolvido)}</Texto>
+          ) : null}
+          <Botao
+            titulo={o.minhaRelacao?.aviseiNaoResolvido ? 'Desfazer meu aviso' : 'Ainda não foi resolvido? Avise'}
+            variante="secundario"
+            carregando={avisando}
+            dica={
+              o.minhaRelacao?.aviseiNaoResolvido
+                ? 'Remove o seu aviso desta ocorrência'
+                : 'Avisa a equipe responsável que o problema continua no local'
+            }
+            onPress={() => {
+              alternarAviso(o).catch(() => undefined);
+            }}
+          />
+          <Texto variante="apoio" style={styles.nota}>
+            O aviso não reabre a ocorrência: a equipe responsável vê quantas pessoas discordam.
+          </Texto>
+          {erroAviso ? <Aviso tom="erro">{erroAviso}</Aviso> : null}
+        </View>
+      ) : null}
+
       <Texto variante="placa" style={styles.secao}>
         Andamento
       </Texto>
@@ -312,6 +395,19 @@ const styles = StyleSheet.create({
   conteudo: { padding: espaco.lg, gap: espaco.md, backgroundColor: cores.concreto },
   foto: { width: '100%', aspectRatio: 4 / 3, borderRadius: raio.lg, backgroundColor: cores.borda },
   carregandoFoto: { position: 'absolute', top: '45%', alignSelf: 'center' },
+  ampliar: {
+    position: 'absolute',
+    right: espaco.sm,
+    bottom: espaco.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: espaco.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  ampliarTexto: { fontFamily: fontes.extrabold, fontSize: 13, color: cores.papel },
   linha: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   compartilhar: { width: ALVO_TOQUE, height: ALVO_TOQUE, alignItems: 'center', justifyContent: 'center' },
   mapaCartao: { borderRadius: raio.lg, overflow: 'hidden', backgroundColor: cores.papel, borderWidth: 1, borderColor: cores.borda },
@@ -319,6 +415,7 @@ const styles = StyleSheet.create({
   local: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm, padding: espaco.md },
   bloco: { backgroundColor: cores.papel, borderRadius: raio.lg, padding: espaco.lg, gap: espaco.sm },
   nota: { fontSize: 13, lineHeight: 18 },
+  contagemAvisos: { fontFamily: fontes.extrabold, fontSize: 15, color: cores.alerta },
   secao: { marginTop: espaco.sm },
   ia: { gap: 2, padding: espaco.md, borderRadius: raio.md, borderWidth: 1, borderColor: cores.borda },
   linkAndamento: { flexDirection: 'row', alignItems: 'center', minHeight: ALVO_TOQUE, gap: espaco.xs },

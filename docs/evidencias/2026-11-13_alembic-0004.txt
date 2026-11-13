@@ -1,0 +1,95 @@
+# Migração 0004 — verificação em banco vazio (bridge_test) e atualização do banco de desenvolvimento
+Data: 2026-11-13 11:25:56 -0300
+
+## 1. Banco de testes levado a vazio e migrado até a head
+$ alembic downgrade base   (DATABASE_URL = banco de TESTES bridge_test)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0004 -> 0003, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+INFO  [alembic.runtime.migration] Running downgrade 0003 -> 0002, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+INFO  [alembic.runtime.migration] Running downgrade 0002 -> 0001, Cria a tabela historico_status e registra o status atual das ocorrências existentes.
+INFO  [alembic.runtime.migration] Running downgrade 0001 -> , Cria as tabelas identificacoes e ocorrencias.
+[código de saída: 0]
+
+$ alembic upgrade head   (DATABASE_URL = banco de TESTES bridge_test)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001, Cria as tabelas identificacoes e ocorrencias.
+INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Cria a tabela historico_status e registra o status atual das ocorrências existentes.
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+[código de saída: 0]
+
+$ alembic current   (DATABASE_URL = banco de TESTES bridge_test)
+0004 (head)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[código de saída: 0]
+
+$ alembic check   (DATABASE_URL = banco de TESTES bridge_test)
+No new upgrade operations detected.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+[código de saída: 0]
+
+$ alembic downgrade -1   (DATABASE_URL = banco de TESTES bridge_test)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0004 -> 0003, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+[código de saída: 0]
+
+$ alembic current   (DATABASE_URL = banco de TESTES bridge_test)
+0003
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[código de saída: 0]
+
+$ alembic upgrade head   (DATABASE_URL = banco de TESTES bridge_test)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+[código de saída: 0]
+
+$ alembic current   (DATABASE_URL = banco de TESTES bridge_test)
+0004 (head)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[código de saída: 0]
+
+$ alembic check   (DATABASE_URL = banco de TESTES bridge_test)
+No new upgrade operations detected.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+[código de saída: 0]
+
+## 2. Banco de desenvolvimento (bridge): só upgrade, sem apagar nada
+$ alembic current   (banco de desenvolvimento, .env)
+0003
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[código de saída: 0]
+
+$ alembic upgrade head   (banco de desenvolvimento, .env)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+[código de saída: 0]
+
+$ alembic current   (banco de desenvolvimento, .env)
+0004 (head)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[código de saída: 0]
+

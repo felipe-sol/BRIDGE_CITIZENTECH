@@ -39,6 +39,28 @@ export function caixaDaRegiao(regiao: RegiaoMapa): Caixa {
   };
 }
 
+/** A caixa com uma folga em cada lado (fração da largura/altura): o mapa pede um pouco além da tela. */
+export function ampliarCaixa(caixa: Caixa, fracao: number): Caixa {
+  const folgaLon = (caixa.maxLon - caixa.minLon) * fracao;
+  const folgaLat = (caixa.maxLat - caixa.minLat) * fracao;
+  return {
+    minLon: seisCasas(caixa.minLon - folgaLon),
+    minLat: seisCasas(caixa.minLat - folgaLat),
+    maxLon: seisCasas(caixa.maxLon + folgaLon),
+    maxLat: seisCasas(caixa.maxLat + folgaLat),
+  };
+}
+
+/** A área `interna` (a tela) cabe inteira na `externa` (o que já foi pedido)? */
+export function caixaContem(externa: Caixa, interna: Caixa): boolean {
+  return (
+    interna.minLon >= externa.minLon &&
+    interna.maxLon <= externa.maxLon &&
+    interna.minLat >= externa.minLat &&
+    interna.maxLat <= externa.maxLat
+  );
+}
+
 /** Perto da pessoa quando há localização; senão, a cidade inteira a partir do centro. */
 export function regiaoInicial(localizacao: ResultadoLocalizacao | null): RegiaoMapa {
   if (localizacao?.tipo === 'ok') {

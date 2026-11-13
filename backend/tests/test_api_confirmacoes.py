@@ -98,10 +98,10 @@ def test_confirmacao_ciclo_completo(client: TestClient) -> None:
     assert r2.status_code == 200 and r2.json()["confirmacoes"] == 1
 
     detalhe = client.get(f"/ocorrencias/{oid}", headers={"X-Identificacao-Id": outra}).json()
-    assert detalhe["minha_relacao"] == {"registrei": False, "confirmei": True}
+    assert detalhe["minha_relacao"] == {"registrei": False, "confirmei": True, "avisei_nao_resolvido": False}
     assert detalhe["confirmacoes"] == 1
     do_autor = client.get(f"/ocorrencias/{oid}", headers={"X-Identificacao-Id": autor}).json()
-    assert do_autor["minha_relacao"] == {"registrei": True, "confirmei": False}
+    assert do_autor["minha_relacao"] == {"registrei": True, "confirmei": False, "avisei_nao_resolvido": False}
     anonimo = client.get(f"/ocorrencias/{oid}").json()
     assert anonimo["minha_relacao"] is None
     assert "identificacao_id" not in anonimo and "apelido" not in anonimo

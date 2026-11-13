@@ -381,6 +381,40 @@ Formato enxuto (só o que o marcador e o cartão do mapa precisam), as mais grav
 **até 2000 itens**. `total` é quantas existem na área; `truncado: true` avisa que há mais do
 que as devolvidas, e o app pede para aproximar o mapa.
 
+### 3.17 `PATCH /identificacoes/atual` (trocar apelido)
+
+Cabeçalho **`X-Identificacao-Id`** (a própria identificação) e corpo `{"apelido": "Nova Vizinha"}`
+(2 a 60 caracteres, espaços das pontas removidos; campos extras são recusados).
+`200` com a identificação atualizada · `404` (`NAO_ENCONTRADO`) · `422` (`VALIDACAO`) sem o
+cabeçalho, com UUID inválido ou com apelido fora da regra. O apelido nunca aparece em
+respostas públicas.
+
+### 3.18 `GET /identificacoes/atual/participacao` (Perfil)
+
+Cabeçalho **`X-Identificacao-Id`**. Só conta registros reais (`APP`).
+
+```json
+{ "registradas": 2, "confirmadas": 1, "resolvidas_acompanhadas": 2, "avisos_nao_resolvido": 1 }
+```
+
+`resolvidas_acompanhadas` = ocorrências registradas **ou** confirmadas pela pessoa que estão
+`RESOLVIDA`. Identificação nova: tudo zero. `404` se a identificação não existir.
+
+### 3.19 `POST` e `DELETE /ocorrencias/{id}/nao-resolvido` ("Ainda não foi resolvido? Avise")
+
+Cabeçalho **`X-Identificacao-Id`** obrigatório. Resposta:
+`{"ocorrencia_id": 1, "avisos_nao_resolvido": 1, "avisado": true}`.
+
+- `POST`: `201` quando cria o aviso; `200` quando ele já existia (não duplica).
+- `DELETE`: `200` (idempotente), com `avisado: false`.
+- Erros: `404` (`NAO_ENCONTRADO`); `422` (`IDENTIFICACAO_INEXISTENTE`, campo
+  `X-Identificacao-Id`, ou `VALIDACAO` sem o cabeçalho); `409` (`OCORRENCIA_SIMULADA`);
+  `409` (`OCORRENCIA_NAO_RESOLVIDA`) quando a ocorrência não está `RESOLVIDA`.
+- O aviso **não reabre** a ocorrência nem muda status ou prioridade. Quem registrou também
+  pode avisar.
+- `GET /ocorrencias/{id}` passa a trazer `avisos_nao_resolvido` (contagem) e, com o
+  cabeçalho, `minha_relacao.avisei_nao_resolvido`.
+
 ## 4. Fluxo de cadastro com foto (decisão)
 
 Escolhemos **cadastro seguido de upload** (2 requisições), e não um único multipart:

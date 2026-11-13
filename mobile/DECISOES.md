@@ -8,19 +8,17 @@ sem rede:
 - `validation/`: formulários e parsers das respostas;
 - `geo/`: regiões, agrupamento e densidade;
 - `registro/`: as etapas do registro;
-- `acompanhamento/`: selo "Atualizada" e compartilhamento;
-- `alertas/` e `analises/`: exibição do alerta e conta dos gráficos.
+- `acompanhamento/`: selo "Atualizada", avisos e compartilhamento;
+- `alertas/`, `analises/`, `conteudo/` e `preferencias/`.
 
-Por serem puras, elas são testadas com `node --test` (83 testes), sem Jest. Os tipos
+Por serem puras, elas são testadas com `node --test` (106 testes), sem Jest. Os tipos
 usam `camelCase`, e a conversão do `snake_case` da API acontece num lugar só.
 
 ## 2. Navegação: Expo Router
 
-Uma única solução de navegação:
-- **abas** (Início, Mapa, Andamento, Análises, Perfil);
-- **pilha** para o detalhe;
-- **modal** em tela cheia para o registro;
-- **folha nativa** do iOS (`formSheet`) para o resumo de uma região.
+Uma única solução: **abas** (Início, Mapa, Andamento, Análises, Perfil), **pilha** para o
+detalhe e as páginas do Perfil, **modal** em tela cheia para o registro e **folha nativa**
+do iOS (`formSheet`) para o resumo de uma região.
 
 `Stack.Protected` decide o que fica acessível: sem identificação, só a tela de
 identificação; com ela, o resto. Não usamos *typed routes* (dependem de arquivos
@@ -54,9 +52,8 @@ Maps, sem chave de API nem serviço pago.
 por `GET /regioes` e ficam em cache. O app calcula a região de um ponto para exibir; o
 servidor calcula de novo para gravar.
 
-**Desempenho.** Com o zoom afastado, os pontos são agrupados numa grade 8×8 da área
-visível. O mapa desenha no máximo 64 itens, e os marcadores usam
-`tracksViewChanges={false}`.
+**Desempenho.** Com o zoom afastado, os pontos viram grupos numa grade presa ao mapa (no
+máximo 64 itens); o app pede a área visível com folga e só pede de novo quando a tela sai dela.
 
 **Densidade.** A camada usa polígonos (heatmap só existe no Google Maps), com faixas
 fixas de ocorrências por km² e legenda em texto.
@@ -72,12 +69,10 @@ puro** testado (incluindo respostas atrasadas e falha de rede).
 
 - **Local.** O pino fica fixo no centro e a pessoa arrasta o mapa. Isso é mais preciso
   que arrastar um marcador pequeno.
-- **Endereço.** Vem da geocodificação do aparelho, com espera de 600 ms entre
-  consultas, como pede a documentação do SDK. Ele é editável e, se falhar, fica em
-  branco.
-- **Parecidos.** Com local e categoria, o app procura ocorrências abertas da mesma
-  categoria a até 100 m. A pessoa pode **confirmar** uma delas e terminar sem foto nem
-  formulário. Se a consulta falhar, segue com aviso.
+- **Endereço.** Vem da geocodificação do aparelho (espera de 600 ms entre consultas);
+  é editável e, se falhar, fica em branco.
+- **Parecidos.** O app procura abertas da mesma categoria a até 100 m; a pessoa pode
+  **confirmar** uma e terminar sem foto nem formulário.
 - **Envio** (mantido do 1.0): uma `Idempotency-Key` por registro, trava síncrona contra
   toque duplo e, se só a foto falhar, reenvio **só da foto**, sem recriar a ocorrência.
 
@@ -93,12 +88,14 @@ Ajustes", e a galeria fica como alternativa.
 
 ## 8. Acompanhamento (follow-up)
 
-A aba Andamento lista o que a pessoa registrou e o que confirmou. O selo **Atualizada**
-compara o `atualizado_em` da API com a última vez que a pessoa abriu aquela ocorrência,
-dado guardado só no aparelho. O detalhe mostra a linha do tempo com os comentários da
-"equipe responsável", sem sugerir integração oficial com a Prefeitura.
+O selo **Atualizada** compara o `atualizado_em` da API com a última vez que a pessoa abriu
+a ocorrência (dado só do aparelho); com "Avisos de atualização no app" ligado, o Início e o
+Andamento contam as novidades. Não há push: no Expo Go exigiria um serviço externo.
 
-Não usamos notificação push: no Expo Go ela exigiria um serviço externo.
+Numa ocorrência resolvida, **"Ainda não foi resolvido? Avise"** soma um aviso sem reabrir
+nada: a equipe responsável vê quantas pessoas discordam. No mapa, tocar num ponto abre um
+cartão que carrega o detalhe (foto em tela cheia, andamento, "Eu também vi"); a resposta de
+um toque antigo é descartada.
 
 ## 9. Integração com IA
 
@@ -107,10 +104,8 @@ que aconteceu. Nenhuma previsão é fabricada.
 
 ## 10. Interface e acessibilidade
 
-A identidade vem da sinalização de São Paulo:
-- o cabeçalho do Início imita a **placa azul de rua**;
-- a ação principal usa o amarelo de sinalização (contraste ≈ 8:1);
-- a fonte é Overpass (OFL), derivada das letras de placas.
+A identidade vem da sinalização de São Paulo: **placa azul de rua** no Início, amarelo de
+sinalização na ação principal (contraste ≈ 8:1) e a fonte Overpass (OFL).
 
 **Acessibilidade:** a gravidade aparece por **forma e cor** (◆ alta, ● média, ■ baixa),
 nunca só cor; áreas de toque têm 48 pt ou mais; há rótulos para leitores de tela; os
@@ -118,9 +113,8 @@ skeletons respeitam "reduzir movimento"; a vibração leve só reforça uma aç�
 
 ## 11. Segurança
 
-O app não contém segredos. `EXPO_PUBLIC_API_URL` é pública por definição, a rota
-administrativa não é usada e a busca no bundle não encontra token nem credencial de
-banco.
+O app não contém segredos: `EXPO_PUBLIC_API_URL` é pública, a rota administrativa não é
+usada e a busca no bundle não acha token nem credencial de banco.
 
 ## 12. Alerta Bridge, modo Exemplo e gráficos
 
@@ -133,6 +127,14 @@ O modo é um parâmetro de rota e o app sempre abre no Ao vivo. Cada resposta ca
 do pedido e é descartada se o modo mudou: real e fictício nunca se misturam. Toda tela com
 dado fictício mostra a faixa, e o compartilhamento começa com "[DADO FICTÍCIO]".
 
-**Gráficos.** `react-native-svg`, sem biblioteca de gráficos; a conta (escalas, eixo, resumos
-em texto) é pura e testada. As cores das séries passaram num validador de paleta para
-daltonismo, "resolvidas" é tracejada e cada gráfico tem resumo em texto e tabela.
+**Gráficos.** `react-native-svg`, sem biblioteca de gráficos; a conta é pura e testada, as
+cores passaram num validador para daltonismo, "resolvidas" é tracejada e há resumo em texto
+e tabela.
+
+## 13. Perfil e preferências
+
+"Texto maior" (20% a mais, somado ao tamanho do iPhone) e "Avisos no app" ficam só no
+aparelho; uma preferência corrompida volta ao padrão. A escala vale para o tamanho **e** a
+altura da linha, para nada ficar cortado. Trocar o apelido só grava no aparelho depois do OK
+da API, pelo cabeçalho. As páginas informativas são texto puro testado, e a equipe vem de
+`authors`: com marcador, nenhum nome aparece.

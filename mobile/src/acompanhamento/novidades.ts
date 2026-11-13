@@ -9,3 +9,19 @@ export function estaAtualizada(atualizadoEm: string, vistoEm: string | undefined
   if (Number.isNaN(atualizado) || Number.isNaN(visto)) return false;
   return atualizado > visto;
 }
+
+/** Quantas das ocorrências acompanhadas mudaram depois da última vez que a pessoa as abriu. */
+export function contarAtualizadas(
+  itens: readonly { id: number; atualizadoEm: string }[],
+  vistos: Readonly<Record<string, string>>,
+): number {
+  return itens.filter((o) => estaAtualizada(o.atualizadoEm, vistos[String(o.id)])).length;
+}
+
+/** Aviso dentro do app (Início e Andamento); não há notificação push. */
+export function textoAvisoAtualizadas(n: number): string | null {
+  if (n <= 0) return null;
+  return n === 1
+    ? '1 ocorrência que você acompanha foi atualizada'
+    : `${n} ocorrências que você acompanha foram atualizadas`;
+}

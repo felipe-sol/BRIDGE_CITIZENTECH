@@ -96,6 +96,17 @@ def test_gravar_e_remover_nao_tocam_dados_reais(client: TestClient, banco_migrad
     assert client.get("/identificacoes/atual", headers={"X-Identificacao-Id": real}).status_code == 200
 
 
+def test_remover_nao_falha_se_uuid_ficticio_foi_usado_em_dado_real(client: TestClient, banco_migrado: Engine) -> None:
+    with Session(banco_migrado) as db:
+        gravar_lote(db, LOTE[:10])
+    usada = str(IDENTIFICACOES_FICTICIAS[0])  # UUID previsível a partir do código
+    nova_ocorrencia(client, usada)
+    with Session(banco_migrado) as db:
+        assert remover_ficticios(db) == (10, len(IDENTIFICACOES_FICTICIAS) - 1)
+    assert client.get("/ocorrencias").json()["total"] == 1  # o dado real ficou
+    assert client.get("/identificacoes/atual", headers={"X-Identificacao-Id": usada}).status_code == 200
+
+
 def test_ficticios_gravados_ficam_separados(client: TestClient, banco_migrado: Engine) -> None:
     with Session(banco_migrado) as db:
         gravar_lote(db, LOTE[:20])

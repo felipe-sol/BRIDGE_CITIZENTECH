@@ -4,17 +4,19 @@
  * Lista com estados de carregando, erro e vazio (requisito do PDF de Mobile).
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { estaAtualizada } from '../../acompanhamento/novidades';
+import { anexarSemRepetir } from '../../acompanhamento/lista';
+import { contarAtualizadas, estaAtualizada, textoAvisoAtualizadas } from '../../acompanhamento/novidades';
 import { Botao } from '../../components/Botao';
 import { CartaoAcompanhamento } from '../../components/CartaoAcompanhamento';
 import { EstadoErro, EstadoVazio } from '../../components/Estados';
 import { Esqueleto } from '../../components/Esqueleto';
 import { Texto } from '../../components/Texto';
 import { useIdentificacao } from '../../context/IdentificacaoContext';
+import { usePreferencias } from '../../context/PreferenciasContext';
 import type { Ocorrencia } from '../../models/ocorrencia';
 import { mensagemDeErro } from '../../services/http';
 import { listarMinhas } from '../../services/ocorrenciasService';
@@ -45,12 +47,20 @@ export default function TelaAndamento() {
   const [relacao, setRelacao] = useState<Relacao>('registradas');
   const [lista, setLista] = useState<EstadoLista>({ tipo: 'carregando' });
   const [atualizando, setAtualizando] = useState(false);
+  const { preferencias } = usePreferencias();
+
+  // Resposta de uma aba antiga (Registrei/Confirmei) é descartada: a chave é a relação atual.
+  const relacaoAtual = useRef(relacao);
+  useEffect(() => {
+    relacaoAtual.current = relacao;
+  }, [relacao]);
 
   const carregar = useCallback(
     async (qual: Relacao) => {
       if (identificacaoId === null) return;
       try {
         const [pagina, vistos] = await Promise.all([listarMinhas(identificacaoId, qual, 1), lerVistos()]);
+        if (qual !== relacaoAtual.current) return;
         setLista({
           tipo: 'ok',
           itens: pagina.itens,
@@ -61,6 +71,7 @@ export default function TelaAndamento() {
           carregandoMais: false,
         });
       } catch (erro: unknown) {
+        if (qual !== relacaoAtual.current) return;
         setLista({ tipo: 'erro', mensagem: mensagemDeErro(erro) });
       }
     },
@@ -89,11 +100,14 @@ export default function TelaAndamento() {
   async function carregarMais() {
     if (lista.tipo !== 'ok' || lista.carregandoMais || lista.pagina >= lista.totalPaginas || identificacaoId === null) return;
     setLista({ ...lista, carregandoMais: true });
+    const qual = relacao;
     try {
-      const proxima = await listarMinhas(identificacaoId, relacao, lista.pagina + 1);
+      const proxima = await listarMinhas(identificacaoId, qual, lista.pagina + 1);
+      if (qual !== relacaoAtual.current) return;
+      // A lista é ordenada pela última atualização: um item pode mudar de página entre as consultas.
       setLista((atual) =>
         atual.tipo === 'ok'
-          ? { ...atual, itens: [...atual.itens, ...proxima.itens], pagina: proxima.pagina, carregandoMais: false }
+          ? { ...atual, itens: anexarSemRepetir(atual.itens, proxima.itens), pagina: proxima.pagina, carregandoMais: false }
           : atual,
       );
     } catch {
@@ -122,6 +136,11 @@ export default function TelaAndamento() {
             </Pressable>
           ))}
         </View>
+        {preferencias.avisosNoApp && lista.tipo === 'ok' && textoAvisoAtualizadas(contarAtualizadas(lista.itens, lista.vistos)) ? (
+          <Texto style={styles.novidades} accessibilityLiveRegion="polite">
+            {textoAvisoAtualizadas(contarAtualizadas(lista.itens, lista.vistos))}
+          </Texto>
+        ) : null}
       </View>
 
       {lista.tipo === 'carregando' ? (
@@ -178,6 +197,7 @@ export default function TelaAndamento() {
 }
 
 const styles = StyleSheet.create({
+  novidades: { fontFamily: fontes.extrabold, fontSize: 14, lineHeight: 19, color: cores.placa },
   tela: { flex: 1, backgroundColor: cores.concreto },
   topo: { paddingHorizontal: espaco.lg, paddingTop: espaco.md, paddingBottom: espaco.sm, gap: espaco.xs },
   seletor: { flexDirection: 'row', marginTop: espaco.sm, backgroundColor: cores.papel, borderRadius: raio.md, padding: 4, borderWidth: 1, borderColor: cores.borda },

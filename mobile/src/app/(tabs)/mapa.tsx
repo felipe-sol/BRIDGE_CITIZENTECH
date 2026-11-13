@@ -18,20 +18,23 @@ import { FaixaFicticia } from '../../components/FaixaFicticia';
 import { Icone } from '../../components/Icone';
 import { BarraBusca } from '../../components/mapa/BarraBusca';
 import { CamadaDensidade } from '../../components/mapa/CamadaDensidade';
+import { CartaoOcorrenciaMapa } from '../../components/mapa/CartaoOcorrenciaMapa';
 import { CamadaPontos } from '../../components/mapa/CamadaPontos';
 import { FiltrosMapa } from '../../components/mapa/FiltrosMapa';
 import { IndicadorAoVivo } from '../../components/mapa/IndicadorAoVivo';
 import { LegendaDensidade } from '../../components/mapa/LegendaDensidade';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
 import { SeletorModo } from '../../components/SeletorModo';
-import { SeloStatus } from '../../components/Sinalizacao';
 import { Texto } from '../../components/Texto';
 import { agruparPontos } from '../../geo/agrupamento';
-import { caixaDaRegiao, regiaoDaCaixa, regiaoInicial } from '../../geo/distancia';
-import { aplicarResultadoMapa, avisoFalhaMapa, type EstadoDadosMapa } from '../../geo/estadoMapa';
+import { ampliarCaixa, caixaContem, caixaDaRegiao, regiaoDaCaixa, regiaoInicial } from '../../geo/distancia';
+import { aplicarResultadoMapa, avisoFalhaMapa, type EstadoDadosMapa, type ResultadoAtualizacao } from '../../geo/estadoMapa';
 import { interpretarModo, origemDoModo, type ModoDados } from '../../geo/modo';
-import type { OcorrenciaMapa, PontosMapa, RegiaoMapa, RegiaoSP } from '../../geo/tipos';
+import type { Caixa, OcorrenciaMapa, PontosMapa, RegiaoMapa, RegiaoSP } from '../../geo/tipos';
 import { useAtualizacaoPeriodica } from '../../hooks/useAtualizacaoPeriodica';
+import { deveExecutar, type UltimaExecucao } from '../../utils/limitador';
+import { useIdentificacao } from '../../context/IdentificacaoContext';
+import { useCartaoOcorrencia } from '../../hooks/useCartaoOcorrencia';
 import type { EstatisticaRegiao, Ocorrencia } from '../../models/ocorrencia';
 import { estatisticasPorRegiao } from '../../services/estatisticasService';
 import { localizarEndereco } from '../../services/geocodificacao';
@@ -44,6 +47,8 @@ import { ROTAS, interpretarCodigoRegiao, rotaDetalhe, rotaRegiao } from '../../v
 
 const INTERVALO_AO_VIVO_MS = 15_000;
 const ESPERA_APOS_MOVER_MS = 400;
+/** Folga pedida além de cada borda da tela (50% da largura/altura): arrastar pouco não pede nada. */
+const FOLGA_AREA = 0.5;
 
 type Camada = 'pontos' | 'densidade';
 
@@ -105,10 +110,17 @@ export default function TelaMapa() {
   const [selecionada, setSelecionada] = useState<{ item: OcorrenciaMapa; modo: ModoDados } | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [busca, setBusca] = useState<{ texto: string; itens: Ocorrencia[]; modo: ModoDados } | null>(null);
+  const { estado: identificacao } = useIdentificacao();
+  const identificacaoId = identificacao.tipo === 'presente' ? identificacao.identificacao.id : undefined;
+  // Cartão da ocorrência tocada: o detalhe (foto, andamento, relação) chega depois do toque.
+  const cartao = useCartaoOcorrencia(identificacaoId);
 
   // A chave atual fica num ref para a resposta (que chega depois) ser comparada com ela.
   const chave = chaveDoPedido(modo, filtros);
   const chaveAtual = useRef(chave);
+  // O que já foi pedido: a área dos pontos (com folga) e quando vieram as estatísticas.
+  const areaPedida = useRef<{ chave: string; caixa: Caixa } | null>(null);
+  const ultimaEstatistica = useRef<UltimaExecucao | null>(null);
   useEffect(() => {
     chaveAtual.current = chave;
   }, [chave]);
@@ -117,38 +129,61 @@ export default function TelaMapa() {
     mapaRef.current?.animateToRegion(destino, 600);
   }, []);
 
-  const atualizar = useCallback(async () => {
-    const chavePedido = chaveDoPedido(modo, filtros);
-    const [rPontos, rEstatisticas] = await Promise.allSettled([
-      listarPontosMapa(caixaDaRegiao(regiaoVisivel), filtros, origem),
-      estatisticasPorRegiao(origem),
-    ]);
-    const agora = Date.now();
-    const atual = chaveAtual.current; // a chave pode ter mudado enquanto esperávamos
-    setPontos((anterior) =>
-      aplicarResultadoMapa(
-        anterior,
-        rPontos.status === 'fulfilled'
-          ? { ok: true, dados: rPontos.value, agora, chave: chavePedido }
-          : { ok: false, erro: mensagemDeErro(rPontos.reason), chave: chavePedido },
-        atual,
-      ),
-    );
-    setEstatisticas((anterior) =>
-      aplicarResultadoMapa(
-        anterior,
-        rEstatisticas.status === 'fulfilled'
-          ? { ok: true, dados: rEstatisticas.value, agora, chave: chavePedido }
-          : { ok: false, erro: mensagemDeErro(rEstatisticas.reason), chave: chavePedido },
-        atual,
-      ),
-    );
-  }, [regiaoVisivel, filtros, modo, origem, setPontos, setEstatisticas]);
+  /**
+   * Busca o que falta para a tela. Os pontos vêm da área visível com FOLGA_AREA de cada lado
+   * e são reaproveitados enquanto a tela couber nessa área (arrastar pouco não pede nada).
+   * As estatísticas não dependem da área: mudam com o modo e no ciclo do Ao vivo.
+   * `forcar` = ciclo de 15 s (pede tudo de novo).
+   */
+  const atualizar = useCallback(
+    async (forcar: boolean) => {
+      const chavePedido = chaveDoPedido(modo, filtros);
+      const visivel = caixaDaRegiao(regiaoVisivel);
+      const inicio = Date.now();
+      const anterior = areaPedida.current;
+      const pedirPontos =
+        forcar || anterior === null || anterior.chave !== chavePedido || !caixaContem(anterior.caixa, visivel);
+      const pedirEstatisticas = forcar || deveExecutar(ultimaEstatistica.current, modo, inicio, INTERVALO_AO_VIVO_MS);
+      if (!pedirPontos && !pedirEstatisticas) return;
+      const area = ampliarCaixa(visivel, FOLGA_AREA);
+      if (pedirPontos) areaPedida.current = { chave: chavePedido, caixa: area };
+      if (pedirEstatisticas) ultimaEstatistica.current = { chave: modo, em: inicio };
+
+      const [rPontos, rEstatisticas] = await Promise.allSettled([
+        pedirPontos ? listarPontosMapa(area, filtros, origem) : Promise.resolve(null),
+        pedirEstatisticas ? estatisticasPorRegiao(origem) : Promise.resolve(null),
+      ]);
+      const agora = Date.now();
+      const atual = chaveAtual.current; // a chave pode ter mudado enquanto esperávamos
+      if (pedirPontos) {
+        // Numa falha, esquece a área para o próximo movimento tentar de novo.
+        if (rPontos.status === 'rejected') areaPedida.current = null;
+        const resultado: ResultadoAtualizacao<PontosMapa> =
+          rPontos.status === 'fulfilled' && rPontos.value !== null
+            ? { ok: true, dados: rPontos.value, agora, chave: chavePedido }
+            : { ok: false, erro: mensagemDeErro(rPontos.status === 'rejected' ? rPontos.reason : null), chave: chavePedido };
+        setPontos((anteriores) => aplicarResultadoMapa(anteriores, resultado, atual));
+      }
+      if (pedirEstatisticas) {
+        if (rEstatisticas.status === 'rejected') ultimaEstatistica.current = null;
+        const resultado: ResultadoAtualizacao<EstatisticaRegiao[]> =
+          rEstatisticas.status === 'fulfilled' && rEstatisticas.value !== null
+            ? { ok: true, dados: rEstatisticas.value, agora, chave: chavePedido }
+            : {
+                ok: false,
+                erro: mensagemDeErro(rEstatisticas.status === 'rejected' ? rEstatisticas.reason : null),
+                chave: chavePedido,
+              };
+        setEstatisticas((anteriores) => aplicarResultadoMapa(anteriores, resultado, atual));
+      }
+    },
+    [regiaoVisivel, filtros, modo, origem, setPontos, setEstatisticas],
+  );
 
   // Ao vivo: a cada 15 s com a tela visível (pausa fora da aba e em segundo plano).
   // O Exemplo é estático: carrega ao entrar no modo e ao mover o mapa, sem consulta periódica.
   const atualizarAoVivo = useCallback(
-    () => (modo === 'aovivo' ? atualizar() : Promise.resolve()),
+    () => (modo === 'aovivo' ? atualizar(true) : Promise.resolve()),
     [modo, atualizar],
   );
   useAtualizacaoPeriodica(atualizarAoVivo, INTERVALO_AO_VIVO_MS);
@@ -156,7 +191,7 @@ export default function TelaMapa() {
   // Depois de mover o mapa ou trocar filtros, busca a nova área sem esperar os 15 s.
   useEffect(() => {
     const temporizador = setTimeout(() => {
-      atualizar().catch(() => undefined);
+      atualizar(false).catch(() => undefined);
     }, ESPERA_APOS_MOVER_MS);
     return () => clearTimeout(temporizador);
   }, [atualizar]);
@@ -208,7 +243,30 @@ export default function TelaMapa() {
       ? avisoTruncado(pontosDoModo.dados.total, pontosDoModo.dados.itens.length)
       : null;
 
+  function selecionar(item: OcorrenciaMapa) {
+    setSelecionada({ item, modo });
+    cartao.carregar(item.id);
+  }
+
+  function fecharCartao() {
+    cartao.esquecer();
+    setSelecionada(null);
+  }
+
+  function mudarCamada(nova: Camada) {
+    if (nova !== camada) fecharCartao(); // o cartão de um ponto não fica sobre a densidade
+    setCamada(nova);
+  }
+
+  function mudarFiltros(novos: Filtros) {
+    fecharCartao(); // o ponto aberto pode não passar no filtro novo
+    setFiltros(novos);
+  }
+
   function mudarModo(novo: ModoDados) {
+    areaPedida.current = null;
+    ultimaEstatistica.current = null;
+    cartao.esquecer();
     setSelecionada(null);
     setBusca(null);
     setAviso(null);
@@ -250,7 +308,7 @@ export default function TelaMapa() {
 
   function abrirOcorrencia(o: Ocorrencia) {
     setBusca(null);
-    setSelecionada({ item: o, modo });
+    selecionar(o);
     irPara({ latitude: o.latitude, longitude: o.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
   }
 
@@ -261,7 +319,7 @@ export default function TelaMapa() {
         style={StyleSheet.absoluteFill}
         initialRegion={regiaoInicial(null)}
         onRegionChangeComplete={(r: Region) => setRegiaoVisivel(r)}
-        onPress={() => setSelecionada(null)}
+        onPress={fecharCartao}
         showsUserLocation={localizacao?.tipo === 'ok'}
         showsMyLocationButton={false}
         toolbarEnabled={false}
@@ -278,7 +336,7 @@ export default function TelaMapa() {
             itens={itens}
             onPonto={(ponto) => {
               const item = pontosDoModo.dados?.itens.find((o) => o.id === ponto.id);
-              setSelecionada(item ? { item, modo } : null);
+              if (item) selecionar(item);
             }}
             onGrupo={(latitude, longitude) =>
               irPara({
@@ -303,26 +361,29 @@ export default function TelaMapa() {
             buscarTexto(t).catch(() => undefined);
           }}
         />
-        {camada === 'pontos' ? <FiltrosMapa filtros={filtros} onMudar={setFiltros} /> : null}
-        <View style={styles.linhaControles} pointerEvents="box-none">
-          <SeletorModo modo={modo} onMudar={mudarModo} />
-          <SeletorCamada camada={camada} onMudar={setCamada} />
-        </View>
+        {/* Com o cartão de uma ocorrência aberto, o topo fica só com a busca: nada se sobrepõe ao cartão. */}
+        {selecaoAtual === null && camada === 'pontos' ? <FiltrosMapa filtros={filtros} onMudar={mudarFiltros} /> : null}
+        {selecaoAtual === null ? (
+          <View style={styles.linhaControles} pointerEvents="box-none">
+            <SeletorModo modo={modo} onMudar={mudarModo} />
+            <SeletorCamada camada={camada} onMudar={mudarCamada} />
+          </View>
+        ) : null}
         {modo === 'exemplo' ? (
           <FaixaFicticia />
-        ) : (
+        ) : selecaoAtual === null ? (
           <IndicadorAoVivo
             atualizadoEm={camada === 'pontos' ? pontosDoModo.atualizadoEm : estatisticasDoModo.atualizadoEm}
             comErro={(camada === 'pontos' ? pontosDoModo.erro : estatisticasDoModo.erro) !== null}
           />
-        )}
+        ) : null}
         {falha ? (
           <View style={[styles.faixa, styles.faixaErro]}>
             <Icone nome="wifi-off" tamanho={18} cor={cores.alerta} />
             <Texto style={styles.faixaTexto}>{falha}</Texto>
           </View>
         ) : null}
-        {corte ? (
+        {corte && selecaoAtual === null ? (
           <View style={styles.faixa}>
             <Icone nome="information-outline" tamanho={18} cor={cores.placa} />
             <Texto style={styles.faixaTexto}>{corte}</Texto>
@@ -360,16 +421,18 @@ export default function TelaMapa() {
         ) : null}
       </SafeAreaView>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ir para a minha localização"
-        onPress={() => {
-          irParaMinhaLocalizacao().catch(() => undefined);
-        }}
-        style={[styles.botaoLocal, sombra.cartao]}
-      >
-        <Icone nome="crosshairs-gps" tamanho={24} cor={cores.placa} />
-      </Pressable>
+      {selecaoAtual === null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ir para a minha localização"
+          onPress={() => {
+            irParaMinhaLocalizacao().catch(() => undefined);
+          }}
+          style={[styles.botaoLocal, sombra.cartao]}
+        >
+          <Icone nome="crosshairs-gps" tamanho={24} cor={cores.placa} />
+        </Pressable>
+      ) : null}
 
       {camada === 'densidade' && !selecaoAtual ? (
         <View style={styles.legenda} pointerEvents="box-none">
@@ -378,34 +441,19 @@ export default function TelaMapa() {
       ) : null}
 
       {selecaoAtual ? (
-        <View style={[styles.cartao, sombra.cartao]}>
-          <View style={styles.cartaoTopo}>
-            <MarcadorGravidade prioridade={selecaoAtual.prioridade} tamanho={20} />
-            <Texto variante="subtitulo" style={styles.flex} numberOfLines={2}>
-              {selecaoAtual.titulo}
-            </Texto>
-            <Pressable accessibilityRole="button" accessibilityLabel="Fechar" hitSlop={10} onPress={() => setSelecionada(null)}>
-              <Icone nome="close" tamanho={22} />
-            </Pressable>
-          </View>
-          <SeloStatus status={selecaoAtual.status} />
-          {selecaoAtual.endereco ? <Texto variante="apoio">{selecaoAtual.endereco}</Texto> : null}
-          {selecaoAtual.confirmacoes > 0 ? (
-            <Texto style={styles.relatos}>
-              {selecaoAtual.confirmacoes === 1
-                ? '1 pessoa também relatou'
-                : `${selecaoAtual.confirmacoes} pessoas também relataram`}
-            </Texto>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(rotaDetalhe(selecaoAtual.id))}
-            style={styles.verDetalhe}
-          >
-            <Texto style={styles.verDetalheTexto}>Ver detalhe e andamento</Texto>
-            <Icone nome="chevron-right" tamanho={20} cor={cores.papel} />
-          </Pressable>
-        </View>
+        <CartaoOcorrenciaMapa
+          basico={selecaoAtual}
+          detalhe={cartao.estado}
+          ficticio={modo === 'exemplo'}
+          relatando={cartao.relatando}
+          erroRelato={cartao.erroRelato}
+          onFechar={fecharCartao}
+          onVerDetalhe={() => router.push(rotaDetalhe(selecaoAtual.id))}
+          onTentarDeNovo={() => cartao.carregar(selecaoAtual.id)}
+          onAlternarRelato={(o) => {
+            cartao.alternarRelato(o).catch(() => undefined);
+          }}
+        />
       ) : (
         <BotaoFlutuante rotulo="Registrar" onPress={() => router.push(ROTAS.registrar)} style={styles.fab} />
       )}
@@ -451,28 +499,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   legenda: { position: 'absolute', left: espaco.md, bottom: espaco.lg },
-  cartao: {
-    position: 'absolute',
-    left: espaco.md,
-    right: espaco.md,
-    bottom: espaco.md,
-    backgroundColor: cores.papel,
-    borderRadius: raio.lg,
-    padding: espaco.lg,
-    gap: espaco.sm,
-  },
-  cartaoTopo: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
-  relatos: { fontFamily: fontes.extrabold, fontSize: 14, color: cores.placa },
-  verDetalhe: {
-    marginTop: espaco.xs,
-    minHeight: ALVO_TOQUE,
-    borderRadius: raio.md,
-    backgroundColor: cores.placa,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: espaco.xs,
-  },
-  verDetalheTexto: { fontFamily: fontes.black, fontSize: 16, color: cores.papel },
   fab: { position: 'absolute', right: espaco.lg, bottom: espaco.lg },
 });

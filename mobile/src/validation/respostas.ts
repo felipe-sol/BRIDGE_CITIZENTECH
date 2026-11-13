@@ -5,7 +5,7 @@
  */
 import type { CorpoErroApi, DetalheErroApi } from '../models/api.ts';
 import type { OcorrenciaMapa, PontosMapa } from '../geo/tipos.ts';
-import type { Identificacao } from '../models/identificacao.ts';
+import type { Identificacao, Participacao } from '../models/identificacao.ts';
 import {
   CATEGORIAS,
   NIVEIS_ALERTA,
@@ -22,11 +22,13 @@ import {
   type PaginaOcorrencias,
   type RegistroHistorico,
   type RelacaoOcorrencia,
+  type ResultadoAviso,
   type ResultadoConfirmacao,
   type ResumoEstatisticas,
   type Subprefeitura,
 } from '../models/ocorrencia.ts';
 import {
+  ErroFormato,
   booleano,
   ehObjeto,
   inteiro,
@@ -102,7 +104,11 @@ function parseRegistroHistorico(valor: unknown): RegistroHistorico {
 function parseRelacao(valor: unknown): RelacaoOcorrencia | null {
   if (valor === null || valor === undefined) return null;
   const o = objeto(valor, 'Relação com a ocorrência');
-  return { registrei: booleano(o, 'registrei'), confirmei: booleano(o, 'confirmei') };
+  return {
+    registrei: booleano(o, 'registrei'),
+    confirmei: booleano(o, 'confirmei'),
+    aviseiNaoResolvido: booleano(o, 'avisei_nao_resolvido'),
+  };
 }
 
 export function parseOcorrenciaDetalhe(valor: unknown): OcorrenciaDetalhe {
@@ -111,6 +117,7 @@ export function parseOcorrenciaDetalhe(valor: unknown): OcorrenciaDetalhe {
   return {
     ...base,
     historico: lista(o, 'historico_status', parseRegistroHistorico),
+    avisosNaoResolvido: contagem(o, 'avisos_nao_resolvido'),
     minhaRelacao: parseRelacao(o['minha_relacao']),
   };
 }
@@ -123,6 +130,34 @@ function parseOcorrenciaProxima(valor: unknown): OcorrenciaProxima {
 /** GET /ocorrencias/proximas → itens com a distância em metros. */
 export function parseProximas(valor: unknown): OcorrenciaProxima[] {
   return lista(objeto(valor, 'Ocorrências próximas'), 'itens', parseOcorrenciaProxima);
+}
+
+/** Contagem: inteiro maior ou igual a zero. */
+function contagem(o: Record<string, unknown>, campo: string): number {
+  const v = inteiro(o, campo);
+  if (v < 0) throw new ErroFormato(`Campo "${campo}" não pode ser negativo.`);
+  return v;
+}
+
+/** POST/DELETE /ocorrencias/{id}/nao-resolvido */
+export function parseAvisoNaoResolvido(valor: unknown): ResultadoAviso {
+  const o = objeto(valor, 'Aviso de não resolvido');
+  return {
+    ocorrenciaId: inteiro(o, 'ocorrencia_id'),
+    avisosNaoResolvido: contagem(o, 'avisos_nao_resolvido'),
+    avisado: booleano(o, 'avisado'),
+  };
+}
+
+/** GET /identificacoes/atual/participacao */
+export function parseParticipacao(valor: unknown): Participacao {
+  const o = objeto(valor, 'Participação');
+  return {
+    registradas: contagem(o, 'registradas'),
+    confirmadas: contagem(o, 'confirmadas'),
+    resolvidasAcompanhadas: contagem(o, 'resolvidas_acompanhadas'),
+    avisosNaoResolvido: contagem(o, 'avisos_nao_resolvido'),
+  };
 }
 
 /** POST/DELETE /ocorrencias/{id}/confirmacoes */

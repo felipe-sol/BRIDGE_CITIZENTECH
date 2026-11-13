@@ -171,6 +171,7 @@ O esquema é criado **somente** pelas migrações; o código não usa `create_al
 | `0001` | cria `identificacoes` e `ocorrencias` (PK, FK, `UNIQUE` da chave de idempotência, `CHECK` dos enums e das coordenadas, índices) |
 | `0002` | cria `historico_status` e **migra dados**: cada ocorrência já existente ganha um registro inicial com o status atual |
 | `0003` | Bridge 2.0: `endereco`, `subprefeitura_codigo` e `origem` (`APP`/`SIMULADA`, com `CHECK`) nas ocorrências; tabela `confirmacoes` (`UNIQUE` por ocorrência e identificação); índices para mapa e estatísticas |
+| `0004` | Bridge 2.0, fase 3: tabela `avisos_nao_resolvido` ("ainda não foi resolvido"; `UNIQUE` por ocorrência e identificação) |
 
 Aplicar em um banco vazio e conferir:
 
@@ -260,6 +261,8 @@ Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](doc
 | GET | `/health` | API, banco e status do modelo de IA | 200 (503 se banco fora) |
 | POST | `/identificacoes` | Cria a identificação (pseudônimo) | 201 |
 | GET | `/identificacoes/atual` | Confere a identificação salva (UUID no cabeçalho `X-Identificacao-Id`) | 200 |
+| PATCH | `/identificacoes/atual` | Troca o apelido da própria identificação (cabeçalho) | 200 |
+| GET | `/identificacoes/atual/participacao` | O que a pessoa já fez: registradas, confirmadas, resolvidas que acompanha, avisos | 200 |
 | GET | `/identificacoes/{id}` | **Obsoleta** (UUID na URL); mantida só pela Rodada 1 do Insomnia | 200 |
 | POST | `/ocorrencias` | Registra ocorrência (`Idempotency-Key` opcional) | 201 (200 se a chave já foi usada) |
 | GET | `/ocorrencias` | Lista paginada (`pagina`, `tamanho`, `ordenar`, filtros, `bbox` do mapa, busca `q`, `subprefeitura`, `origem`) | 200 |
@@ -275,6 +278,8 @@ Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](doc
 | GET | `/regioes` | Limites oficiais das 32 subprefeituras (GeoJSON, fonte GeoSampa) | 200 |
 | GET | `/estatisticas/regioes` | Ocorrências por subprefeitura, densidade por km² e **Alerta Bridge** (30 dias) | 200 |
 | GET | `/estatisticas/resumo` | Indicadores da aba Análises: totais, % resolvidas, tempo médio, categorias, semanas, ranking | 200 |
+| POST | `/ocorrencias/{id}/nao-resolvido` | "Ainda não foi resolvido? Avise" — só em RESOLVIDA; não reabre (`X-Identificacao-Id`) | 201 (200 se já avisado) |
+| DELETE | `/ocorrencias/{id}/nao-resolvido` | Desfaz o aviso | 200 |
 
 Todos os erros seguem `{"erro": {"codigo", "mensagem", "detalhes": [{"campo", "mensagem"}]}}`
 com mensagens em português.
@@ -321,21 +326,24 @@ cd backend
   regra do alerta nas bordas e calibração, resumo (semanas no horário de São Paulo),
   pontos do mapa com corte, identificação pelo cabeçalho e dados fictícios (gerar e
   remover sem tocar nos reais).
+- **Fase 3 (`test_api_avisos.py`, `test_api_identificacao.py` e acréscimos):** migração 0004
+  com ida e volta, "ainda não foi resolvido" (regras, idempotência, não reabre), trocar
+  apelido, participação e remoção de fictícios à prova de uso indevido.
 
-Última execução: **151 passaram, 0 pulados**, em
-[`docs/evidencias/2026-11-13_pytest-backend-fase2.txt`](docs/evidencias/2026-11-13_pytest-backend-fase2.txt)
+Última execução: **159 passaram, 0 pulados**, em
+[`docs/evidencias/2026-11-13_pytest-backend-fase3.txt`](docs/evidencias/2026-11-13_pytest-backend-fase3.txt)
 (a execução do 1.0, com 95, está em `2026-11-11_pytest-backend-com-banco.txt`).
 
 Verificação ponta a ponta contra a API rodando (complementar):
 `python scripts/verificar_api.py --base-url http://localhost:8000 --admin-token <token>`.
-Resultado com as fases 1 e 2 (67 verificações, conferindo também o conteúdo, e
+Resultado com as fases 1 a 3 (79 verificações, conferindo também o conteúdo, e
 persistência após reiniciar a API):
-[`docs/evidencias/2026-11-13_verificacao-api-fase2.txt`](docs/evidencias/2026-11-13_verificacao-api-fase2.txt).
+[`docs/evidencias/2026-11-13_verificacao-api-fase3.txt`](docs/evidencias/2026-11-13_verificacao-api-fase3.txt).
 
 ### Manuais (Insomnia) — exigência da disciplina
 
 - Coleção importável: [`docs/insomnia/bridge-insomnia.json`](docs/insomnia/bridge-insomnia.json)
-  (64 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 31; ambiente com
+  (73 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 40; ambiente com
   `base_url`, `admin_token` e IDs)
 - Ordem, resultados esperados e checklist de prints:
   [`docs/insomnia/ROTEIRO_TESTES_MANUAIS.md`](docs/insomnia/ROTEIRO_TESTES_MANUAIS.md)
@@ -344,8 +352,8 @@ persistência após reiniciar a API):
   Eles foram feitos antes do Bridge 2.0. Por isso as respostas não mostram os campos novos
   (`endereco`, `subprefeitura`, `confirmacoes`, `origem`), mas o comportamento testado
   não mudou.
-- **Rodada 2 (pastas 09 a 13): pendente**, a ser executada pela equipe (a pasta 13 precisa
-  dos dados fictícios gerados).
+- **Rodada 2 (pastas 09 a 14): pendente**, a ser executada pela equipe (a pasta 13 precisa
+  dos dados fictícios gerados; a 14, do banco na migração 0004).
 
 ## IA: situação real e limitações
 
@@ -363,18 +371,19 @@ persistência após reiniciar a API):
 requisito: [`docs/REQUISITOS.md`](docs/REQUISITOS.md). Checklist de entrega:
 [`docs/ENTREGA.md`](docs/ENTREGA.md).
 
-## Situação atual (13/11/2026, fim da fase 2)
+## Situação atual (13/11/2026, fim da fase 3)
 
 | Item | Situação |
 |---|---|
 | Domínio, API, regras, upload, erros | Implementado e **verificado automaticamente** com PostgreSQL 18.4 local |
-| Migrações 0001/0002/0003 | **Verificadas** em banco vazio: `upgrade`, `check`, `downgrade` e migração de dados |
+| Migrações 0001 a 0004 | **Verificadas** em banco vazio: `upgrade`, `check`, `downgrade` e migração de dados |
 | Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
-| Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
-| Testes automatizados (151, com PostgreSQL) | **Passando** |
+| Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
+| Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
+| Testes automatizados (159, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Fase 3 (Perfil completo, "Ainda não foi resolvido", acabamento) | **A fazer** — ver `docs/superpowers/specs/2026-11-12-bridge-2-design.md` |
+| Vídeo demo do app | **Não gravado** — só o roteiro em `docs/ROTEIRO_VIDEO_MOBILE.md` |
 | Integração com o modelo de IA | **Pendente** — aguardando o material do colega |
 
 ## Uso de IA no desenvolvimento

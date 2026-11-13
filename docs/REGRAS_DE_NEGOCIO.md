@@ -213,3 +213,18 @@ Servem para **testar e demonstrar** o app com volume. Nunca se misturam com os r
   "registradas" pela data do registro e "resolvidas" pela data da resolução.
 - **Ranking**: as 5 subprefeituras com mais ocorrências no período.
 - Ao vivo usa todos os registros reais; Exemplo usa todos os fictícios.
+
+## 10. "Ainda não foi resolvido? Avise"
+
+A pessoa discorda de uma resolução: o problema continua no local.
+
+- Só em ocorrências **`RESOLVIDA`** e reais (`APP`). Em outro status, a API responde
+  `409 OCORRENCIA_NAO_RESOLVIDA`; em dado fictício, `409 OCORRENCIA_SIMULADA`.
+- Um aviso por identificação e ocorrência (restrição `UNIQUE`); repetir não duplica e o
+  aviso pode ser desfeito.
+- Quem registrou também pode avisar — geralmente é quem passa pelo local.
+- **Não reabre** a ocorrência: `RESOLVIDA` continua sendo status final, e status e
+  prioridade não mudam. O aviso conta e aparece no detalhe ("N pessoas avisaram que ainda
+  não foi resolvido") para a equipe responsável decidir o que fazer.
+- Tabela `avisos_nao_resolvido` (migração `0004`).
+

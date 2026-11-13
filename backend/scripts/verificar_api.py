@@ -125,6 +125,7 @@ def fluxo_completo(c: httpx.Client, admin_token: str | None) -> None:
 
     fluxo_bridge2(c, ident, outra, oid if admin_token else None)
     fluxo_fase2(c, ident)
+    fluxo_fase3(c, ident, outra, oid if admin_token else None)
 
     print(f"\nOcorrência de referência para o teste de persistência: {oid}")
     print(f"Depois de reiniciar a API: python scripts/verificar_api.py --base-url {c.base_url} --persistencia {oid}")
@@ -188,7 +189,7 @@ def fluxo_bridge2(c: httpx.Client, ident: str, outra: str, resolvida: int | None
                                                                          headers=dela), 409, "OCORRENCIA_ENCERRADA")
     detalhe = conferir("detalhe com a relação de quem pergunta", c.get(f"/ocorrencias/{sid}", headers=dela), 200)
     if detalhe:
-        checar(detalhe["minha_relacao"] == {"registrei": False, "confirmei": True}
+        checar(detalhe["minha_relacao"] == {"registrei": False, "confirmei": True, "avisei_nao_resolvido": False}
                and detalhe["prioridade_pontuacao"] == criada["prioridade_pontuacao"],
                "relação confirmei=true; prioridade não mudou")
     minhas = conferir("minhas confirmadas (cabeçalho, não URL)", c.get("/ocorrencias/minhas",
@@ -236,6 +237,36 @@ def fluxo_fase2(c: httpx.Client, ident: str) -> None:
     elif simulado:
         checar(simulado["percentual_resolvidas"] is not None, f"{simulado['total']} fictícios neste banco: % calculado")
     conferir("resumo com dias inválido", c.get("/estatisticas/resumo", params={"dias": 0}), 422, "VALIDACAO")
+
+
+def fluxo_fase3(c: httpx.Client, ident: str, outra: str, resolvida: int | None) -> None:
+    """Fase 3: trocar apelido, participação e o aviso 'ainda não foi resolvido'."""
+    print("\n--- Bridge 2.0 (fase 3) ---")
+    eu = {"X-Identificacao-Id": ident}
+    trocado = conferir("trocar apelido pelo cabeçalho", c.patch("/identificacoes/atual", headers=eu,
+                       json={"apelido": "Vizinha Verificada"}), 200)
+    if trocado:
+        checar(trocado["apelido"] == "Vizinha Verificada" and trocado["id"] == ident, "apelido trocado, mesmo id")
+    conferir("apelido curto", c.patch("/identificacoes/atual", headers=eu, json={"apelido": "A"}), 422, "VALIDACAO")
+    part = conferir("participação da pessoa", c.get("/identificacoes/atual/participacao", headers=eu), 200)
+    if part:
+        checar(part["registradas"] >= 1 and set(part) == {"registradas", "confirmadas", "resolvidas_acompanhadas",
+               "avisos_nao_resolvido"}, "números da participação")
+    if resolvida is None:
+        print("        (sem token administrativo: o aviso 'ainda não foi resolvido' não foi verificado)")
+        return
+    dela = {"X-Identificacao-Id": outra}
+    aviso = conferir("ainda não foi resolvido", c.post(f"/ocorrencias/{resolvida}/nao-resolvido", headers=dela), 201)
+    if aviso:
+        checar(aviso["avisos_nao_resolvido"] == 1 and aviso["avisado"] is True, "1 aviso registrado")
+    conferir("aviso repetido", c.post(f"/ocorrencias/{resolvida}/nao-resolvido", headers=dela), 200)
+    detalhe = conferir("detalhe com o aviso", c.get(f"/ocorrencias/{resolvida}", headers=dela), 200)
+    if detalhe:
+        checar(detalhe["status"] == "RESOLVIDA" and detalhe["avisos_nao_resolvido"] == 1
+               and detalhe["minha_relacao"]["avisei_nao_resolvido"] is True, "continua RESOLVIDA; aviso contado e marcado")
+    desfeito = conferir("desfazer aviso", c.delete(f"/ocorrencias/{resolvida}/nao-resolvido", headers=dela), 200)
+    if desfeito:
+        checar(desfeito["avisos_nao_resolvido"] == 0, "0 avisos depois de desfazer")
 
 
 def main() -> None:

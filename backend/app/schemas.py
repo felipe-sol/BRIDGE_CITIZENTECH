@@ -185,16 +185,21 @@ class RelacaoResposta(BaseModel):
 
     registrei: bool
     confirmei: bool
+    avisei_nao_resolvido: bool = False
 
 
 class OcorrenciaDetalheResposta(OcorrenciaResposta):
     historico_status: list[HistoricoStatusResposta]
+    avisos_nao_resolvido: int = Field(
+        default=0, description='Quantas pessoas avisaram que ainda não foi resolvido (só em RESOLVIDA; não reabre).'
+    )
     minha_relacao: RelacaoResposta | None = None
 
     @classmethod
     def de_modelo(cls, o: Ocorrencia, relacao: RelacaoResposta | None = None) -> Self:
         campos = cls.campos_de_modelo(o)
         campos["historico_status"] = [HistoricoStatusResposta.de_modelo(h) for h in o.historico]
+        campos["avisos_nao_resolvido"] = o.avisos_nao_resolvido_total or 0
         campos["minha_relacao"] = relacao
         return cls.model_validate(campos)
 
@@ -203,6 +208,12 @@ class ConfirmacaoResposta(BaseModel):
     ocorrencia_id: int
     confirmacoes: int
     confirmado: bool
+
+
+class AvisoNaoResolvidoResposta(BaseModel):
+    ocorrencia_id: int
+    avisos_nao_resolvido: int
+    avisado: bool
 
 
 class PaginaOcorrencias(BaseModel):
@@ -337,3 +348,12 @@ class PontosMapaResposta(BaseModel):
     itens: list[OcorrenciaMapaResposta]
     total: int = Field(description="Quantas existem na área com esses filtros.")
     truncado: bool = Field(description="true quando a área tem mais do que o limite devolvido: aproxime o mapa.")
+
+
+class ParticipacaoResposta(BaseModel):
+    """O que a identificação já fez (só registros reais). Usado no Perfil do app."""
+
+    registradas: int
+    confirmadas: int
+    resolvidas_acompanhadas: int = Field(description="Registradas ou confirmadas pela pessoa que estão RESOLVIDA.")
+    avisos_nao_resolvido: int

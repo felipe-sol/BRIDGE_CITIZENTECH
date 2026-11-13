@@ -9,6 +9,7 @@ from app.deps import Classificador, Config, DbSession, exigir_admin
 from app.enums import CategoriaOcorrencia, OrigemOcorrencia, Prioridade, StatusOcorrencia
 from app.errors import ErroAPI
 from app.schemas import (
+    AvisoNaoResolvidoResposta,
     ConfirmacaoResposta,
     ErroResposta,
     OcorrenciaCriar,
@@ -21,6 +22,7 @@ from app.schemas import (
     ProximasResposta,
     StatusAtualizar,
 )
+from app.services import avisos as servico_avisos
 from app.services import confirmacoes as servico_confirmacoes
 from app.services import ocorrencias as servico
 
@@ -173,7 +175,7 @@ def obter(
     db: DbSession,
     x_identificacao_id: Annotated[
         uuid.UUID | None,
-        Header(description="Opcional: preenche minha_relacao (registrei/confirmei) para esta identificação."),
+        Header(description="Opcional: preenche minha_relacao (registrei, confirmei, avisei_nao_resolvido) para esta identificação."),
     ] = None,
 ) -> OcorrenciaDetalheResposta:
     ocorrencia = servico.obter_ocorrencia(db, ocorrencia_id)
@@ -182,7 +184,7 @@ def obter(
 
 
 IdentificacaoObrigatoria = Annotated[
-    uuid.UUID, Header(description="UUID da identificação de quem confirma (salvo no app).")
+    uuid.UUID, Header(description="UUID da identificação de quem confirma ou avisa (salvo no app).")
 ]
 ERROS_CONFIRMACAO: dict[int | str, dict[str, object]] = {
     404: {"model": ErroResposta},
@@ -218,6 +220,36 @@ def desfazer_confirmacao(
 ) -> ConfirmacaoResposta:
     total = servico_confirmacoes.desfazer(db, ocorrencia_id, x_identificacao_id)
     return ConfirmacaoResposta(ocorrencia_id=ocorrencia_id, confirmacoes=total, confirmado=False)
+
+
+@router.post(
+    "/{ocorrencia_id}/nao-resolvido",
+    status_code=status.HTTP_201_CREATED,
+    response_model=AvisoNaoResolvidoResposta,
+    summary="'Ainda não foi resolvido': avisa numa ocorrência RESOLVIDA (201) ou devolve o aviso existente (200)",
+    description="O aviso não reabre a ocorrência nem muda status ou prioridade: conta e aparece no detalhe.",
+    responses={200: {"model": AvisoNaoResolvidoResposta, "description": "Já avisado antes"}, **ERROS_CONFIRMACAO},
+)
+def avisar_nao_resolvido(
+    ocorrencia_id: int, response: Response, db: DbSession, x_identificacao_id: IdentificacaoObrigatoria
+) -> AvisoNaoResolvidoResposta:
+    total, criado = servico_avisos.avisar(db, ocorrencia_id, x_identificacao_id)
+    if not criado:
+        response.status_code = status.HTTP_200_OK
+    return AvisoNaoResolvidoResposta(ocorrencia_id=ocorrencia_id, avisos_nao_resolvido=total, avisado=True)
+
+
+@router.delete(
+    "/{ocorrencia_id}/nao-resolvido",
+    response_model=AvisoNaoResolvidoResposta,
+    summary="Desfaz o aviso 'ainda não foi resolvido' desta identificação (idempotente)",
+    responses=ERROS_CONFIRMACAO,
+)
+def desfazer_aviso_nao_resolvido(
+    ocorrencia_id: int, db: DbSession, x_identificacao_id: IdentificacaoObrigatoria
+) -> AvisoNaoResolvidoResposta:
+    total = servico_avisos.desfazer(db, ocorrencia_id, x_identificacao_id)
+    return AvisoNaoResolvidoResposta(ocorrencia_id=ocorrencia_id, avisos_nao_resolvido=total, avisado=False)
 
 
 @router.patch(

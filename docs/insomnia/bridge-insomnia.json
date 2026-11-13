@@ -1358,6 +1358,207 @@
       "authentication": {},
       "description": "**Esperado:** 422, código `VALIDACAO` (dias entre 1 e 365).",
       "metaSortKey": 120
+    },
+    {
+      "_id": "fld_14",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "14 · Fase 3 — apelido, participação e \"ainda não foi resolvido\"",
+      "description": "Rotas da fase 3. A ocorrência 1 precisa estar RESOLVIDA (Rodada 1, bloco 06) e a 2 aberta.",
+      "environment": {},
+      "metaSortKey": 120
+    },
+    {
+      "_id": "req_14_1",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.1 PATCH /identificacoes/atual (trocar apelido)",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"Vizinha da Rodada 2\"\n}"
+      },
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com o mesmo `id` e o apelido novo. O UUID vai no cabeçalho, nunca na URL.",
+      "metaSortKey": 121
+    },
+    {
+      "_id": "req_14_2",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.2 PATCH /identificacoes/atual (apelido curto)",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"A\"\n}"
+      },
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 `VALIDACAO` (campo `apelido`); o apelido da 14.1 continua.",
+      "metaSortKey": 122
+    },
+    {
+      "_id": "req_14_3",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.3 PATCH /identificacoes/atual (inexistente)",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"Outra Pessoa\"\n}"
+      },
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "00000000-0000-4000-8000-000000000000"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 404 `NAO_ENCONTRADO`.",
+      "metaSortKey": 123
+    },
+    {
+      "_id": "req_14_4",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.4 GET /identificacoes/atual/participacao",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/atual/participacao",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com `registradas`, `confirmadas`, `resolvidas_acompanhadas` e `avisos_nao_resolvido` (só registros reais).",
+      "metaSortKey": 124
+    },
+    {
+      "_id": "req_14_5",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.5 POST ainda não resolvido (ocorrência 1, outra pessoa)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/nao-resolvido",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201 `{ocorrencia_id, avisos_nao_resolvido: 1, avisado: true}`. A ocorrência continua RESOLVIDA.",
+      "metaSortKey": 125
+    },
+    {
+      "_id": "req_14_6",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.6 POST ainda não resolvido (repetido)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/nao-resolvido",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; continua 1 aviso (não duplica).",
+      "metaSortKey": 126
+    },
+    {
+      "_id": "req_14_7",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.7 POST ainda não resolvido (ocorrência aberta)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.segunda_ocorrencia_id }}/nao-resolvido",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 409 `OCORRENCIA_NAO_RESOLVIDA` (só dá para avisar em ocorrência resolvida).",
+      "metaSortKey": 127
+    },
+    {
+      "_id": "req_14_8",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.8 GET detalhe com o aviso (outra pessoa)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; `status` RESOLVIDA, `avisos_nao_resolvido` 1 e `minha_relacao.avisei_nao_resolvido` true.",
+      "metaSortKey": 128
+    },
+    {
+      "_id": "req_14_9",
+      "_type": "request",
+      "parentId": "fld_14",
+      "name": "14.9 DELETE ainda não resolvido (desfazer)",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/nao-resolvido",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 `{avisos_nao_resolvido: 0, avisado: false}`.",
+      "metaSortKey": 129
     }
   ]
 }

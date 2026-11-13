@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { validarApelido } from './identificacao.ts';
-import { interpretarCodigoRegiao, interpretarIdRota, rotaMapa, rotaRegiao } from './rotas.ts';
+import { interpretarCodigoRegiao, interpretarIdRota, rotaMapa, rotaRegiao, rotaSobre } from './rotas.ts';
 import { formatarDecimal, iniciais } from '../utils/formatacao.ts';
 import { interpretarUrlApi } from './urlApi.ts';
 
@@ -64,6 +64,10 @@ describe('interpretarCodigoRegiao', () => {
     assert.deepEqual(rotaMapa('aovivo', '09'), { pathname: '/mapa', params: { modo: 'aovivo', regiao: '09' } });
     assert.deepEqual(rotaMapa(), { pathname: '/mapa', params: { modo: 'aovivo' } });
     assert.deepEqual(rotaMapa('exemplo'), { pathname: '/mapa', params: { modo: 'exemplo' } });
+  });
+
+  it('monta a rota das páginas informativas do Perfil', () => {
+    assert.deepEqual(rotaSobre('alertas'), { pathname: '/sobre/[pagina]', params: { pagina: 'alertas' } });
   });
 });
 

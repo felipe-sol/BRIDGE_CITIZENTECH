@@ -1,4 +1,7 @@
-import { StyleSheet, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import { StyleSheet, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import { useEscalaTexto } from '../context/PreferenciasContext';
+import { escalarEstiloTexto } from '../preferencias/preferencias';
+import { TextoEscalavel as Text } from './Texto';
 
 import { cores, espaco, raio, texto, fontes } from '../theme/tema';
 
@@ -29,6 +32,7 @@ export function CampoTexto({
   monoespacado = false,
   editavel = true,
 }: Props) {
+  const escala = useEscalaTexto();
   const descricaoAcessivel = [erro ? `Erro: ${erro}` : null, ajuda].filter(Boolean).join('. ');
   return (
     <View style={styles.campo}>
@@ -55,6 +59,7 @@ export function CampoTexto({
           monoespacado && texto.dado,
           erro ? styles.entradaComErro : null,
           !editavel && styles.inativo,
+          escala === 1 ? null : escalarEstiloTexto(styles.entrada, escala),
         ]}
       />
       <View style={styles.rodape}>

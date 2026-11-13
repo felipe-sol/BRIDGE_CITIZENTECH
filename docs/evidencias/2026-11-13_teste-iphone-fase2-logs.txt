@@ -1,0 +1,36 @@
+# Teste manual no iPhone (Expo Go) — Bridge 2.0, fase 2 — resumo dos logs da API
+Data: 2026-11-13. Teste feito pela equipe; o usuário confirmou ("testei pode seguir").
+Fonte: log do uvicorn da API da porta 8000 (banco de desenvolvimento, com os dados fictícios gerados).
+Privacidade: só totais agregados. Sem UUID, sem IP do aparelho e sem parâmetros de consulta
+(as consultas do mapa carregam a área visível, próxima da localização real da pessoa).
+
+## Antes de recarregar o app (bundle antigo ainda em cache no aparelho)
+  12  GET /ocorrencias/minhas
+  10  GET /ocorrencias
+  10  GET /estatisticas/regioes
+   1  GET /identificacoes/{uuid}
+(rotas da fase 1: inclui a conferência antiga com o UUID no caminho, corrigida na fase 2)
+
+## Depois de recarregar (código da fase 2)
+  15  GET /ocorrencias/mapa (origem=SIMULADA)
+  15  GET /estatisticas/regioes (origem=SIMULADA)
+  12  GET /ocorrencias/minhas
+   8  GET /estatisticas/regioes
+   5  GET /ocorrencias/mapa
+   2  GET /estatisticas/resumo
+   1  GET /identificacoes/atual
+   1  GET /estatisticas/resumo (origem=SIMULADA)
+Códigos de resposta: 59 × HTTP 200
+Requisições com UUID no caminho da URL depois de recarregar: 0
+
+## O que isso mostra
+- Identificação conferida pelo cabeçalho (GET /identificacoes/atual), sem UUID na URL.
+- Mapa nos dois modos: pontos por /ocorrencias/mapa (reais e origem=SIMULADA) e densidade/alertas
+  por /estatisticas/regioes (reais e origem=SIMULADA), com atualização repetida.
+- Aba Análises nos dois modos: /estatisticas/resumo (reais e origem=SIMULADA).
+- Início/Andamento: /ocorrencias/minhas.
+
+## O que NÃO aparece nestes logs
+- Aparência das telas (faixa DADOS FICTÍCIOS, contorno tracejado, gráficos): é visual, não passa pela API;
+  o registro é a confirmação do usuário.
+- Envio de registro novo e "Eu também vi" (não exercitados nesta sessão).

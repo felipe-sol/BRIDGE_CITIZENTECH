@@ -1,5 +1,6 @@
 /** Controles do formulário: seleção de categoria e interruptores sim/não. */
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { TextoEscalavel as Text } from './Texto';
 
 import { CATEGORIAS, ROTULO_CATEGORIA, type Categoria } from '../models/ocorrencia';
 import { ALVO_TOQUE, cores, espaco, raio, fontes } from '../theme/tema';

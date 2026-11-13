@@ -102,10 +102,14 @@ export interface RegistroHistorico {
 export interface RelacaoOcorrencia {
   registrei: boolean;
   confirmei: boolean;
+  /** Avisou que uma ocorrência RESOLVIDA ainda não foi resolvida no local. */
+  aviseiNaoResolvido: boolean;
 }
 
 export interface OcorrenciaDetalhe extends Ocorrencia {
   historico: RegistroHistorico[];
+  /** Quantas pessoas avisaram que ainda não foi resolvido (o aviso não reabre a ocorrência). */
+  avisosNaoResolvido: number;
   /** null quando a consulta foi feita sem identificação. */
   minhaRelacao: RelacaoOcorrencia | null;
 }
@@ -117,6 +121,12 @@ export interface ResultadoConfirmacao {
   ocorrenciaId: number;
   confirmacoes: number;
   confirmado: boolean;
+}
+
+export interface ResultadoAviso {
+  ocorrenciaId: number;
+  avisosNaoResolvido: number;
+  avisado: boolean;
 }
 
 /** Números de uma subprefeitura (GET /estatisticas/regioes). */
