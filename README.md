@@ -19,7 +19,7 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 | Campo | Conteúdo |
 |---|---|
 | Nome da CitizenTech | Bridge |
-| Cidade e bairro | São Paulo (SP) — bairro: **[PREENCHER pela equipe: bairro real observado]** |
+| Cidade e bairro | São Paulo (SP) — bairro: Santo Amaro |
 | Cidadão beneficiado | Pedestres que dependem da calçada — em especial pessoas com deficiência ou mobilidade reduzida, idosos e quem anda com carrinho de bebê — e moradores que querem acompanhar a zeladoria do bairro |
 | Problema, em uma frase | Calçadas quebradas, buracos, postes apagados e obstáculos colocam pedestres em risco, e o cidadão não tem um jeito simples de registrar o problema e acompanhar o que foi feito |
 | Como funciona | O cidadão registra pelo app (categoria, descrição, foto, localização GPS e situação no local); a API valida, calcula a prioridade por regras documentadas, grava no PostgreSQL e mantém o histórico de cada mudança de status; um operador atualiza o andamento |
