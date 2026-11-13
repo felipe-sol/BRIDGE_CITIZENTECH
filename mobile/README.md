@@ -75,6 +75,10 @@ Testado com Node.js 24.19 e npm 11.
 
 ## Instalação e execução
 
+Antes, deixe a **API rodando** e acessível pela rede (ver
+[Configuração e acesso ao backend](#configuração-e-acesso-ao-backend)). O celular precisa
+do **Expo Go compatível com o SDK 58**.
+
 ```bash
 cd mobile
 npm ci                       # instala exatamente o package-lock.json
@@ -82,6 +86,8 @@ cp .env.example .env         # Windows: Copy-Item .env.example .env
 # edite .env: EXPO_PUBLIC_API_URL=http://<IP-do-computador>:8000
 npx expo start -c            # -c limpa o cache (necessário ao mudar o .env)
 ```
+
+No Windows PowerShell, se o `npx` for bloqueado pela política de scripts, use `npx.cmd`.
 
 Abra o **Expo Go** no celular e leia o QR Code (Android: pelo Expo Go; iOS: pela câmera)
 ou digite o endereço `exp://<IP>:8081` em "Enter URL manually". No iPhone, se o Expo Go
@@ -137,15 +143,17 @@ npm run lint         # ESLint (eslint-config-expo)
 npx expo-doctor      # compatibilidade das dependências com o SDK
 ```
 
-Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt`:
+Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt` (com os
+adendos das correções do mapa):
 - `tsc` sem erros e ESLint sem problemas;
-- **106/106 testes**;
+- **118/118 testes**;
 - expo-doctor 20/20;
 - bundle iOS gerado;
 - nenhum `any` ou `@ts-ignore`;
 - nenhum segredo no bundle.
 
-Os testes cobrem: regiões e ponto em polígono, agrupamento do mapa (no máximo 64 itens),
+Os testes cobrem: regiões e ponto em polígono, agrupamento do mapa (no máximo 64 itens,
+grade presa ao mapa), toque no mapa (ícone mais próximo do dedo), área pedida com folga,
 distâncias, densidade, enquadramento, endereço, etapas do registro, selo "Atualizada",
 compartilhamento (inclusive o rótulo de dado fictício), validação do formulário, parsers
 das respostas da API, regra de exibição do alerta no Início, modo Ao vivo/Exemplo (resposta
@@ -194,8 +202,9 @@ src/
 - **Testes no aparelho:**
   - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e as fases 1
     e 2 do Bridge 2.0 em 13/11/2026;
-  - **a fase 3 (Perfil completo, "ainda não foi resolvido", cartão do mapa com foto) ainda
-    precisa do teste manual no iPhone**;
+  - da fase 3, o cartão do mapa (abrir pelo toque, em Ao vivo e Exemplo, e carregar a foto)
+    foi testado no iPhone em 13/11/2026; **Perfil completo e "ainda não foi resolvido" ainda
+    precisam do teste manual no iPhone**;
   - o zoom de pinça da foto em tela cheia usa o recurso do iOS; no Android a foto aparece
     inteira, sem zoom;
   - Android não foi testado em aparelho físico.

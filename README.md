@@ -2,7 +2,8 @@
 
 > **FIAP · Global Solution 2026.2 · CitizenTech · Engenharia de Software (3º ano)**
 > Este README é a entrega da disciplina **Arquitetura Orientada a Serviços (SOA) e Web Services**.
-> O app mobile tem entrega própria: [`mobile/README.md`](mobile/README.md).
+> O app mobile tem entrega própria: [`mobile/README.md`](mobile/README.md). Descrição completa
+> do app: [`descricaoapp.md`](descricaoapp.md).
 
 O Bridge é uma plataforma para o cidadão **registrar problemas de infraestrutura
 urbana** (calçada danificada, buraco, iluminação defeituosa, obstáculo à circulação),
@@ -115,6 +116,41 @@ status da análise de IA. Regras de prioridade e transições de status:
 
 ---
 
+## Como rodar (resumo)
+
+Ordem para subir tudo do zero (Windows PowerShell). Cada passo tem detalhes nas seções abaixo.
+
+1. **PostgreSQL ligado** e, só na primeira vez, usuário e bancos criados: ver
+   [Banco de dados](#banco-de-dados).
+2. **API**, na pasta `backend/`:
+
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+   Copy-Item .env.example .env          # os valores padrão já servem para o banco local
+   .\.venv\Scripts\alembic.exe upgrade head
+   .\.venv\Scripts\uvicorn.exe app.main:app --host 0.0.0.0 --port 8000
+   ```
+
+   Confira em <http://localhost:8000/health> (deve mostrar `"status": "ok"`) e na
+   documentação interativa em <http://localhost:8000/docs>. As rotas administrativas só
+   funcionam com `ADMIN_TOKEN` definido no `.env`.
+3. **Dados fictícios** (opcional, para o modo Exemplo do app), na pasta `backend/`:
+   `.\.venv\Scripts\python.exe scripts\dados_ficticios.py gerar`. Ver
+   [Dados fictícios](#dados-fictícios-de-demonstração-modo-exemplo).
+4. **App**, em outro terminal, na pasta `mobile/`:
+
+   ```powershell
+   npm ci
+   Copy-Item .env.example .env          # edite: EXPO_PUBLIC_API_URL=http://<IP-do-computador>:8000
+   npx expo start -c                    # se o PowerShell bloquear o npx, use npx.cmd
+   ```
+
+   Com o celular na mesma Wi-Fi, abra o **Expo Go** (compatível com o SDK 58) e leia o QR
+   Code ou digite `exp://<IP-do-computador>:8081`. Ver
+   [Acesso pelo celular](#acesso-pelo-celular-app-mobile) e o
+   [README do app](mobile/README.md#instalação-e-execução).
+
 ## Instalação
 
 Pré-requisitos: Python ≥ 3.11 e um PostgreSQL acessível (ver próxima seção).
@@ -178,10 +214,10 @@ O esquema é criado **somente** pelas migrações; o código não usa `create_al
 Aplicar em um banco vazio e conferir:
 
 ```powershell
-.\.venv\Scripts\alembic.exe upgrade head      # aplica 0001, 0002 e 0003
-.\.venv\Scripts\alembic.exe current           # deve mostrar 0003 (head)
+.\.venv\Scripts\alembic.exe upgrade head      # aplica 0001 a 0004
+.\.venv\Scripts\alembic.exe current           # deve mostrar 0004 (head)
 .\.venv\Scripts\alembic.exe check             # modelos == banco (sem migração pendente)
-.\.venv\Scripts\alembic.exe downgrade -1      # volta para 0002 (teste de reversão)
+.\.venv\Scripts\alembic.exe downgrade -1      # volta para 0003 (teste de reversão)
 .\.venv\Scripts\alembic.exe upgrade head
 .\.venv\Scripts\python.exe scripts\recalcular_regioes.py   # preenche a região das ocorrências antigas (idempotente)
 ```
@@ -189,7 +225,8 @@ Aplicar em um banco vazio e conferir:
 Execução real em banco vazio (PostgreSQL 18.4), com `upgrade`, `check`, `downgrade -1`,
 ida e volta completa e a migração de dados da `0002`:
 [`docs/evidencias/2026-11-11_alembic-banco-vazio.txt`](docs/evidencias/2026-11-11_alembic-banco-vazio.txt);
-migração `0003`: [`docs/evidencias/2026-11-12_alembic-0003.txt`](docs/evidencias/2026-11-12_alembic-0003.txt).
+migração `0003`: [`docs/evidencias/2026-11-12_alembic-0003.txt`](docs/evidencias/2026-11-12_alembic-0003.txt);
+migração `0004`: [`docs/evidencias/2026-11-13_alembic-0004.txt`](docs/evidencias/2026-11-13_alembic-0004.txt).
 
 Ver o SQL sem conectar: `alembic upgrade head --sql`
 (saída salva em [`docs/evidencias/2026-11-11_alembic-sql-offline.sql`](docs/evidencias/2026-11-11_alembic-sql-offline.sql)).
@@ -197,7 +234,7 @@ Ver o SQL sem conectar: `alembic upgrade head --sql`
 Criar uma nova migração depois de alterar `app/models.py`:
 
 ```powershell
-.\.venv\Scripts\alembic.exe revision --autogenerate -m "descricao da mudanca" --rev-id 0004
+.\.venv\Scripts\alembic.exe revision --autogenerate -m "descricao da mudanca" --rev-id 0005
 # revise o arquivo gerado em alembic/versions/ ANTES de aplicar
 .\.venv\Scripts\alembic.exe upgrade head
 ```
