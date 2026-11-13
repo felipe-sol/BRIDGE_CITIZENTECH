@@ -9,7 +9,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import MapView, { type Region } from 'react-native-maps';
+import MapView, { type MapPressEvent, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avisoTruncado } from '../../analises/graficos';
@@ -30,7 +30,8 @@ import { agruparPontos } from '../../geo/agrupamento';
 import { ampliarCaixa, caixaContem, caixaDaRegiao, regiaoDaCaixa, regiaoInicial } from '../../geo/distancia';
 import { aplicarResultadoMapa, avisoFalhaMapa, type EstadoDadosMapa, type ResultadoAtualizacao } from '../../geo/estadoMapa';
 import { interpretarModo, origemDoModo, type ModoDados } from '../../geo/modo';
-import type { Caixa, OcorrenciaMapa, PontosMapa, RegiaoMapa, RegiaoSP } from '../../geo/tipos';
+import type { Caixa, OcorrenciaMapa, PontoMapa, PontosMapa, RegiaoMapa, RegiaoSP } from '../../geo/tipos';
+import { decidirToqueMapa, itemNoToque, type TamanhoMapa } from '../../geo/toqueMapa';
 import { useAtualizacaoPeriodica } from '../../hooks/useAtualizacaoPeriodica';
 import { deveExecutar, type UltimaExecucao } from '../../utils/limitador';
 import { useIdentificacao } from '../../context/IdentificacaoContext';
@@ -108,6 +109,8 @@ export default function TelaMapa() {
   const [pontos, setPontos] = useState<EstadoDadosMapa<PontosMapa>>(VAZIO);
   const [estatisticas, setEstatisticas] = useState<EstadoDadosMapa<EstatisticaRegiao[]>>(VAZIO);
   const [selecionada, setSelecionada] = useState<{ item: OcorrenciaMapa; modo: ModoDados } | null>(null);
+  // Tamanho do mapa em pontos da tela: converte a distância do dedo ao ícone (toque perto do ícone).
+  const [tamanhoMapa, setTamanhoMapa] = useState<TamanhoMapa>({ largura: 0, altura: 0 });
   const [aviso, setAviso] = useState<string | null>(null);
   const [busca, setBusca] = useState<{ texto: string; itens: Ocorrencia[]; modo: ModoDados } | null>(null);
   const { estado: identificacao } = useIdentificacao();
@@ -253,6 +256,37 @@ export default function TelaMapa() {
     setSelecionada(null);
   }
 
+  function tocarPonto(ponto: PontoMapa) {
+    const item = pontosDoModo.dados?.itens.find((o) => o.id === ponto.id);
+    if (item) selecionar(item);
+  }
+
+  function tocarGrupo(latitude: number, longitude: number) {
+    irPara({
+      latitude,
+      longitude,
+      latitudeDelta: regiaoVisivel.latitudeDelta / 3,
+      longitudeDelta: regiaoVisivel.longitudeDelta / 3,
+    });
+  }
+
+  /**
+   * No iPhone o toque nem sempre chega ao ícone: muitas vezes chega só ao mapa ("press").
+   * Então o próprio app procura o ícone mais próximo do dedo (geo/toqueMapa.ts). O eco
+   * "marker-press" (o toque que o ícone já tratou, subindo até o mapa) é ignorado.
+   * Toque num lugar vazio fecha o cartão.
+   */
+  function tocarMapa(e: MapPressEvent) {
+    const { action, coordinate } = e.nativeEvent;
+    const perto = camada === 'pontos' ? itemNoToque(itens, coordinate, regiaoVisivel, tamanhoMapa) : null;
+    const decisao = decidirToqueMapa(action, perto);
+    if (decisao.tipo === 'fechar') fecharCartao();
+    else if (decisao.tipo === 'item') {
+      if (decisao.item.tipo === 'ponto') tocarPonto(decisao.item.ponto);
+      else tocarGrupo(decisao.item.latitude, decisao.item.longitude);
+    }
+  }
+
   function mudarCamada(nova: Camada) {
     if (nova !== camada) fecharCartao(); // o cartão de um ponto não fica sobre a densidade
     setCamada(nova);
@@ -319,7 +353,8 @@ export default function TelaMapa() {
         style={StyleSheet.absoluteFill}
         initialRegion={regiaoInicial(null)}
         onRegionChangeComplete={(r: Region) => setRegiaoVisivel(r)}
-        onPress={fecharCartao}
+        onLayout={(e) => setTamanhoMapa({ largura: e.nativeEvent.layout.width, altura: e.nativeEvent.layout.height })}
+        onPress={tocarMapa}
         showsUserLocation={localizacao?.tipo === 'ok'}
         showsMyLocationButton={false}
         toolbarEnabled={false}
@@ -334,18 +369,8 @@ export default function TelaMapa() {
         ) : (
           <CamadaPontos
             itens={itens}
-            onPonto={(ponto) => {
-              const item = pontosDoModo.dados?.itens.find((o) => o.id === ponto.id);
-              if (item) selecionar(item);
-            }}
-            onGrupo={(latitude, longitude) =>
-              irPara({
-                latitude,
-                longitude,
-                latitudeDelta: regiaoVisivel.latitudeDelta / 3,
-                longitudeDelta: regiaoVisivel.longitudeDelta / 3,
-              })
-            }
+            onPonto={tocarPonto}
+            onGrupo={tocarGrupo}
           />
         )}
       </MapView>

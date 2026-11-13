@@ -208,3 +208,39 @@ $ npx tsc --noEmit  /  npx eslint .
 $ npx expo export --platform ios (pasta temporária)
 iOS Bundled 24521ms node_modules\expo-router\entry.js (1447 modules)
 [código de saída: 0]
+
+## Adendo 2 — toque nos ícones do mapa (relato de 13/11: "não estão clicáveis mostrando as fotos ao clicar no ícone")
+Data: 2026-11-13 15:37:05 -0300
+Causa (código nativo do react-native-maps 1.29.11 + registro temporário de diagnóstico no iPhone, já removido):
+1. Quando o ícone recebia o toque, o evento dele ("marker-press") subia até o onPress do mapa ~2 ms depois,
+   e o onPress do mapa fechava o cartão recém-aberto (por isso "não aparecia nada").
+2. Muitas vezes o toque não chegava ao ícone, só ao mapa ("press", com a coordenada do dedo).
+   No modo Exemplo, nenhum dos toques do primeiro teste chegou ao ícone.
+Correção: src/geo/toqueMapa.ts — o app procura o ícone mais próximo do dedo (até 28 pontos da tela,
+convertendo graus em pontos pelo tamanho do mapa) e trata como toque nele; o eco "marker-press" é ignorado;
+toque em lugar vazio fecha o cartão. Os ícones continuam com o próprio onPress quando recebem o toque.
+Testes novos (falharam antes: módulo inexistente; passam depois) — src/geo/toqueMapa.test.ts:
+  ✔ um toque a poucos pontos do ícone acha a ocorrência
+  ✔ um toque longe de qualquer ícone não acha nada
+  ✔ com dois ícones perto do dedo, fica o mais próximo
+  ✔ mede a distância em pontos da tela em cada eixo (a tela é mais alta que larga)
+  ✔ acha também um grupo (o toque nele aproxima o mapa)
+  ✔ sem o tamanho do mapa (antes do primeiro layout) não arrisca nada
+  ✔ ignora o eco do toque no ícone (o "marker-press" sobe até o mapa)
+  ✔ um toque perto de um ícone abre esse ícone
+  ✔ um toque num lugar vazio fecha o cartão
+$ npm test
+ℹ tests 118
+ℹ pass 118
+ℹ fail 0
+[código de saída: 0]
+$ npx tsc --noEmit  /  npx eslint .
+(sem saída: nenhum erro)
+$ bundle iOS servido pelo Metro (código final, sem o registro de diagnóstico)
+iOS Bundled 2370ms node_modules\expo-router\entry.js (1604 modules) — HTTP 200
+Teste manual no iPhone (Expo Go, 13/11, com o registro de diagnóstico):
+  - 4 toques que chegaram só ao mapa abriram a ocorrência pelo cálculo de proximidade (Ao vivo e Exemplo);
+  - 4 toques que chegaram ao ícone (1 ocorrência, 3 grupos): eco "marker-press" ignorado, um único zoom por grupo;
+  - 2 toques em lugar vazio fecharam o cartão;
+  - API: detalhes das ocorrências tocadas e fotos das reais (GET /ocorrencias/{id}/imagem) com 200.
+  - Foto em tela cheia: não aparece nos logs (só confirmação visual da equipe).
