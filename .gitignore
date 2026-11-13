@@ -1,0 +1,53 @@
+# ---------- Segredos e configuração local ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Python / backend ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Uploads e dados gerados em tempo de execução (fora do código versionado)
+backend/var/
+
+# ---------- Node / Expo / mobile ----------
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.metro-health-check*
+
+# Builds nativos gerados (o app roda no Expo Go; não usamos prebuild)
+mobile/android/
+mobile/ios/
+
+# Chaves e certificados
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# ---------- Artefatos de entrega gerados localmente ----------
+*.zip
+
+# ---------- Sistema operacional / editores ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

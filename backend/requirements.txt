@@ -1,0 +1,9 @@
+# Dependências de execução do backend Bridge (versões fixadas e testadas com Python 3.14)
+fastapi==0.162.4
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.8
+alembic==1.20.1
+psycopg[binary]==3.3.8
+pydantic-settings==2.16.2
+python-multipart==0.0.33
+pillow==13.0.0

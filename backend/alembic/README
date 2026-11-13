@@ -1,0 +1,11 @@
+Migrações do banco do Bridge (Alembic).
+
+Aplicar todas:            alembic upgrade head
+Ver a versão atual:       alembic current
+Ver o histórico:          alembic history --verbose
+Voltar uma migração:      alembic downgrade -1
+Gerar SQL sem conectar:   alembic upgrade head --sql
+Conferir se os modelos
+estão iguais ao banco:    alembic check
+Criar nova migração:      alembic revision --autogenerate -m "descricao" --rev-id 0003
+                          (revise SEMPRE o arquivo gerado antes de aplicar)

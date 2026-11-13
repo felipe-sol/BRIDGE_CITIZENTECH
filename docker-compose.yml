@@ -1,0 +1,19 @@
+# OPCIONAL — PostgreSQL local para desenvolvimento via Docker.
+# Não verificado no ambiente em que o projeto foi desenvolvido (sem Docker).
+# Uso: docker compose up -d   (na raiz do repositório)
+# Senha DEMONSTRATIVA, apenas para ambiente local.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: bridge
+      POSTGRES_PASSWORD: bridge_dev
+      POSTGRES_DB: bridge
+    ports:
+      - "127.0.0.1:5432:5432" # só acessível a partir deste computador
+    volumes:
+      - bridge-pgdata:/var/lib/postgresql
+      - ./backend/scripts/docker-init.sql:/docker-entrypoint-initdb.d/01-bridge-test.sql:ro
+
+volumes:
+  bridge-pgdata:
