@@ -369,9 +369,7 @@ persistência após reiniciar a API):
 
 ## Evidências
 
-Índice em [`docs/evidencias/README.md`](docs/evidencias/README.md). Rastreabilidade de cada
-requisito: [`docs/REQUISITOS.md`](docs/REQUISITOS.md). Checklist de entrega:
-[`docs/ENTREGA.md`](docs/ENTREGA.md).
+Índice em [`docs/evidencias/README.md`](docs/evidencias/README.md).
 
 ## Situação atual (13/11/2026, fim da fase 3)
 
@@ -385,9 +383,4 @@ requisito: [`docs/REQUISITOS.md`](docs/REQUISITOS.md). Checklist de entrega:
 | Testes automatizados (159, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Vídeo demo do app | **Não gravado** — só o roteiro em `docs/ROTEIRO_VIDEO_MOBILE.md` |
 | Integração com o modelo de IA | **Pendente** — aguardando o material do colega |
-
-## Uso de IA no desenvolvimento
-
-Conforme as regras da GS, os prompts usados estão registrados em [`prompts.md`](prompts.md).

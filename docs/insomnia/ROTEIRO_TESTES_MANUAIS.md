@@ -95,8 +95,7 @@ python -c "open(r'C:\temp\grande.jpg','wb').write(b'\xff\xd8' + b'0' * 6 * 1024 
 
 - Print de cada linha (requisição + status + corpo da resposta visíveis).
 - Salve em `docs/evidencias/insomnia/` com o nome indicado.
-- Marque ☑ nesta tabela e atualize `docs/REQUISITOS.md` (S4) para
-  "Verificado manualmente" somente depois disso.
+- Marque ☑ nesta tabela somente depois disso.
 
 ## 4. Rodada 2 — Bridge 2.0, fases 1 a 3 (pastas 09 a 14)
 

@@ -78,5 +78,5 @@ class ClassificadorOcorrencia(Protocol):
 5. Validar com o **exemplo real** fornecido (entrada → saída esperada).
 6. Conferir o resultado gravado no banco (`ocorrencias.ia_*`) e exibido no app.
 7. Testar falha (arquivo de modelo ausente/corrompido) sem perder a ocorrência.
-8. Atualizar este documento, `docs/REQUISITOS.md` e os READMEs com o que foi
-   realmente verificado e as métricas fornecidas pelo responsável.
+8. Atualizar este documento e os READMEs com o que foi realmente verificado e as
+   métricas fornecidas pelo responsável.
