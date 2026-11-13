@@ -22,7 +22,7 @@ _Última atualização: 13/11/2026 (Bridge 2.0, fase 3)._
 | S3 | Migrações (2,5) | `alembic/versions/0001`, `0002` (inclui migração de dados), `0003` (endereço, região, origem, confirmações), `0004` (avisos "ainda não foi resolvido") | Banco vazio: `upgrade head`, `current`, `check` (sem diferenças), `downgrade -1`, `base` → `head`; migração de dados da 0002 com registro sintético; 0003 e 0004: `upgrade`, `check`, `downgrade -1` e reaplicação; banco de desenvolvimento só atualizado, sem perda | `alembic-banco-vazio.txt`, `alembic-sql-offline.sql`, `alembic-0003.txt`, `alembic-0004.txt` | **Verificado automaticamente** |
 | S4 | Testes manuais com Insomnia (1,5) | `docs/insomnia/bridge-insomnia.json` (73 req.: 33 da Rodada 1 + 40 da Rodada 2) + roteiro | Rodada 1: 33 requisições executadas manualmente em 12/11/2026, todas com o resultado esperado. Rodada 2 (rotas do Bridge 2.0, pastas 09 a 14): não executada | `evidencias/insomnia/` (35 prints da Rodada 1) | **Verificado manualmente** (Rodada 1); Rodada 2: **Pendente** |
 | S5 | API REST | `app/routes/` — 22 operações | HTTP real com a API e o PostgreSQL rodando: 25/25 verificações (11/11); fluxo 1.0 + fases 1 a 3 com 79 verificações + persistência (13/11, API de verificação ligada ao banco de testes) | `verificacao-api-com-banco.txt`, `verificacao-api-fase3.txt`, `verificacao-http-sem-banco.txt` | **Verificado automaticamente** |
-| S6 | README com descrição, instruções e integrantes | `README.md` | Revisão | — | **Pendente**: nomes/RMs, cidade e link com `[PREENCHER]` |
+| S6 | README com descrição, instruções e integrantes | `README.md` | Revisão | — | Integrantes preenchidos (5, com RM, 13/11); **Pendente**: bairro, link do repositório e a parte de cada integrante (`[PREENCHER]`) |
 | S7 | Evidências da aplicação | `docs/evidencias/` | — | 24 arquivos automáticos + 2 resumos de teste manual (iPhone) + 35 prints manuais | **Implementado** (índice em `evidencias/README.md`) |
 | S8 | Entrega por link do GitHub | Repositório local iniciado (sem commit) | — | — | **Pendente** (criar repositório e push: ação da equipe) |
 
@@ -39,9 +39,9 @@ _Última atualização: 13/11/2026 (Bridge 2.0, fase 3)._
 | M7 | Tipos nos modelos, rotas e respostas | `src/models/`, `src/geo/tipos.ts`, `validation/rotas.ts`, `validation/respostas.ts`, `validation/regioes.ts` | tsc + testes dos parsers | `verificacao-mobile-fase1.txt` | **Verificado automaticamente** |
 | M8 | Recurso nativo com permissão tratada | `services/localizacao.ts` (GPS, pedido em contexto), `services/geocodificacao.ts` (endereço do aparelho), `services/camera.ts`, mapa (`react-native-maps`) | `regiaoInicial` testada (sem permissão → centro de SP) | `verificacao-mobile-fase1.txt` | Partes puras testadas; câmera e GPS usados no iPhone (1.0, 12/11); mapa real com localização no iPhone (2.0, 13/11) |
 | M9 | Camada `services/` e validação pura | `src/services/`, `src/validation/`, `src/geo/`, `src/registro/`, `src/acompanhamento/` | 106 testes puros com `node --test` | `verificacao-mobile-fase1.txt` | **Verificado automaticamente** |
-| M10 | README.md (Ficha e como rodar) | `mobile/README.md` | — | — | **Pendente**: `[PREENCHER]` (cidade, link, integrantes) |
+| M10 | README.md (Ficha e como rodar) | `mobile/README.md` | — | — | Integrantes preenchidos (13/11); **Pendente**: bairro e link (`[PREENCHER]`) |
 | M11 | DECISOES.md (1–2 páginas) | `mobile/DECISOES.md` (atualizado para a fase 3 do Bridge 2.0, 1.136 palavras ≈ 2 páginas) | Revisão | — | Implementado |
-| M12 | `authors` (nome e RM de todos) | `mobile/package.json` | Script do ZIP recusa marcadores | — | **Pendente — bloqueante** (marcadores `PREENCHER`) |
+| M12 | `authors` (nome e RM de todos) | `mobile/package.json` (5 integrantes) | 0 marcadores `PREENCHER`; o Perfil do app lista os 5 nomes (`textoEquipe`); tsc, 118 testes e expo-doctor 20/20 | — | **Implementado** (13/11) |
 | M13 | ZIP sem `node_modules` | `scripts/gerar_zip_mobile.py` | ZIP de teste da fase 3 (125 arquivos) gerado, extraído fora do OneDrive e sem o backend ao lado, instalado do zero: `npm ci`, tsc limpo, 106/106 testes, lint limpo (13/11) | `zip-mobile-teste-fase3.txt` | **Verificado automaticamente** (ZIP de teste); ZIP final: Pendente (após `authors`) |
 | M14 | Vídeo demo ≤ 2 min | `docs/ROTEIRO_VIDEO_MOBILE.md` (reescrito para o Bridge 2.0, com checklist e requisitos do PDF por minuto) | — | — | **Pendente** (só o roteiro existe; vídeo não gravado) |
 
@@ -51,7 +51,7 @@ _Última atualização: 13/11/2026 (Bridge 2.0, fase 3)._
 |---|---|---|---|
 | G1 | ODS conectados e contribuição (PDF p. 14) | README raiz e mobile (ODS 11, 9, 10 com metas) | Implementado |
 | G2 | Ficha da CitizenTech no início do README (PDF p. 20) | README raiz e mobile | Implementado com `[PREENCHER]` (cidade, link) |
-| G3 | Prompts de IA em `prompts.md` (PDF p. 21) | `prompts.md` | **Pendente**: colar o texto completo do prompt |
+| G3 | Prompts de IA em `prompts.md` (PDF p. 21) | `prompts.md` | Responsável preenchido; **Pendente**: colar o texto completo do prompt |
 | G4 | Sem dados pessoais reais; dados simulados com origem (PDF p. 21) | Imagens de teste geradas por código; dados de teste marcados; app orienta usar apelido | Implementado |
 
 ## D. Requisitos internos da equipe

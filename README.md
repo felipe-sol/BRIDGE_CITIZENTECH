@@ -41,9 +41,11 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 
 | Nome completo | RM | Papel no projeto |
 |---|---|---|
-| **[PREENCHER]** | **[PREENCHER]** | Backend (SOA) e app Mobile |
-| **[PREENCHER]** | **[PREENCHER]** | Modelo de IA (IA & ML) |
-| **[PREENCHER]** | **[PREENCHER]** | **[PREENCHER]** |
+| Leonardo Luiz Jardim Queijo | 559842 | **[PREENCHER: parte no projeto]** |
+| Kauã Rodrigues de Souza | 559335 | **[PREENCHER: parte no projeto]** |
+| Felipe Santos Marceli | 560456 | Backend (SOA) e app Mobile |
+| Enzo Galhardo | 561001 | **[PREENCHER: parte no projeto]** |
+| Kauan Diogo | 560727 | **[PREENCHER: parte no projeto]** |
 
 ---
 

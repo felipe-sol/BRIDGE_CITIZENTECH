@@ -26,7 +26,7 @@ Avaliação: domínio 3,0 · banco 3,0 · migrações 2,5 · testes manuais 1,5.
 | ☑ | Roteiro dos testes manuais | `docs/insomnia/ROTEIRO_TESTES_MANUAIS.md` | — |
 | ☑ | **Testes manuais executados + prints reais (Rodada 1)** | `docs/evidencias/insomnia/` | 33/33 em 12/11/2026 (35 prints) |
 | ☐ | **Rodada 2 do Insomnia (40 requisições do Bridge 2.0, pastas 09 a 14) + prints** | `ROTEIRO_TESTES_MANUAIS.md`, seção 4 | ☐ Pendente (manual, equipe); gerar os fictícios antes da pasta 13 |
-| ⚠ | **Nomes dos integrantes no README** | `README.md` | ☐ Marcadores `[PREENCHER]` |
+| ☑ | **Nomes dos integrantes no README** | `README.md`, `mobile/README.md` | 5 integrantes com RM (13/11); no README raiz falta a parte de cada um no projeto (exceto backend/mobile) |
 | ☐ | Cidade/bairro e link do repositório na Ficha | `README.md` | ☐ Marcadores `[PREENCHER]` |
 | ☐ | Atualizar `docs/REQUISITOS.md` após os testes **manuais** (Insomnia e celular) | — | Atualizado em 13/11 com a Rodada 1 e os testes no iPhone (1.0 e 2.0); falta a Rodada 2 do Insomnia |
 | ⚠ | **Criar repositório no GitHub, commit e push** | — | ☐ (não feito por mim: requer sua autorização/conta) |
@@ -54,9 +54,9 @@ CitizenTech e como rodar), DECISOES.md (1 a 2 páginas), `authors` no package.js
 | ☑ | TypeScript estrito, sem `any`, `tsc --noEmit` limpo | `tsconfig.json` | Verificado automaticamente |
 | ☑ | Recurso nativo com permissão tratada (localização, endereço do aparelho, câmera, mapa) | `services/localizacao.ts`, `geocodificacao.ts`, `camera.ts` | Implementado; ver em aparelho |
 | ☑ | Camada `services/` e funções puras | `src/services/`, `src/validation/`, `src/geo/`, `src/registro/`, `src/acompanhamento/` | — |
-| ☑ | README.md com Ficha e como rodar | `mobile/README.md` | Faltam marcadores `[PREENCHER]` |
+| ☑ | README.md com Ficha e como rodar | `mobile/README.md` | Integrantes preenchidos; faltam bairro e link (`[PREENCHER]`) |
 | ☑ | DECISOES.md (1–2 páginas) | `mobile/DECISOES.md` | Atualizado para o Bridge 2.0 |
-| ⚠ | **`authors` com nome e RM de TODOS** | `mobile/package.json` | ☐ Marcadores `PREENCHER` |
+| ☑ | **`authors` com nome e RM de TODOS** | `mobile/package.json` | 5 integrantes, 0 marcadores (13/11); o Perfil do app lista os nomes; tsc, 118 testes e expo-doctor 20/20 depois da mudança |
 | ☑ | Teste no celular físico pelo Expo Go — versão 1.0 | iPhone, 12/11/2026 | Feito pela equipe (logs da API: identificação, lista, cadastro com foto, detalhe) |
 | ⚠ | **Teste no iPhone da fase 3: Perfil completo, "Ainda não foi resolvido", cartão do mapa com foto em tela cheia** | — | ☐ Pendente (manual) |
 | ☑ | Teste no iPhone da fase 2: aba Análises, modo Exemplo (Mapa e Análises), alertas | iPhone, 13/11/2026; `evidencias/2026-11-13_teste-iphone-fase2-logs.txt` | Feito pela equipe; logs: 59 requisições do código novo, todas 200, nenhum UUID na URL |
@@ -104,6 +104,6 @@ No app, o seletor **Ao vivo** volta aos dados reais com um toque; o app sempre a
 | | Item | Situação |
 |---|---|---|
 | ☑ | ODS identificados e contribuição explicada (PDF p. 14) | README |
-| ☐ | `prompts.md` com os prompts de IA usados (PDF p. 21) | Estrutura criada; **colar o prompt completo** |
+| ☐ | `prompts.md` com os prompts de IA usados (PDF p. 21) | Responsável preenchido; **colar o prompt completo** |
 | ☑ | Sem dados pessoais reais; imagens de teste sintéticas | — |
 | ☐ | Integração do modelo de IA do colega (`docs/CONTRATO_IA.md`) | Aguardando material |

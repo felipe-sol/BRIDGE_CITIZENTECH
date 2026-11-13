@@ -31,9 +31,11 @@ Também registrados no array `authors` do [`package.json`](package.json).
 
 | Nome completo | RM |
 |---|---|
-| **[PREENCHER]** | **[PREENCHER]** |
-| **[PREENCHER]** | **[PREENCHER]** |
-| **[PREENCHER]** | **[PREENCHER]** |
+| Leonardo Luiz Jardim Queijo | 559842 |
+| Kauã Rodrigues de Souza | 559335 |
+| Felipe Santos Marceli | 560456 |
+| Enzo Galhardo | 561001 |
+| Kauan Diogo | 560727 |
 
 ## Telas
 

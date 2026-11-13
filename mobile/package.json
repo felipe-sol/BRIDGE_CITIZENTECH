@@ -4,16 +4,24 @@
   "description": "App mobile do Bridge (FIAP Global Solution 2026.2 — CitizenTech): registro e acompanhamento de problemas de infraestrutura urbana.",
   "authors": [
     {
-      "name": "PREENCHER: nome completo do integrante 1",
-      "rm": "PREENCHER: RM"
+      "name": "Leonardo Luiz Jardim Queijo",
+      "rm": "559842"
     },
     {
-      "name": "PREENCHER: nome completo do integrante 2",
-      "rm": "PREENCHER: RM"
+      "name": "Kauã Rodrigues de Souza",
+      "rm": "559335"
     },
     {
-      "name": "PREENCHER: nome completo do integrante 3",
-      "rm": "PREENCHER: RM"
+      "name": "Felipe Santos Marceli",
+      "rm": "560456"
+    },
+    {
+      "name": "Enzo Galhardo",
+      "rm": "561001"
+    },
+    {
+      "name": "Kauan Diogo",
+      "rm": "560727"
     }
   ],
   "main": "expo-router/entry",

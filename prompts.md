@@ -6,7 +6,7 @@ cada linha do código.
 
 ## Sessão 1 — 11/11/2026 · Claude Code (Anthropic)
 
-**Responsável:** **[PREENCHER: integrante que conduziu a sessão]**
+**Responsável:** Felipe Santos Marceli (RM 560456)
 **Escopo:** backend (SOA) e app mobile do Bridge.
 
 ### Prompt (resumo fiel — colar o texto completo abaixo)
