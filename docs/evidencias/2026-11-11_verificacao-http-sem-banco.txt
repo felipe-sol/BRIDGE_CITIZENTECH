@@ -1,0 +1,51 @@
+# Verificação HTTP automática — API em execução SEM PostgreSQL disponível
+# Data: 2026-11-11 16:25:06 -0300 · Máquina de desenvolvimento · uvicorn em 127.0.0.1:8000
+# Objetivo: comprovar validação, formato de erro e tratamento de banco indisponível.
+# NÃO substitui os testes com banco nem os testes manuais no Insomnia.
+
+## 1. Health com banco fora do ar (esperado 503 degradado)
+$ curl -s -w '\nHTTP %{http_code}' http://127.0.0.1:8000/health
+{"status":"degradado","banco":"indisponivel","modelo_ia":{"disponivel":false,"versao":null},"versao_api":"1.0.0"}
+HTTP 503
+
+## 2. Apelido curto — validação antes do banco (esperado 422 VALIDACAO)
+$ curl -s -w '\nHTTP %{http_code}' -X POST http://127.0.0.1:8000/identificacoes -H 'Content-Type: application/json' -d '{"apelido":"A"}'
+{"erro":{"codigo":"VALIDACAO","mensagem":"Os dados enviados são inválidos.","detalhes":[{"campo":"apelido","mensagem":"Deve ter pelo menos 2 caracteres."}]}}
+HTTP 422
+
+## 3. Identificação válida com banco fora do ar (esperado 503 BANCO_INDISPONIVEL)
+$ curl -s -w '\nHTTP %{http_code}' -X POST http://127.0.0.1:8000/identificacoes -H 'Content-Type: application/json' -d '{"apelido":"Vizinha"}'
+{"erro":{"codigo":"BANCO_INDISPONIVEL","mensagem":"Banco de dados indisponível. Tente novamente em instantes.","detalhes":[]}}
+HTTP 503
+
+## 4. Ocorrência com latitude 91, título curto e campo extra (esperado 422)
+$ curl -s -w '\nHTTP %{http_code}' -X POST http://127.0.0.1:8000/ocorrencias -H 'Content-Type: application/json' -d '{"identificacao_id":"00000000-0000-4000-8000-000000000000","titulo":"abc","descricao":"Descricao valida de teste","categoria":"BURACO","latitude":91,"longitude":-46.6,"extra":1}'
+{"erro":{"codigo":"VALIDACAO","mensagem":"Os dados enviados são inválidos.","detalhes":[{"campo":"titulo","mensagem":"Deve ter pelo menos 5 caracteres."},{"campo":"latitude","mensagem":"Deve ser menor ou igual a 90."},{"campo":"extra","mensagem":"Campo não permitido."}]}}
+HTTP 422
+
+## 5. Paginação inválida (esperado 422)
+$ curl -s -w '\nHTTP %{http_code}' 'http://127.0.0.1:8000/ocorrencias?tamanho=500&ordenar=aleatorio'
+{"erro":{"codigo":"VALIDACAO","mensagem":"Os dados enviados são inválidos.","detalhes":[{"campo":"tamanho","mensagem":"Deve ser menor ou igual a 100."},{"campo":"ordenar","mensagem":"Valor inválido. Valores aceitos: 'recentes' ou 'prioridade'."}]}}
+HTTP 422
+
+## 6. Rota inexistente (esperado 404 no formato padrão)
+$ curl -s -w '\nHTTP %{http_code}' http://127.0.0.1:8000/nao-existe
+{"erro":{"codigo":"NAO_ENCONTRADO","mensagem":"Rota não encontrada.","detalhes":[]}}
+HTTP 404
+
+## 7. Mudança de status sem token administrativo (esperado 401)
+$ curl -s -w '\nHTTP %{http_code}' -X PATCH http://127.0.0.1:8000/ocorrencias/1/status -H 'Content-Type: application/json' -d '{"status":"EM_ANALISE"}'
+{"erro":{"codigo":"NAO_AUTORIZADO","mensagem":"Token administrativo ausente ou inválido.","detalhes":[]}}
+HTTP 401
+
+## 8. Upload de 6 MB (esperado 413, barrado pelo Content-Length antes de processar o corpo)
+$ curl -s -w '\nHTTP %{http_code}' -X POST http://127.0.0.1:8000/ocorrencias/1/imagem -H 'X-Identificacao-Id: 00000000-0000-4000-8000-000000000000' -F 'arquivo=@<temporario>
+{"erro":{"codigo":"ARQUIVO_MUITO_GRANDE","mensagem":"A imagem excede o limite de 5 MB.","detalhes":[]}}
+HTTP 413
+
+## 9. Contrato OpenAPI publicado (esperado 200 e 9 operações)
+$ curl -s -w '\n%{http_code}' http://127.0.0.1:8000/openapi.json | ./backend/.venv/Scripts/python.exe -c "import json,sys; t=sys.stdin.read(); c=t.rsplit(chr(10),1); s=json.loads(c[0]); print('operacoes:', sum(len(v) for v in s['paths'].values())); print('HTTP', c[1])"
+operacoes: 9
+HTTP 200
+
+

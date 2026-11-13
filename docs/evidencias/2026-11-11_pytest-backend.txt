@@ -1,0 +1,130 @@
+# Testes automatizados do backend (pytest) — 2026-11-11 16:25:42 -0300
+# Os 21 testes de integração (tests/test_api.py) foram PULADOS: PostgreSQL de teste indisponível nesta máquina.
+# Eles NÃO contam como verificados até serem executados com banco.
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.2.0, pluggy-1.7.0 -- <projeto>\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: <projeto>\backend
+plugins: anyio-4.16.0
+collecting ... collected 95 items
+
+tests/test_api.py::test_health_ok SKIPPED (PostgreSQL de teste indis...) [  1%]
+tests/test_api.py::test_rota_inexistente_usa_formato_de_erro SKIPPED     [  2%]
+tests/test_api.py::test_criar_e_consultar_identificacao SKIPPED (Pos...) [  3%]
+tests/test_api.py::test_identificacao_invalida_e_inexistente SKIPPED     [  4%]
+tests/test_api.py::test_cadastro_valido_calcula_prioridade_e_historico SKIPPED [  5%]
+tests/test_api.py::test_cadastro_campos_invalidos SKIPPED (PostgreSQ...) [  6%]
+tests/test_api.py::test_cadastro_coordenadas_invalidas SKIPPED (Post...) [  7%]
+tests/test_api.py::test_cadastro_com_identificacao_inexistente SKIPPED   [  8%]
+tests/test_api.py::test_idempotencia_nao_duplica SKIPPED (PostgreSQL...) [  9%]
+tests/test_api.py::test_listagem_vazia SKIPPED (PostgreSQL de teste ...) [ 10%]
+tests/test_api.py::test_listagem_paginacao_ordenacao_e_filtros SKIPPED   [ 11%]
+tests/test_api.py::test_detalhe_inexistente SKIPPED (PostgreSQL de t...) [ 12%]
+tests/test_api.py::test_fluxo_de_status_com_historico SKIPPED (Postg...) [ 13%]
+tests/test_api.py::test_transicao_invalida_nao_altera_nada SKIPPED (...) [ 14%]
+tests/test_api.py::test_status_exige_token_admin SKIPPED (PostgreSQL...) [ 15%]
+tests/test_api.py::test_status_com_admin_desabilitado SKIPPED (Postg...) [ 16%]
+tests/test_api.py::test_upload_valido_e_download_sem_exif SKIPPED (P...) [ 17%]
+tests/test_api.py::test_upload_valida_conteudo_e_nao_extensao SKIPPED    [ 18%]
+tests/test_api.py::test_upload_regras_de_negocio SKIPPED (PostgreSQL...) [ 20%]
+tests/test_api.py::test_upload_acima_do_limite SKIPPED (PostgreSQL d...) [ 21%]
+tests/test_api.py::test_imagem_inexistente SKIPPED (PostgreSQL de te...) [ 22%]
+tests/test_armazenamento.py::test_jpeg_valido_e_reencodado_sem_exif PASSED [ 23%]
+tests/test_armazenamento.py::test_png_valido PASSED                      [ 24%]
+tests/test_armazenamento.py::test_conteudo_invalido_e_recusado[isto nao e uma imagem] PASSED [ 25%]
+tests/test_armazenamento.py::test_conteudo_invalido_e_recusado[%PDF-1.7 fingindo ser foto] PASSED [ 26%]
+tests/test_armazenamento.py::test_conteudo_invalido_e_recusado[conteudo2] PASSED [ 27%]
+tests/test_armazenamento.py::test_formato_valido_porem_nao_aceito PASSED [ 28%]
+tests/test_armazenamento.py::test_resolucao_excessiva_e_recusada PASSED  [ 29%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[../segredo.jpg] PASSED [ 30%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[..\\..\\windows\\win.ini] PASSED [ 31%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[/etc/passwd] PASSED [ 32%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[C:\\arquivo.jpg] PASSED [ 33%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[abc.jpg] PASSED [ 34%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[0123456789abcdef0123456789abcdef.exe] PASSED [ 35%]
+tests/test_armazenamento.py::test_caminho_seguro_recusa_nomes_fora_do_padrao[0123456789abcdef0123456789abcdef.jpg/../x] PASSED [ 36%]
+tests/test_armazenamento.py::test_caminho_seguro_aceita_nome_gerado PASSED [ 37%]
+tests/test_erros.py::test_limites_numericos_sem_casa_decimal PASSED      [ 38%]
+tests/test_erros.py::test_valores_aceitos_em_portugues PASSED            [ 40%]
+tests/test_erros.py::test_json_malformado PASSED                         [ 41%]
+tests/test_erros.py::test_metodo_nao_permitido PASSED                    [ 42%]
+tests/test_prioridade.py::test_exemplos_documentados[OUTRO-False-False-False-1-BAIXA] PASSED [ 43%]
+tests/test_prioridade.py::test_exemplos_documentados[BURACO-False-False-False-3-BAIXA] PASSED [ 44%]
+tests/test_prioridade.py::test_exemplos_documentados[CALCADA_DANIFICADA-False-False-True-4-MEDIA] PASSED [ 45%]
+tests/test_prioridade.py::test_exemplos_documentados[ILUMINACAO_DEFEITUOSA-True-False-False-5-MEDIA] PASSED [ 46%]
+tests/test_prioridade.py::test_exemplos_documentados[BURACO-True-False-False-6-ALTA] PASSED [ 47%]
+tests/test_prioridade.py::test_exemplos_documentados[CALCADA_DANIFICADA-False-True-True-6-ALTA] PASSED [ 48%]
+tests/test_prioridade.py::test_exemplos_documentados[CALCADA_DANIFICADA-True-False-True-7-ALTA] PASSED [ 49%]
+tests/test_prioridade.py::test_exemplos_documentados[BURACO-True-True-True-10-ALTA] PASSED [ 50%]
+tests/test_prioridade.py::test_faixas_nas_fronteiras PASSED              [ 51%]
+tests/test_prioridade.py::test_pontuacao_sempre_entre_1_e_10_e_deterministica PASSED [ 52%]
+tests/test_prioridade.py::test_justificativa_lista_fatores PASSED        [ 53%]
+tests/test_schemas.py::test_valido_com_padroes PASSED                    [ 54%]
+tests/test_schemas.py::test_coordenada_inteira_e_aceita PASSED           [ 55%]
+tests/test_schemas.py::test_invalidos[alteracao0] PASSED                 [ 56%]
+tests/test_schemas.py::test_invalidos[alteracao1] PASSED                 [ 57%]
+tests/test_schemas.py::test_invalidos[alteracao2] PASSED                 [ 58%]
+tests/test_schemas.py::test_invalidos[alteracao3] PASSED                 [ 60%]
+tests/test_schemas.py::test_invalidos[alteracao4] PASSED                 [ 61%]
+tests/test_schemas.py::test_invalidos[alteracao5] PASSED                 [ 62%]
+tests/test_schemas.py::test_invalidos[alteracao6] PASSED                 [ 63%]
+tests/test_schemas.py::test_invalidos[alteracao7] PASSED                 [ 64%]
+tests/test_schemas.py::test_invalidos[alteracao8] PASSED                 [ 65%]
+tests/test_schemas.py::test_invalidos[alteracao9] PASSED                 [ 66%]
+tests/test_schemas.py::test_invalidos[alteracao10] PASSED                [ 67%]
+tests/test_schemas.py::test_invalidos[alteracao11] PASSED                [ 68%]
+tests/test_schemas.py::test_invalidos[alteracao12] PASSED                [ 69%]
+tests/test_schemas.py::test_invalidos[alteracao13] PASSED                [ 70%]
+tests/test_schemas.py::test_textos_sao_aparados PASSED                   [ 71%]
+tests/test_schemas.py::test_apelido_so_espacos_e_invalido PASSED         [ 72%]
+tests/test_transicoes.py::test_matriz_de_transicoes[ABERTA-ABERTA] PASSED [ 73%]
+tests/test_transicoes.py::test_matriz_de_transicoes[ABERTA-EM_ANALISE] PASSED [ 74%]
+tests/test_transicoes.py::test_matriz_de_transicoes[ABERTA-EM_ANDAMENTO] PASSED [ 75%]
+tests/test_transicoes.py::test_matriz_de_transicoes[ABERTA-RESOLVIDA] PASSED [ 76%]
+tests/test_transicoes.py::test_matriz_de_transicoes[ABERTA-REJEITADA] PASSED [ 77%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANALISE-ABERTA] PASSED [ 78%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANALISE-EM_ANALISE] PASSED [ 80%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANALISE-EM_ANDAMENTO] PASSED [ 81%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANALISE-RESOLVIDA] PASSED [ 82%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANALISE-REJEITADA] PASSED [ 83%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANDAMENTO-ABERTA] PASSED [ 84%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANDAMENTO-EM_ANALISE] PASSED [ 85%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANDAMENTO-EM_ANDAMENTO] PASSED [ 86%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANDAMENTO-RESOLVIDA] PASSED [ 87%]
+tests/test_transicoes.py::test_matriz_de_transicoes[EM_ANDAMENTO-REJEITADA] PASSED [ 88%]
+tests/test_transicoes.py::test_matriz_de_transicoes[RESOLVIDA-ABERTA] PASSED [ 89%]
+tests/test_transicoes.py::test_matriz_de_transicoes[RESOLVIDA-EM_ANALISE] PASSED [ 90%]
+tests/test_transicoes.py::test_matriz_de_transicoes[RESOLVIDA-EM_ANDAMENTO] PASSED [ 91%]
+tests/test_transicoes.py::test_matriz_de_transicoes[RESOLVIDA-RESOLVIDA] PASSED [ 92%]
+tests/test_transicoes.py::test_matriz_de_transicoes[RESOLVIDA-REJEITADA] PASSED [ 93%]
+tests/test_transicoes.py::test_matriz_de_transicoes[REJEITADA-ABERTA] PASSED [ 94%]
+tests/test_transicoes.py::test_matriz_de_transicoes[REJEITADA-EM_ANALISE] PASSED [ 95%]
+tests/test_transicoes.py::test_matriz_de_transicoes[REJEITADA-EM_ANDAMENTO] PASSED [ 96%]
+tests/test_transicoes.py::test_matriz_de_transicoes[REJEITADA-RESOLVIDA] PASSED [ 97%]
+tests/test_transicoes.py::test_matriz_de_transicoes[REJEITADA-REJEITADA] PASSED [ 98%]
+tests/test_transicoes.py::test_status_finais_nao_saem PASSED             [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_api.py:58: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:69: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:76: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:85: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:96: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:119: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:130: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:147: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:152: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:169: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:179: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:204: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:212: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:233: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:242: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:257: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:276: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:293: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:305: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:318: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+SKIPPED [1] tests\test_api.py:330: PostgreSQL de teste indisponivel em localhost:5432/bridge_test
+======================= 74 passed, 21 skipped in 7.80s ========================

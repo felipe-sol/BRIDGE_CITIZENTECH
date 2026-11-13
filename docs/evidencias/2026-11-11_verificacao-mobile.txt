@@ -1,0 +1,60 @@
+# Verificações automáticas do app mobile — 2026-11-11 16:25:52 -0300
+# Expo SDK 58.0.24 · React Native 0.88.1 · TypeScript Version 6.0.3
+
+$ npx tsc --noEmit
+(sem erros — exit 0)
+
+$ npx eslint .
+(0 problemas — exit 0)
+
+$ npm test   (validações puras com node --test)
+▶ validarApelido
+  ✔ normaliza espaços e aceita 2 a 60 caracteres (2.1756ms)
+  ✔ dá mensagens específicas (0.1934ms)
+✔ validarApelido (3.1921ms)
+▶ interpretarIdRota
+  ✔ aceita só inteiros positivos (0.1959ms)
+✔ interpretarIdRota (0.3005ms)
+▶ interpretarUrlApi
+  ✔ remove barra final e identifica localhost (1.1096ms)
+  ✔ recusa ausente ou malformada (0.1179ms)
+✔ interpretarUrlApi (1.3642ms)
+▶ interpretarCoordenada
+  ✔ aceita ponto ou vírgula decimal e sinal (0.6134ms)
+  ✔ recusa textos que não são número (0.7854ms)
+✔ interpretarCoordenada (2.2215ms)
+▶ validarOcorrencia
+  ✔ aceita formulário válido, apara textos e arredonda para 6 casas (1.7362ms)
+  ✔ formulário vazio gera mensagem específica para cada campo (0.7951ms)
+  ✔ valida tamanhos de texto (0.5542ms)
+  ✔ valida faixa das coordenadas (0.1445ms)
+  ✔ recusa (0, 0) como localização ausente (0.1384ms)
+  ✔ recusa coordenada em formato inválido (0.1105ms)
+✔ validarOcorrencia (3.992ms)
+▶ validarFoto
+  ✔ aceita JPEG/PNG até 5 MB e tamanho desconhecido (0.6731ms)
+  ✔ recusa formato e tamanho excedente (0.3702ms)
+✔ validarFoto (1.3056ms)
+▶ parsers de resposta da API
+  ✔ converte página e detalhe para camelCase (1.2445ms)
+  ✔ recusa campos ausentes, tipos errados e valores fora do enum (1.3142ms)
+  ✔ lê erro padronizado e ignora formatos desconhecidos (0.1772ms)
+✔ parsers de resposta da API (3.568ms)
+ℹ tests 18
+ℹ suites 7
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 187.3689
+
+$ npx expo-doctor
+Running 20 checks on your project...
+20/20 checks passed. No issues detected!
+
+$ busca por any / @ts-ignore / @ts-expect-error em src/
+ocorrências: 0
+
+$ npx expo export --platform android  (bundle do Metro, gerado fora do projeto)
+Resultado registrado nesta sessão: bundle Android gerado com sucesso (Hermes, ~2,6 MB).

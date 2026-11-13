@@ -1,0 +1,25 @@
+# Reinício da API e do PostgreSQL antes do teste manual 08.1 (Insomnia)
+Executado pelo assistente; o teste 08.1 em si foi feito manualmente no Insomnia.
+Data: 2026-11-12 21:13:47 -0300
+
+API anterior (uvicorn, PID 24924) encerrada.
+Porta 8000: livre
+
+$ pg_ctl -D <ferramentas>/pgdata-bridge -w stop
+waiting for server to shut down.... done
+server stopped
+[código de saída: 0]
+$ pg_ctl -D <ferramentas>/pgdata-bridge status
+pg_ctl: no server running
+[código de saída: 3]
+$ pg_ctl -D <ferramentas>/pgdata-bridge -l pgdata-bridge.log -w start
+waiting for server to start.... done
+server started
+[código de saída: 0]
+
+Nova API iniciada em 2026-11-12 21:13:57 -0300:
+$ uvicorn app.main:app --host 127.0.0.1 --port 8000
+INFO:     Started server process [21808]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

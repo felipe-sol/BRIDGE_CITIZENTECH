@@ -1,0 +1,2 @@
+Este arquivo NAO e uma imagem. Ele tem extensao .jpg de proposito para testar
+que a API valida o CONTEUDO (deve responder 415 FORMATO_NAO_SUPORTADO).

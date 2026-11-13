@@ -1,0 +1,93 @@
+# Verificação do app — Bridge 2.0, fase 1 (Expo SDK 58)
+Data: 2026-11-13 00:13:10 -0300
+
+$ npx tsc --noEmit
+[código de saída: 0]
+
+$ npx eslint .
+[código de saída: 0]
+
+$ npm test
+✔ etapaDoStatus (barra de 4 passos) (5.3011ms)
+✔ juntarAcompanhadas (Início) (1.1772ms)
+✔ estaAtualizada (selo "Atualizada") (3.2002ms)
+✔ textoCompartilhamento (1.0096ms)
+✔ regiões (2.4673ms)
+✔ agrupamento de pontos (3.0782ms)
+✔ distâncias e região inicial (0.9735ms)
+✔ densidade (2.2305ms)
+✔ endereço legível (0.6807ms)
+✔ ponto do mapa a partir da ocorrência (0.1579ms)
+✔ estado do mapa ao vivo (0.2286ms)
+✔ enquadrar uma região (0.1094ms)
+✔ fluxo do registro em etapas (5.7328ms)
+✔ validarApelido (2.4296ms)
+✔ interpretarIdRota (0.4108ms)
+✔ interpretarUrlApi (0.7159ms)
+✔ interpretarCodigoRegiao (0.5846ms)
+✔ formatarDecimal (0.3416ms)
+✔ iniciais (0.5898ms)
+✔ interpretarCoordenada (2.1678ms)
+✔ validarOcorrencia (1.7919ms)
+✔ validarFoto (0.3732ms)
+✔ endereço no formulário (0.4747ms)
+✔ parsers de resposta da API (2.9237ms)
+ℹ tests 60
+ℹ suites 24
+ℹ pass 60
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 257.3062
+[código de saída: 0]
+
+$ npx expo-doctor
+Running 20 checks on your project...
+20/20 checks passed. No issues detected!
+
+$ npx expo export --platform ios --output-dir <rascunho> --clear
+iOS Bundled 12797ms node_modules\expo-router\entry.js (1327 modules)
+node_modules\expo-router\assets\error.png (469B)
+Exported: <rascunho>
+[código de saída: 0]
+
+## Buscas no código e no bundle
+Uso de 'any' em src/ (anotação, 'as any' ou genérico <any>):
+0
+@ts-ignore / @ts-expect-error / eslint-disable em src/:
+0
+Bundle: entry-81ab98018d52527c856101c7b91efa5d.hbc (3020 KB)
+Ocorrências no bundle de: token administrativo, DATABASE_URL, senha do banco, X-Admin-Token:
+  ADMIN_TOKEN: 0
+  DATABASE_URL: 0
+  bridge_dev: 0
+  X-Admin-Token: 0
+
+## Adendo — revisão final da fase 1 (correções com teste escrito antes)
+Data: 2026-11-13 09:36:35 -0300
+Correções: (1) etapa Local do registro reabre no ponto já escolhido ao voltar da etapa 2;
+(2) camada Densidade não pinta região sem estatística como "Nenhuma"; (3) falha na 1ª carga do mapa mostra faixa de erro.
+Os 3 testes novos falharam antes da correção (módulo sem as funções) e passam depois:
+  ✔ ao voltar à etapa Local, reabre no ponto já escolhido (não no centro da cidade) (0.5281ms)
+  ✔ região sem estatística carregada não é pintada como "Nenhuma" (0.1126ms)
+  ✔ falha sem nenhum dado não deixa o mapa vazio parecer "nada registrado" (0.0629ms)
+$ npm test
+ℹ tests 63
+ℹ suites 24
+ℹ pass 63
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 329.727
+[código de saída: 0]
+$ npx tsc --noEmit
+(sem saída: nenhum erro)
+[código de saída: 0]
+$ npm run lint
+(sem problemas)
+[código de saída: 0]
+$ npx expo export --platform ios (pasta temporária)
+iOS Bundled 12843ms node_modules\expo-router\entry.js (1327 modules)
+[código de saída: 0]

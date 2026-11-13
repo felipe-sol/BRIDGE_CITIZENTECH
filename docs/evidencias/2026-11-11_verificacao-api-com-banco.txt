@@ -1,0 +1,71 @@
+# Verificação ponta a ponta com a API em execução e PostgreSQL 18.4 local
+Data: 2026-11-11 21:36:13 -0300
+API: uvicorn app.main:app --host 127.0.0.1 --port 8000 (banco bridge, migração 0002 head)
+Dados criados são de teste e marcados com [TESTE AUTOMATIZADO].
+
+## 1. Fluxo completo
+$ python scripts/verificar_api.py --base-url http://127.0.0.1:8000 --admin-token <ADMIN_TOKEN do .env>
+[OK  ] GET   /health                                -> 200 (esperado 200) — API e banco respondendo
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria identificação
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria 2ª identificação
+[OK  ] POST  /identificacoes                        -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro válido
+        prioridade=ALTA pontuação=7 ia=INDISPONIVEL
+[OK  ] POST  /ocorrencias                           -> 200 (esperado 200) — mesma Idempotency-Key não duplica
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — latitude 91
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — coordenadas (0,0)
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — identificação inexistente
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — 2ª ocorrência
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — listagem
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ordenação por prioridade
+[OK  ] GET   /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — tamanho inválido
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — detalhe
+[OK  ] GET   /ocorrencias/999999                    -> 404 (esperado 404 (NAO_ENCONTRADO)) — detalhe inexistente
+[OK  ] POST  /ocorrencias/1/imagem                  -> 200 (esperado 200) — upload válido
+[OK  ] GET   /ocorrencias/1/imagem                  -> 200 (esperado 200) — download da imagem
+[OK  ] POST  /ocorrencias/1/imagem                  -> 409 (esperado 409 (IMAGEM_JA_ENVIADA)) — upload repetido
+[OK  ] POST  /ocorrencias/2/imagem                  -> 415 (esperado 415 (FORMATO_NAO_SUPORTADO)) — texto com extensão .jpg
+[OK  ] POST  /ocorrencias/2/imagem                  -> 403 (esperado 403 (PROIBIDO)) — upload por outra identificação
+[OK  ] PATCH /ocorrencias/1/status                  -> 401 (esperado 401) — status sem token
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — ABERTA → EM_ANALISE
+[OK  ] PATCH /ocorrencias/1/status                  -> 409 (esperado 409 (TRANSICAO_INVALIDA)) — EM_ANALISE → RESOLVIDA (inválida)
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANALISE → EM_ANDAMENTO
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANDAMENTO → RESOLVIDA
+        histórico: ['ABERTA', 'EM_ANALISE', 'EM_ANDAMENTO', 'RESOLVIDA']
+
+Ocorrência de referência para o teste de persistência: 1
+Depois de reiniciar a API: python scripts/verificar_api.py --base-url http://127.0.0.1:8000 --persistencia 1
+
+Resultado: SUCESSO
+[código de saída: 0]
+
+## 2. Reinício da API e do PostgreSQL
+Data: 2026-11-11 21:36:36 -0300
+API (uvicorn) encerrada; porta 8000: livre
+$ pg_ctl -D <ferramentas>/pgdata-bridge -w stop
+waiting for server to shut down....... done
+server stopped
+[código de saída: 0]
+$ pg_ctl -D <ferramentas>/pgdata-bridge status
+pg_ctl: no server running
+[código de saída: 3]
+$ pg_ctl -D <ferramentas>/pgdata-bridge -l pgdata-bridge.log -w start
+waiting for server to start.... done
+server started
+[código de saída: 0]
+
+## 3. Conferência após o reinício (API nova, PID diferente)
+Data: 2026-11-11 21:36:52 -0300
+INFO:     Started server process [29464]
+INFO:     Application startup complete.
+$ python scripts/verificar_api.py --base-url http://127.0.0.1:8000 --persistencia 1
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — ocorrência continua no banco após reinício
+        status=RESOLVIDA imagem_url=/ocorrencias/1/imagem registros de histórico=4
+
+Resultado: SUCESSO
+[código de saída: 0]
+
+$ curl -s -o imagem-1.bin -w "HTTP %{http_code} %{content_type} %{size_download} bytes" http://127.0.0.1:8000/ocorrencias/1/imagem
+HTTP 200 image/jpeg 25779 bytes
+Formato lido pelo Pillow: JPEG (800, 600) EXIF: False
+Arquivos em backend/var/uploads: 1 (nomes gerados pelo servidor: ok )

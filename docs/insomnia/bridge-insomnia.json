@@ -1,0 +1,1204 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-11-13T00:00:00.000Z",
+  "__export_source": "bridge.gerador-manual",
+  "resources": [
+    {
+      "_id": "wrk_bridge",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Bridge API — GS 2026.2",
+      "description": "Testes manuais da API do Bridge. Siga docs/insomnia/ROTEIRO_TESTES_MANUAIS.md na ordem.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_bridge",
+      "name": "Base Environment",
+      "data": {},
+      "isPrivate": false
+    },
+    {
+      "_id": "env_local",
+      "_type": "environment",
+      "parentId": "env_base",
+      "name": "Local (demonstração)",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "admin_token": "COLE_AQUI_O_ADMIN_TOKEN_DO_backend/.env",
+        "identificacao_id": "COLE_O_ID_DA_RESPOSTA_02.1",
+        "outra_identificacao_id": "COLE_O_ID_DA_RESPOSTA_02.5",
+        "ocorrencia_id": "1",
+        "segunda_ocorrencia_id": "2",
+        "chave_envio": "7b0f3c1e-2d4a-4b8e-9f00-000000000001",
+        "terceira_ocorrencia_id": "COLE_O_ID_DA_RESPOSTA_09.1"
+      },
+      "isPrivate": false
+    },
+    {
+      "_id": "fld_01",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "01 · Health",
+      "description": "Disponibilidade da API e do banco.",
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_01_1",
+      "_type": "request",
+      "parentId": "fld_01",
+      "name": "01.1 GET /health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com {\"status\":\"ok\",\"banco\":\"ok\",\"modelo_ia\":{\"disponivel\":false,\"versao\":null}}.",
+      "metaSortKey": 2
+    },
+    {
+      "_id": "fld_02",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "02 · Identificação",
+      "description": "Pseudônimo do cidadão (não é login).",
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_02_1",
+      "_type": "request",
+      "parentId": "fld_02",
+      "name": "02.1 POST /identificacoes (válida)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/identificacoes",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"Vizinha da Rua 7\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201 com id (UUID), apelido e criado_em. **Copie o id para a variável identificacao_id do ambiente.**",
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_02_2",
+      "_type": "request",
+      "parentId": "fld_02",
+      "name": "02.2 POST /identificacoes (apelido curto) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/identificacoes",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"A\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422, erro.codigo = \"VALIDACAO\", detalhes: campo \"apelido\", \"Deve ter pelo menos 2 caracteres.\"",
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_02_3",
+      "_type": "request",
+      "parentId": "fld_02",
+      "name": "02.3 GET /identificacoes/{id}",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/{{ _.identificacao_id }}",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com a mesma identificação criada em 02.1.",
+      "metaSortKey": 6
+    },
+    {
+      "_id": "req_02_4",
+      "_type": "request",
+      "parentId": "fld_02",
+      "name": "02.4 GET /identificacoes/{id} inexistente → 404",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/00000000-0000-4000-8000-000000000000",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 404, erro.codigo = \"NAO_ENCONTRADO\".",
+      "metaSortKey": 7
+    },
+    {
+      "_id": "req_02_5",
+      "_type": "request",
+      "parentId": "fld_02",
+      "name": "02.5 POST /identificacoes (segunda pessoa)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/identificacoes",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"apelido\": \"Morador do Bloco B\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201. **Copie o id para outra_identificacao_id** (usado no teste 07.5).",
+      "metaSortKey": 8
+    },
+    {
+      "_id": "fld_03",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "03 · Listagem vazia",
+      "description": "Execute ANTES de cadastrar ocorrências, com o banco recém-migrado.",
+      "metaSortKey": 9
+    },
+    {
+      "_id": "req_03_1",
+      "_type": "request",
+      "parentId": "fld_03",
+      "name": "03.1 GET /ocorrencias (vazia)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com {\"itens\":[],\"pagina\":1,\"tamanho\":20,\"total\":0,\"total_paginas\":0}.",
+      "metaSortKey": 10
+    },
+    {
+      "_id": "fld_04",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "04 · Cadastro de ocorrência",
+      "description": "Validação de campos, coordenadas e idempotência.",
+      "metaSortKey": 11
+    },
+    {
+      "_id": "req_04_1",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.1 POST /ocorrencias (válida)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": -23.564224,\n  \"longitude\": -46.652857,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{{ _.chave_envio }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201; status ABERTA; prioridade ALTA, pontuação 7; analise_ia.status INDISPONIVEL (sem modelo). **Anote o id em ocorrencia_id.**",
+      "metaSortKey": 12
+    },
+    {
+      "_id": "req_04_2",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.2 POST /ocorrencias (mesma Idempotency-Key) → 200",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": -23.564224,\n  \"longitude\": -46.652857,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{{ _.chave_envio }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 (não 201) com o MESMO id de 04.1: nenhuma duplicata é criada.",
+      "metaSortKey": 13
+    },
+    {
+      "_id": "req_04_3",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.3 POST /ocorrencias (campos inválidos) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"abc\",\n  \"descricao\": \"curta\",\n  \"categoria\": \"ALAGAMENTO\",\n  \"latitude\": -23.564224,\n  \"longitude\": -46.652857,\n  \"risco_imediato\": \"sim\",\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true,\n  \"campo_extra\": 1\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO com detalhes para titulo, descricao, categoria, risco_imediato e campo_extra.",
+      "metaSortKey": 14
+    },
+    {
+      "_id": "req_04_4",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.4 POST /ocorrencias (latitude 91) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": 91,\n  \"longitude\": -46.652857,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO, campo \"latitude\": \"Deve ser menor ou igual a 90.\"",
+      "metaSortKey": 15
+    },
+    {
+      "_id": "req_04_5",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.5 POST /ocorrencias (longitude -181) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": -23.564224,\n  \"longitude\": -181,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO, campo \"longitude\": \"Deve ser maior ou igual a -180.\"",
+      "metaSortKey": 16
+    },
+    {
+      "_id": "req_04_6",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.6 POST /ocorrencias (0, 0) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": 0,\n  \"longitude\": 0,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO: coordenadas (0, 0) indicam localização ausente.",
+      "metaSortKey": 17
+    },
+    {
+      "_id": "req_04_7",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.7 POST /ocorrencias (identificação inexistente) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"00000000-0000-4000-8000-000000000000\",\n  \"titulo\": \"Calçada quebrada em frente à escola\",\n  \"descricao\": \"Placas soltas e buraco de ~40 cm na calçada (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": -23.564224,\n  \"longitude\": -46.652857,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422, erro.codigo = \"IDENTIFICACAO_INEXISTENTE\".",
+      "metaSortKey": 18
+    },
+    {
+      "_id": "req_04_8",
+      "_type": "request",
+      "parentId": "fld_04",
+      "name": "04.8 POST /ocorrencias (buraco sem agravantes)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Buraco pequeno na esquina\",\n  \"descricao\": \"Buraco raso perto do meio-fio (dado de teste).\",\n  \"categoria\": \"BURACO\",\n  \"latitude\": -23.565001,\n  \"longitude\": -46.651234,\n  \"risco_imediato\": false,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": false\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201; prioridade BAIXA, pontuação 3. **Anote o id em segunda_ocorrencia_id.**",
+      "metaSortKey": 19
+    },
+    {
+      "_id": "fld_05",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "05 · Consulta",
+      "description": "Listagem preenchida, paginação, ordenação, filtros e detalhe.",
+      "metaSortKey": 20
+    },
+    {
+      "_id": "req_05_1",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.1 GET /ocorrencias (preenchida)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; total 2; a mais recente (04.8) primeiro.",
+      "metaSortKey": 21
+    },
+    {
+      "_id": "req_05_2",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.2 GET /ocorrencias?ordenar=prioridade&tamanho=1",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?ordenar=prioridade&tamanho=1",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; 1 item (a de pontuação 7); total 2; total_paginas 2.",
+      "metaSortKey": 22
+    },
+    {
+      "_id": "req_05_3",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.3 GET /ocorrencias?prioridade=ALTA",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?prioridade=ALTA",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; só a ocorrência de prioridade ALTA.",
+      "metaSortKey": 23
+    },
+    {
+      "_id": "req_05_4",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.4 GET /ocorrencias?tamanho=500 → 422",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?tamanho=500",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO, campo \"tamanho\": \"Deve ser menor ou igual a 100.\"",
+      "metaSortKey": 24
+    },
+    {
+      "_id": "req_05_5",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.5 GET /ocorrencias/{id}",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; historico_status com 1 registro (null → ABERTA).",
+      "metaSortKey": 25
+    },
+    {
+      "_id": "req_05_6",
+      "_type": "request",
+      "parentId": "fld_05",
+      "name": "05.6 GET /ocorrencias/{id} inexistente → 404",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/999999",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 404, erro.codigo = \"NAO_ENCONTRADO\".",
+      "metaSortKey": 26
+    },
+    {
+      "_id": "fld_06",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "06 · Status (administrativo)",
+      "description": "Requer ADMIN_TOKEN no backend/.env e na variável admin_token.",
+      "metaSortKey": 27
+    },
+    {
+      "_id": "req_06_1",
+      "_type": "request",
+      "parentId": "fld_06",
+      "name": "06.1 PATCH status sem token → 401",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/status",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"EM_ANALISE\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 401, erro.codigo = \"NAO_AUTORIZADO\". (Se ADMIN_TOKEN estiver vazio no servidor: 403 ADMIN_DESABILITADO.)",
+      "metaSortKey": 28
+    },
+    {
+      "_id": "req_06_2",
+      "_type": "request",
+      "parentId": "fld_06",
+      "name": "06.2 PATCH ABERTA → EM_ANALISE",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/status",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"EM_ANALISE\",\n  \"observacao\": \"Triagem da equipe de zeladoria (teste).\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Token",
+          "value": "{{ _.admin_token }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; status EM_ANALISE; histórico com 2 registros.",
+      "metaSortKey": 29
+    },
+    {
+      "_id": "req_06_3",
+      "_type": "request",
+      "parentId": "fld_06",
+      "name": "06.3 PATCH EM_ANALISE → RESOLVIDA (inválida) → 409",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/status",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"RESOLVIDA\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Token",
+          "value": "{{ _.admin_token }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 409 TRANSICAO_INVALIDA; mensagem lista as permitidas: EM_ANDAMENTO, REJEITADA.",
+      "metaSortKey": 30
+    },
+    {
+      "_id": "req_06_4",
+      "_type": "request",
+      "parentId": "fld_06",
+      "name": "06.4 PATCH EM_ANALISE → EM_ANDAMENTO",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/status",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"EM_ANDAMENTO\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Token",
+          "value": "{{ _.admin_token }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; status EM_ANDAMENTO.",
+      "metaSortKey": 31
+    },
+    {
+      "_id": "req_06_5",
+      "_type": "request",
+      "parentId": "fld_06",
+      "name": "06.5 PATCH EM_ANDAMENTO → RESOLVIDA",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/status",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"RESOLVIDA\",\n  \"observacao\": \"Calçada refeita (teste).\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "X-Admin-Token",
+          "value": "{{ _.admin_token }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; status RESOLVIDA; historico_status com 4 registros em ordem.",
+      "metaSortKey": 32
+    },
+    {
+      "_id": "fld_07",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "07 · Imagem",
+      "description": "Selecione o arquivo no campo 'arquivo' (aba Body) antes de enviar.",
+      "metaSortKey": 33
+    },
+    {
+      "_id": "req_07_1",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.1 POST imagem válida",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/imagem",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "arquivo",
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        },
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; imagem_url = /ocorrencias/{id}/imagem. Arquivo: docs/insomnia/arquivos-teste/foto-sintetica.jpg.",
+      "metaSortKey": 34
+    },
+    {
+      "_id": "req_07_2",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.2 GET imagem",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/imagem",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200, Content-Type image/jpeg (imagem reencodada pelo servidor, sem EXIF).",
+      "metaSortKey": 35
+    },
+    {
+      "_id": "req_07_3",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.3 POST imagem de novo → 409",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/imagem",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "arquivo",
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        },
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 409, erro.codigo = \"IMAGEM_JA_ENVIADA\".",
+      "metaSortKey": 36
+    },
+    {
+      "_id": "req_07_4",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.4 POST arquivo que não é imagem → 415",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.segunda_ocorrencia_id }}/imagem",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "arquivo",
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        },
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 415 FORMATO_NAO_SUPORTADO. Arquivo: docs/insomnia/arquivos-teste/nao-e-imagem.jpg (texto com extensão .jpg).",
+      "metaSortKey": 37
+    },
+    {
+      "_id": "req_07_5",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.5 POST imagem com outra identificação → 403",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.segunda_ocorrencia_id }}/imagem",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "arquivo",
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        },
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 403, erro.codigo = \"PROIBIDO\" (a ocorrência é de identificacao_id, não de outra_identificacao_id).",
+      "metaSortKey": 38
+    },
+    {
+      "_id": "req_07_6",
+      "_type": "request",
+      "parentId": "fld_07",
+      "name": "07.6 POST imagem > 5 MB → 413",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.segunda_ocorrencia_id }}/imagem",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "arquivo",
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        },
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 413 ARQUIVO_MUITO_GRANDE. Gere o arquivo com o comando do roteiro (seção 07.6).",
+      "metaSortKey": 39
+    },
+    {
+      "_id": "fld_08",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "08 · Persistência após reinício",
+      "description": "Pare a API (Ctrl+C), inicie de novo e execute.",
+      "metaSortKey": 40
+    },
+    {
+      "_id": "req_08_1",
+      "_type": "request",
+      "parentId": "fld_08",
+      "name": "08.1 GET /ocorrencias/{id} após reiniciar a API",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com os mesmos dados, status RESOLVIDA, histórico e imagem_url: os dados vêm do PostgreSQL.",
+      "metaSortKey": 41
+    },
+    {
+      "_id": "fld_09",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "09 · Regiões e endereço (Bridge 2.0)",
+      "metaSortKey": 50,
+      "description": "Rodada 2 (Bridge 2.0, fase 1)."
+    },
+    {
+      "_id": "fld_10",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "10 · Proximidade (duplicatas)",
+      "metaSortKey": 70,
+      "description": "Rodada 2 (Bridge 2.0, fase 1)."
+    },
+    {
+      "_id": "fld_11",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "11 · Confirmações — \"eu também vi\"",
+      "metaSortKey": 80,
+      "description": "Rodada 2 (Bridge 2.0, fase 1)."
+    },
+    {
+      "_id": "fld_12",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "12 · Minhas ocorrências (Andamento)",
+      "metaSortKey": 100,
+      "description": "Rodada 2 (Bridge 2.0, fase 1)."
+    },
+    {
+      "_id": "req_09_1",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.1 POST /ocorrencias com endereço (Sé)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Calçada quebrada na Praça da Sé (teste)\",\n  \"descricao\": \"Placas soltas perto da escadaria da catedral (dado de teste).\",\n  \"categoria\": \"CALCADA_DANIFICADA\",\n  \"latitude\": -23.5503,\n  \"longitude\": -46.634,\n  \"risco_imediato\": true,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": true,\n  \"endereco\": \"Praça da Sé — Sé\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201; endereco \"Praça da Sé — Sé\"; subprefeitura {\"codigo\":\"09\",\"nome\":\"Sé\"}; confirmacoes 0; origem \"APP\". **Copie o id para `terceira_ocorrencia_id`.**",
+      "metaSortKey": 51
+    },
+    {
+      "_id": "req_09_2",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.2 POST /ocorrencias fora de SP → região nula",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Buraco fora de São Paulo (teste)\",\n  \"descricao\": \"Registro de teste com coordenadas do Rio de Janeiro (dado de teste).\",\n  \"categoria\": \"BURACO\",\n  \"latitude\": -22.9068,\n  \"longitude\": -43.1729\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201; subprefeitura null (fora do município); endereco null.",
+      "metaSortKey": 52
+    },
+    {
+      "_id": "req_09_3",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.3 POST /ocorrencias endereço com 201 caracteres → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"identificacao_id\": \"{{ _.identificacao_id }}\",\n  \"titulo\": \"Endereço longo demais (teste)\",\n  \"descricao\": \"Teste do limite de 200 caracteres no endereço.\",\n  \"categoria\": \"OUTRO\",\n  \"latitude\": -23.5503,\n  \"longitude\": -46.634,\n  \"endereco\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO; detalhes [{\"campo\":\"endereco\",\"mensagem\":\"Deve ter no máximo 200 caracteres.\"}].",
+      "metaSortKey": 53
+    },
+    {
+      "_id": "req_09_4",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.4 GET /regioes (32 subprefeituras)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/regioes",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; FeatureCollection com 32 features (codigo, nome, nome_oficial, area_km2, zona); cabeçalho Cache-Control: public, max-age=86400.",
+      "metaSortKey": 54
+    },
+    {
+      "_id": "req_09_5",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.5 GET /estatisticas/regioes",
+      "method": "GET",
+      "url": "{{ _.base_url }}/estatisticas/regioes",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; origem \"APP\"; 32 itens; o item \"09\" (Sé) com total ≥ 1 e densidade_km2 > 0.",
+      "metaSortKey": 55
+    },
+    {
+      "_id": "req_09_6",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.6 GET /ocorrencias?bbox (área do mapa)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?bbox=-46.70,-23.60,-46.60,-23.50",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; só ocorrências dentro da caixa (a 09.1 aparece; a 09.2, do Rio, não).",
+      "metaSortKey": 56
+    },
+    {
+      "_id": "req_09_7",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.7 GET /ocorrencias?q=praça (busca)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?q=pra%C3%A7a",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; inclui a 09.1 (\"Praça\" no título/endereço), sem diferenciar maiúsculas.",
+      "metaSortKey": 57
+    },
+    {
+      "_id": "req_09_8",
+      "_type": "request",
+      "parentId": "fld_09",
+      "name": "09.8 GET /ocorrencias?bbox inválido → 422",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias?bbox=1,2,3",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO; detalhes com campo \"bbox\".",
+      "metaSortKey": 58
+    },
+    {
+      "_id": "req_10_1",
+      "_type": "request",
+      "parentId": "fld_10",
+      "name": "10.1 GET /ocorrencias/proximas (100 m, calçada)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/proximas?latitude=-23.5503&longitude=-46.634&categoria=CALCADA_DANIFICADA",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; itens com a 09.1 e distancia_m ≈ 0; só ocorrências reais e abertas da mesma categoria.",
+      "metaSortKey": 59
+    },
+    {
+      "_id": "req_10_2",
+      "_type": "request",
+      "parentId": "fld_10",
+      "name": "10.2 GET /ocorrencias/proximas raio 1000 → 422",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/proximas?latitude=-23.5503&longitude=-46.634&raio_m=1000",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO; campo \"raio_m\" (máximo 500).",
+      "metaSortKey": 60
+    },
+    {
+      "_id": "req_11_1",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.1 POST confirmação (outra pessoa) → 201",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}/confirmacoes",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 201; {\"confirmacoes\": 1, \"confirmado\": true}.",
+      "metaSortKey": 61
+    },
+    {
+      "_id": "req_11_2",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.2 POST confirmação repetida → 200",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}/confirmacoes",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 (idempotente); confirmacoes continua 1.",
+      "metaSortKey": 62
+    },
+    {
+      "_id": "req_11_3",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.3 POST confirmação pelo autor → 409",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}/confirmacoes",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 409 PROPRIA_OCORRENCIA.",
+      "metaSortKey": 63
+    },
+    {
+      "_id": "req_11_4",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.4 POST confirmação em ocorrência resolvida → 409",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.ocorrencia_id }}/confirmacoes",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 409 OCORRENCIA_ENCERRADA (a ocorrência 1 foi resolvida na Rodada 1).",
+      "metaSortKey": 64
+    },
+    {
+      "_id": "req_11_5",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.5 GET detalhe com X-Identificacao-Id (relação)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; confirmacoes 1; minha_relacao {\"registrei\": false, \"confirmei\": true}; prioridade igual à da 09.1.",
+      "metaSortKey": 65
+    },
+    {
+      "_id": "req_11_6",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.6 GET /ocorrencias/minhas?relacao=confirmadas (outra)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/minhas?relacao=confirmadas",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; itens com a 09.1 (confirmada na 11.1).",
+      "metaSortKey": 66
+    },
+    {
+      "_id": "req_11_7",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.7 DELETE confirmação (desfazer)",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}/confirmacoes",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.outra_identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; {\"confirmacoes\": 0, \"confirmado\": false}. Repetir também dá 200.",
+      "metaSortKey": 67
+    },
+    {
+      "_id": "req_11_8",
+      "_type": "request",
+      "parentId": "fld_11",
+      "name": "11.8 GET detalhe sem cabeçalho (sem relação)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/{{ _.terceira_ocorrencia_id }}",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; minha_relacao null; confirmacoes 0; o autor não aparece.",
+      "metaSortKey": 68
+    },
+    {
+      "_id": "req_12_1",
+      "_type": "request",
+      "parentId": "fld_12",
+      "name": "12.1 GET /ocorrencias/minhas (registradas)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/minhas",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; as ocorrências desta identificação, a atualizada mais recentemente primeiro (a 09.2 ou a 09.1 no topo).",
+      "metaSortKey": 69
+    },
+    {
+      "_id": "req_12_2",
+      "_type": "request",
+      "parentId": "fld_12",
+      "name": "12.2 GET /ocorrencias/minhas sem cabeçalho → 422",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/minhas",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 VALIDACAO (o UUID vai no cabeçalho, nunca na URL).",
+      "metaSortKey": 70
+    },
+    {
+      "_id": "req_12_3",
+      "_type": "request",
+      "parentId": "fld_12",
+      "name": "12.3 GET /ocorrencias/minhas identificação inexistente → 422",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/minhas",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "00000000-0000-4000-8000-000000000000"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 IDENTIFICACAO_INEXISTENTE; campo \"X-Identificacao-Id\".",
+      "metaSortKey": 71
+    }
+  ]
+}

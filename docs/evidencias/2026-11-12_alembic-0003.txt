@@ -1,0 +1,166 @@
+# Migração 0003 — verificação em banco vazio (bridge_test) e atualização do banco de desenvolvimento
+Data: 2026-11-12 23:19:35 -0300
+
+## 1. Banco de testes levado a vazio e migrado até a head
+
+$ ./.venv/Scripts/alembic.exe downgrade base
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0003 -> 0002, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+INFO  [alembic.runtime.migration] Running downgrade 0002 -> 0001, Cria a tabela historico_status e registra o status atual das ocorrências existentes.
+INFO  [alembic.runtime.migration] Running downgrade 0001 -> , Cria as tabelas identificacoes e ocorrencias.
+[código de saída: 0]
+
+$ psql -d bridge_test   # select count(*) as tabelas_de_dominio from information_schema.tables where table_schema='public' and table_name <> 'alembic_version';
+ tabelas_de_dominio 
+--------------------
+                  0
+(1 row)
+
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001, Cria as tabelas identificacoes e ocorrencias.
+INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Cria a tabela historico_status e registra o status atual das ocorrências existentes.
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+0003 (head)
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe check
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+No new upgrade operations detected.
+[código de saída: 0]
+
+$ psql -d bridge_test   # select column_name, data_type, character_maximum_length, is_nullable, column_default from information_schema.columns where table_name='ocorrencias' and column_name in ('endereco','subprefeitura_codigo','origem') order by column_name;
+     column_name      |     data_type     | character_maximum_length | is_nullable |      column_default      
+----------------------+-------------------+--------------------------+-------------+--------------------------
+ endereco             | character varying |                      200 | YES         | 
+ origem               | character varying |                       30 | NO          | 'APP'::character varying
+ subprefeitura_codigo | character varying |                        2 | YES         | 
+(3 rows)
+
+[código de saída: 0]
+
+$ psql -d bridge_test   # select conrelid::regclass as tabela, conname, contype from pg_constraint where conrelid in ('confirmacoes'::regclass, 'ocorrencias'::regclass) and conname in ('ck_ocorrencias_origem','pk_confirmacoes','fk_confirmacoes_ocorrencia_id_ocorrencias','fk_confirmacoes_identificacao_id_identificacoes','uq_confirmacoes_ocorrencia_id') order by 1,2;
+    tabela    |                     conname                     | contype 
+--------------+-------------------------------------------------+---------
+ ocorrencias  | ck_ocorrencias_origem                           | c
+ confirmacoes | fk_confirmacoes_identificacao_id_identificacoes | f
+ confirmacoes | fk_confirmacoes_ocorrencia_id_ocorrencias       | f
+ confirmacoes | pk_confirmacoes                                 | p
+ confirmacoes | uq_confirmacoes_ocorrencia_id                   | u
+(5 rows)
+
+[código de saída: 0]
+
+$ psql -d bridge_test   # select indexname from pg_indexes where schemaname='public' and indexname in ('ix_ocorrencias_subprefeitura_codigo','ix_ocorrencias_origem_criado_em','ix_ocorrencias_latitude_longitude','ix_confirmacoes_ocorrencia_id','ix_confirmacoes_identificacao_id') order by 1;
+              indexname              
+-------------------------------------
+ ix_confirmacoes_identificacao_id
+ ix_confirmacoes_ocorrencia_id
+ ix_ocorrencias_latitude_longitude
+ ix_ocorrencias_origem_criado_em
+ ix_ocorrencias_subprefeitura_codigo
+(5 rows)
+
+[código de saída: 0]
+
+## 2. Reversão da 0003 e reaplicação
+
+$ ./.venv/Scripts/alembic.exe downgrade -1
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0003 -> 0002, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+0002
+[código de saída: 0]
+
+$ psql -d bridge_test   # select count(*) as confirmacoes_existe from information_schema.tables where table_name='confirmacoes';
+ confirmacoes_existe 
+---------------------
+                   0
+(1 row)
+
+[código de saída: 0]
+
+$ psql -d bridge_test   # select count(*) as colunas_novas from information_schema.columns where table_name='ocorrencias' and column_name in ('endereco','subprefeitura_codigo','origem');
+ colunas_novas 
+---------------
+             0
+(1 row)
+
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe check
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+No new upgrade operations detected.
+[código de saída: 0]
+
+## 3. Banco de desenvolvimento (bridge): só upgrade, sem apagar nada
+
+$ psql -d bridge   # select id, categoria, status from ocorrencias order by id;
+ id |     categoria      |  status   
+----+--------------------+-----------
+  1 | CALCADA_DANIFICADA | RESOLVIDA
+  2 | BURACO             | ABERTA
+  3 | CALCADA_DANIFICADA | ABERTA
+(3 rows)
+
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+0002
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+[código de saída: 0]
+
+$ ./.venv/Scripts/alembic.exe current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+0003 (head)
+[código de saída: 0]
+
+$ ./.venv/Scripts/python.exe scripts/recalcular_regioes.py
+3 atualizadas, 0 fora de SP
+[código de saída: 0]
+
+$ ./.venv/Scripts/python.exe scripts/recalcular_regioes.py
+0 atualizadas, 0 fora de SP
+[código de saída: 0]
+
+
+Nota: a listagem por linha desta etapa foi substituída pela contagem abaixo, porque uma das
+ocorrências do banco de desenvolvimento foi registrada no aparelho de um integrante, na localização real dele.
+
+$ psql -d bridge   # select count(*) as total, count(subprefeitura_codigo) as com_regiao, count(*) filter (where origem = 'APP') as origem_app from ocorrencias;
+ total | com_regiao | origem_app 
+-------+------------+------------
+     3 |          3 |          3
+(1 row)
+
+[código de saída: 0]
