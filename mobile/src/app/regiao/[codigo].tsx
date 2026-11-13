@@ -1,23 +1,33 @@
 /**
- * Folha (sheet) com os números de uma subprefeitura. Dados reais registrados no
- * Bridge — não são números oficiais da Prefeitura.
+ * Folha (sheet) com os números de uma subprefeitura e o Alerta Bridge (calculado
+ * automaticamente a partir dos relatos). Ao vivo = registros reais do Bridge; Exemplo =
+ * dados fictícios, sempre com a faixa. Nunca são números oficiais da Prefeitura.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AVISO_ALERTA_BRIDGE, ROTULO_NIVEL, textoMotivoAlerta } from '../../alertas/alertas';
 import { Esqueleto } from '../../components/Esqueleto';
-import { Icone } from '../../components/Icone';
+import { FaixaFicticia } from '../../components/FaixaFicticia';
+import { Icone, type NomeIcone } from '../../components/Icone';
 import { Texto } from '../../components/Texto';
 import { classeDensidade, ROTULOS_DENSIDADE } from '../../geo/densidade';
+import { interpretarModo, origemDoModo } from '../../geo/modo';
 import type { RegiaoSP } from '../../geo/tipos';
-import type { EstatisticaRegiao } from '../../models/ocorrencia';
+import type { EstatisticaRegiao, NivelAlerta } from '../../models/ocorrencia';
 import { estatisticasPorRegiao } from '../../services/estatisticasService';
 import { mensagemDeErro } from '../../services/http';
 import { carregarRegioes } from '../../services/regioesService';
 import { ALVO_TOQUE, cores, espaco, fontes, raio } from '../../theme/tema';
 import { formatarDecimal } from '../../utils/formatacao';
-import { interpretarCodigoRegiao } from '../../validation/rotas';
+import { interpretarCodigoRegiao, rotaMapa } from '../../validation/rotas';
+
+const VISUAL_NIVEL: Record<NivelAlerta, { icone: NomeIcone; cor: string; fundo: string }> = {
+  NORMAL: { icone: 'check-circle-outline', cor: cores.ok, fundo: cores.okClaro },
+  ATENCAO: { icone: 'alert-outline', cor: cores.asfalto, fundo: cores.sinalClaro },
+  ALERTA: { icone: 'alert-octagon-outline', cor: cores.alerta, fundo: cores.alertaClaro },
+};
 
 type Estado =
   | { tipo: 'carregando' }
@@ -36,13 +46,14 @@ function Numero({ valor, rotulo, destaque = false }: { valor: number; rotulo: st
 }
 
 export default function FolhaRegiao() {
-  const { codigo } = useLocalSearchParams<{ codigo: string }>();
+  const { codigo, modo: modoParam } = useLocalSearchParams<{ codigo: string; modo?: string }>();
   const codigoValido = interpretarCodigoRegiao(codigo);
+  const modo = interpretarModo(modoParam);
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([carregarRegioes(), estatisticasPorRegiao()])
+    Promise.all([carregarRegioes(), estatisticasPorRegiao(origemDoModo(modo))])
       .then(([regioes, numeros]) => {
         if (!ativo) return;
         const regiao = regioes.find((r) => r.codigo === codigoValido);
@@ -58,7 +69,7 @@ export default function FolhaRegiao() {
     return () => {
       ativo = false;
     };
-  }, [codigoValido]);
+  }, [codigoValido, modo]);
 
   if (estado.tipo === 'carregando') {
     return (
@@ -78,13 +89,33 @@ export default function FolhaRegiao() {
 
   const { regiao, numeros } = estado;
   const densidade = numeros?.densidadeKm2 ?? 0;
+  const alerta = numeros?.alerta ?? null;
+  const visual = VISUAL_NIVEL[alerta?.nivel ?? 'NORMAL'];
   return (
     <ScrollView style={styles.fundo} contentContainerStyle={styles.folha}>
+      {modo === 'exemplo' ? <FaixaFicticia /> : null}
       <Texto variante="placa">Subprefeitura{regiao.zona ? ` · Zona ${regiao.zona}` : ''}</Texto>
       <Texto variante="titulo">{regiao.nome}</Texto>
       <Texto variante="apoio">
         {formatarDecimal(regiao.areaKm2, 1)} km² · limites oficiais do GeoSampa (Prefeitura de São Paulo)
       </Texto>
+
+      {alerta ? (
+        <View
+          style={[styles.alerta, { backgroundColor: visual.fundo, borderColor: visual.cor }, alerta.nivel === 'ALERTA' && styles.alertaTracejado]}
+          accessible
+          accessibilityLabel={`Alerta Bridge: ${ROTULO_NIVEL[alerta.nivel]}. ${textoMotivoAlerta(alerta)} ${AVISO_ALERTA_BRIDGE}.`}
+        >
+          <View style={styles.linha}>
+            <Icone nome={visual.icone} tamanho={22} cor={visual.cor} />
+            <Texto style={[styles.alertaNivel, { color: visual.cor }]}>Alerta Bridge: {ROTULO_NIVEL[alerta.nivel]}</Texto>
+          </View>
+          <Texto style={styles.linhaTexto}>{textoMotivoAlerta(alerta)}</Texto>
+          <Texto variante="apoio" style={styles.nota}>
+            {AVISO_ALERTA_BRIDGE}. Não é um alerta oficial.
+          </Texto>
+        </View>
+      ) : null}
 
       <View style={styles.grade}>
         <Numero valor={numeros?.total ?? 0} rotulo="Registradas" />
@@ -107,12 +138,14 @@ export default function FolhaRegiao() {
       </View>
 
       <Texto variante="apoio" style={styles.nota}>
-        Contagem dos registros reais feitos no Bridge, um projeto acadêmico. Não são números oficiais da Prefeitura.
+        {modo === 'exemplo'
+          ? 'Dados fictícios gerados para demonstrar o app. Não são registros reais.'
+          : 'Contagem dos registros reais feitos no Bridge, um projeto acadêmico. Não são números oficiais da Prefeitura.'}
       </Texto>
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => router.navigate({ pathname: '/mapa', params: { regiao: regiao.codigo } })}
+        onPress={() => router.navigate(rotaMapa(modo, regiao.codigo))}
         style={styles.botao}
       >
         <Icone nome="map-outline" tamanho={20} cor={cores.papel} />
@@ -139,6 +172,9 @@ const styles = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   linhaTexto: { flex: 1, fontFamily: fontes.semibold, fontSize: 15, lineHeight: 21, color: cores.asfalto },
   nota: { fontSize: 13, lineHeight: 18 },
+  alerta: { borderRadius: raio.md, borderWidth: 1.5, padding: espaco.md, gap: espaco.xs },
+  alertaTracejado: { borderWidth: 2, borderStyle: 'dashed' },
+  alertaNivel: { fontFamily: fontes.black, fontSize: 16 },
   botao: {
     minHeight: ALVO_TOQUE,
     borderRadius: raio.md,

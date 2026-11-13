@@ -18,7 +18,8 @@ refletida nos três.
 | `StatusOcorrencia` | `ABERTA`, `EM_ANALISE`, `EM_ANDAMENTO`, `RESOLVIDA`, `REJEITADA` |
 | `Prioridade` | `BAIXA`, `MEDIA`, `ALTA` |
 | `StatusAnaliseIA` | `PENDENTE`, `CONCLUIDA`, `INDISPONIVEL`, `FALHOU` |
-| `OrigemOcorrencia` | `APP` (registro real, padrão em todas as consultas) e `SIMULADA` (dado fictício de demonstração, usado a partir da fase 2) |
+| `OrigemOcorrencia` | `APP` (registro real, padrão em todas as consultas) e `SIMULADA` (dado fictício de demonstração do modo Exemplo) |
+| `NivelAlerta` | `NORMAL`, `ATENCAO`, `ALERTA` (Alerta Bridge: calculado automaticamente a partir dos relatos; não é oficial) |
 
 Transições de status e cálculo de prioridade: ver [REGRAS_DE_NEGOCIO.md](REGRAS_DE_NEGOCIO.md).
 
@@ -87,10 +88,17 @@ Corpo:
 { "id": "3f0c2b1e-...", "apelido": "Maria do Bairro", "criado_em": "2026-11-11T18:30:00Z" }
 ```
 
-### 3.3 `GET /identificacoes/{id}`
+### 3.3 `GET /identificacoes/atual` e `GET /identificacoes/{id}` (obsoleta)
 
-Usado pelo app ao reabrir para confirmar que a identificação salva ainda existe.
-`200` (mesmo formato acima) · `404` se não existir · `422` se `id` não for UUID.
+`GET /identificacoes/atual` é o que o app usa ao reabrir para confirmar que a
+identificação salva ainda existe. O UUID vai no cabeçalho **`X-Identificacao-Id`**,
+nunca na URL (URLs ficam em logs de acesso).
+`200` (mesmo formato acima) · `404` (`NAO_ENCONTRADO`) se não existir · `422`
+(`VALIDACAO`) sem o cabeçalho ou com UUID inválido.
+
+`GET /identificacoes/{id}` continua respondendo igual, só para compatibilidade com os
+testes manuais da Rodada 1. Ela está marcada como **obsoleta** (`deprecated`) no OpenAPI e
+o app não a usa mais.
 
 ### 3.4 `POST /ocorrencias`
 
@@ -312,13 +320,66 @@ Sempre devolve as 32 regiões (com zero onde não há ocorrências):
   "dias": null,
   "itens": [
     { "codigo": "09", "nome": "Sé", "total": 2, "abertas": 1, "alta_abertas": 1,
-      "resolvidas": 1, "confirmacoes": 1, "densidade_km2": 0.076 }
+      "resolvidas": 1, "confirmacoes": 1, "densidade_km2": 0.076,
+      "alerta": { "nivel": "NORMAL", "indice": 9, "abertas_30d": 1, "abertas_alta_30d": 1 } }
   ]
 }
 ```
 
 - `confirmacoes`: soma das confirmações das ocorrências **abertas** da região.
 - `densidade_km2`: total ÷ área oficial da subprefeitura (3 casas).
+- `alerta`: Alerta Bridge da região, sempre sobre as abertas dos **últimos 30 dias**
+  daquela origem (independe de `dias`). Regra em [REGRAS_DE_NEGOCIO.md](REGRAS_DE_NEGOCIO.md), seção 7.
+
+### 3.15 `GET /estatisticas/resumo` (aba Análises)
+
+Exemplo abaixo: resposta real com os dados FICTÍCIOS gerados em 13/11/2026 (`origem=SIMULADA`, listas cortadas no 1º item).
+
+Parâmetros: `origem` (`APP` padrão ou `SIMULADA`) e `dias` (1–365, opcional = tudo daquela
+origem). `422` para `dias` fora da faixa ou origem desconhecida.
+
+```json
+{
+  "origem": "SIMULADA", "dias": null,
+  "total": 1200, "abertas": 425, "resolvidas": 686, "rejeitadas": 89,
+  "percentual_resolvidas": 57.2, "tempo_medio_resolucao_dias": 16.1,
+  "alertas_ativos": 3, "regioes_em_atencao": 7,
+  "por_categoria": [ { "categoria": "CALCADA_DANIFICADA", "total": 378 } ],
+  "semanal": [ { "inicio": "2026-07-13", "registradas": 37, "resolvidas": 0 } ],
+  "ranking_regioes": [ { "codigo": "27", "nome": "Itaquera", "total": 98 } ]
+}
+```
+
+- `percentual_resolvidas`: resolvidas ÷ total × 100 (1 casa); `null` sem ocorrências.
+- `tempo_medio_resolucao_dias`: média de (data da transição para `RESOLVIDA` − data do
+  registro), 1 casa; `null` sem resolvidas.
+- `alertas_ativos` / `regioes_em_atencao`: quantas regiões estão em `ALERTA` / `ATENCAO`.
+- `por_categoria`: as 5 categorias, na ordem do enum, com zeros.
+- `semanal`: semanas de segunda a domingo **no horário de São Paulo**, da semana de
+  (agora − `dias`) — ou da primeira ocorrência — até a semana atual, com zeros;
+  `registradas` por data de registro, `resolvidas` pelas transições para `RESOLVIDA`
+  ocorridas na semana. Lista vazia quando não há ocorrências no período.
+- `ranking_regioes`: até 5 regiões com mais ocorrências (empate: nome); sem zeros.
+
+### 3.16 `GET /ocorrencias/mapa` (pontos do mapa)
+
+Parâmetros: `bbox` **obrigatório** (`min_lon,min_lat,max_lon,max_lat`), `origem`
+(`APP` padrão ou `SIMULADA`), `categoria`, `prioridade`, `status`. `422` sem `bbox` ou com
+`bbox` inválido. Exemplo **ilustrativo** de uma área com corte:
+
+```json
+{
+  "itens": [ { "id": 7, "latitude": -23.5503, "longitude": -46.634, "categoria": "BURACO",
+               "prioridade": "ALTA", "status": "ABERTA", "titulo": "Buraco na rua",
+               "endereco": null, "confirmacoes": 2 } ],
+  "total": 2500,
+  "truncado": true
+}
+```
+
+Formato enxuto (só o que o marcador e o cartão do mapa precisam), as mais graves primeiro,
+**até 2000 itens**. `total` é quantas existem na área; `truncado: true` avisa que há mais do
+que as devolvidas, e o app pede para aproximar o mapa.
 
 ## 4. Fluxo de cadastro com foto (decisão)
 

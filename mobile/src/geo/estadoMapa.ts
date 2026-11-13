@@ -7,12 +7,25 @@ export interface EstadoDadosMapa<T> {
   /** Momento (ms) da última atualização bem-sucedida. */
   atualizadoEm: number | null;
   erro: string | null;
+  /** Modo + filtros do pedido que gerou estes dados (ex.: "exemplo|BURACO||"). */
+  chave: string | null;
 }
 
-export type ResultadoAtualizacao<T> = { ok: true; dados: T; agora: number } | { ok: false; erro: string };
+export type ResultadoAtualizacao<T> =
+  | { ok: true; dados: T; agora: number; chave: string }
+  | { ok: false; erro: string; chave: string };
 
-export function aplicarResultadoMapa<T>(anterior: EstadoDadosMapa<T>, resultado: ResultadoAtualizacao<T>): EstadoDadosMapa<T> {
-  if (resultado.ok) return { dados: resultado.dados, atualizadoEm: resultado.agora, erro: null };
+/**
+ * Aplica a resposta de uma atualização. A resposta de um pedido antigo (outro modo ou
+ * outros filtros) é descartada: dados reais e fictícios nunca se misturam na tela.
+ */
+export function aplicarResultadoMapa<T>(
+  anterior: EstadoDadosMapa<T>,
+  resultado: ResultadoAtualizacao<T>,
+  chaveAtual: string,
+): EstadoDadosMapa<T> {
+  if (resultado.chave !== chaveAtual) return anterior;
+  if (resultado.ok) return { dados: resultado.dados, atualizadoEm: resultado.agora, erro: null, chave: resultado.chave };
   return { ...anterior, erro: resultado.erro };
 }
 

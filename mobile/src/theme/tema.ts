@@ -22,7 +22,19 @@ export const cores = {
   okClaro: '#E4F2E8',
 } as const;
 
-export const espaco = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
+/**
+ * Cores das séries dos gráficos (aba Análises), derivadas da placa e da sinalização.
+ * Validadas com o validador de paleta da skill dataviz (fundo claro): faixa de
+ * luminosidade, croma, separação para daltonismo (ΔE 24,4), visão normal (ΔE 30,1) e
+ * contraste ≥ 3:1 — todas aprovadas. O verde/vermelho de status ficam reservados.
+ */
+export const coresGrafico = {
+  serie1: '#1F63A8', // registradas; também a cor das barras de série única
+  serie2: '#C2770E', // resolvidas (linha tracejada: nunca só a cor)
+  grade: '#DCE2E5',
+} as const;
+
+export const espaco ={ xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
 export const raio = { sm: 6, md: 10, lg: 16 } as const;
 

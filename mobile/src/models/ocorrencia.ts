@@ -129,6 +129,38 @@ export interface EstatisticaRegiao {
   resolvidas: number;
   confirmacoes: number;
   densidadeKm2: number;
+  /** Alerta Bridge dos últimos 30 dias: calculado automaticamente a partir dos relatos (não é oficial). */
+  alerta: AlertaRegiao;
+}
+
+export const NIVEIS_ALERTA = ['NORMAL', 'ATENCAO', 'ALERTA'] as const;
+export type NivelAlerta = (typeof NIVEIS_ALERTA)[number];
+
+export interface AlertaRegiao {
+  nivel: NivelAlerta;
+  indice: number;
+  abertas30d: number;
+  abertasAlta30d: number;
+}
+
+/** GET /estatisticas/resumo (aba Análises). */
+export interface ResumoEstatisticas {
+  origem: Origem;
+  dias: number | null;
+  total: number;
+  abertas: number;
+  resolvidas: number;
+  rejeitadas: number;
+  /** null quando ainda não há ocorrências. */
+  percentualResolvidas: number | null;
+  /** null quando nenhuma foi resolvida. */
+  tempoMedioResolucaoDias: number | null;
+  alertasAtivos: number;
+  regioesEmAtencao: number;
+  porCategoria: { categoria: Categoria; total: number }[];
+  /** `inicio` = segunda-feira (AAAA-MM-DD, horário de São Paulo). */
+  semanal: { inicio: string; registradas: number; resolvidas: number }[];
+  rankingRegioes: { codigo: string; nome: string; total: number }[];
 }
 
 export interface PaginaOcorrencias {

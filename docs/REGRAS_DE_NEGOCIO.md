@@ -157,6 +157,59 @@ A cor nunca aparece sozinha: a legenda e a folha da região mostram os números.
 números são **contagens dos registros feitos no Bridge**, um projeto acadêmico. Não
 são estatísticas oficiais da Prefeitura.
 
-O **alerta por região** (quanto mais relatos e maior a gravidade, maior o nível) e os
-**dados fictícios** de demonstração entram na fase 2, com regra própria documentada
-aqui.
+## 7. Alerta Bridge por região
+
+O alerta é **calculado automaticamente a partir dos relatos**. Não é alerta oficial da
+Prefeitura, da Defesa Civil nem de nenhum órgão, e o app sempre diz isso junto do nível.
+
+- **Quais ocorrências contam**: as abertas (`ABERTA`, `EM_ANALISE`, `EM_ANDAMENTO`) da
+  origem consultada (`APP` ou `SIMULADA`), criadas nos **últimos 30 dias**, por subprefeitura.
+- **Índice da região** = Σ (pontuação de prioridade da ocorrência + mín(confirmações, 5)).
+  Mais relatos (ocorrências e confirmações) e maior gravidade aumentam o índice; o teto de
+  5 confirmações por ocorrência evita que um único caso domine a região.
+- **Níveis**:
+
+| Nível | Condição |
+|---|---|
+| `NORMAL` | índice < 45 |
+| `ATENCAO` | índice ≥ 45 |
+| `ALERTA` | índice ≥ 90 **e** pelo menos 3 abertas de prioridade ALTA |
+
+- **Calibração** (13/11/2026): com os dados de exemplo (semente 2026, 1.200 ocorrências em
+  120 dias), o índice da região típica (mediana) é 27. Atenção ≈ 1,7 vez a típica; Alerta
+  > 3 vezes a típica, com casos graves. Resultado no Exemplo: **3 regiões em Alerta** (Sé,
+  Mooca, Freguesia/Brasilândia) e **7 em Atenção**. O teste `test_calibracao_do_exemplo`
+  trava essa distribuição; os testes da regra usam as constantes (`app/services/alertas.py`).
+- Com poucos registros reais, todas as regiões ficam `NORMAL` — o esperado.
+
+## 8. Dados fictícios de demonstração (modo Exemplo)
+
+Servem para **testar e demonstrar** o app com volume. Nunca se misturam com os reais.
+
+- Gravados com `origem = SIMULADA`; todas as consultas usam `APP` por padrão.
+- Gerados por `backend/scripts/dados_ficticios.py gerar`: função pura e reproduzível
+  (semente 2026), cerca de **1.200 ocorrências nos últimos 120 dias**:
+  - 40% perto de 6 focos (Sé, Mooca, Itaquera, Capela do Socorro, Campo Limpo,
+    Freguesia/Brasilândia) e 60% espalhadas por todas as 32 subprefeituras, sempre dentro
+    dos polígonos oficiais;
+  - prioridade calculada pela regra da seção 1;
+  - histórico plausível, só com transições permitidas: quanto mais antiga, maior a chance
+    de estar resolvida (75% acima de 60 dias, 5% abaixo de 7 dias);
+  - confirmações de 40 identificações fictícias ("Pessoa fictícia 001"…), com UUIDs fixos;
+  - endereço "Endereço fictício · \<região\>", descrição terminada em "(dado fictício)" e
+    comentários "Equipe responsável (fictício): …"; sem foto.
+- **Voltar ao real**: no app, o seletor "Ao vivo" (o app sempre abre nele); no banco,
+  `python scripts/dados_ficticios.py remover`, que apaga **somente** as ocorrências
+  `SIMULADA` e as identificações fictícias. `gerar` recusa rodar de novo sem `--recriar`.
+- No app, todo dado fictício aparece com a faixa "DADOS FICTÍCIOS de demonstração" (Mapa,
+  Análises, folha da região, detalhe) e o compartilhamento começa com "[DADO FICTÍCIO]".
+
+## 9. Indicadores da aba Análises (`GET /estatisticas/resumo`)
+
+- **% resolvidas** = resolvidas ÷ total do período × 100.
+- **Tempo médio até resolver** = média, entre as resolvidas do período, de (data da
+  transição para `RESOLVIDA` − data do registro), em dias.
+- **Evolução semanal**: semanas de segunda a domingo no horário de São Paulo;
+  "registradas" pela data do registro e "resolvidas" pela data da resolução.
+- **Ranking**: as 5 subprefeituras com mais ocorrências no período.
+- Ao vivo usa todos os registros reais; Exemplo usa todos os fictícios.

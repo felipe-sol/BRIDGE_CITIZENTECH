@@ -4,13 +4,16 @@
  * contrato (docs/CONTRATO_API.md).
  */
 import type { CorpoErroApi, DetalheErroApi } from '../models/api.ts';
+import type { OcorrenciaMapa, PontosMapa } from '../geo/tipos.ts';
 import type { Identificacao } from '../models/identificacao.ts';
 import {
   CATEGORIAS,
+  NIVEIS_ALERTA,
   ORIGENS,
   PRIORIDADES,
   STATUS_ANALISE_IA,
   STATUS_OCORRENCIA,
+  type AlertaRegiao,
   type AnaliseIA,
   type EstatisticaRegiao,
   type Ocorrencia,
@@ -20,6 +23,7 @@ import {
   type RegistroHistorico,
   type RelacaoOcorrencia,
   type ResultadoConfirmacao,
+  type ResumoEstatisticas,
   type Subprefeitura,
 } from '../models/ocorrencia.ts';
 import {
@@ -138,7 +142,69 @@ function parseEstatisticaRegiao(valor: unknown): EstatisticaRegiao {
     resolvidas: inteiro(o, 'resolvidas'),
     confirmacoes: inteiro(o, 'confirmacoes'),
     densidadeKm2: numero(o, 'densidade_km2'),
+    alerta: parseAlerta(o.alerta),
   };
+}
+
+function parseAlerta(valor: unknown): AlertaRegiao {
+  const o = objeto(valor, 'Alerta da região');
+  return {
+    nivel: umDe(o, 'nivel', NIVEIS_ALERTA),
+    indice: inteiro(o, 'indice'),
+    abertas30d: inteiro(o, 'abertas_30d'),
+    abertasAlta30d: inteiro(o, 'abertas_alta_30d'),
+  };
+}
+
+/** GET /estatisticas/resumo → indicadores e séries da aba Análises. */
+export function parseResumo(valor: unknown): ResumoEstatisticas {
+  const o = objeto(valor, 'Resumo');
+  const dias = o.dias === null ? null : inteiro(o, 'dias');
+  return {
+    origem: umDe(o, 'origem', ORIGENS),
+    dias,
+    total: inteiro(o, 'total'),
+    abertas: inteiro(o, 'abertas'),
+    resolvidas: inteiro(o, 'resolvidas'),
+    rejeitadas: inteiro(o, 'rejeitadas'),
+    percentualResolvidas: numeroOuNulo(o, 'percentual_resolvidas'),
+    tempoMedioResolucaoDias: numeroOuNulo(o, 'tempo_medio_resolucao_dias'),
+    alertasAtivos: inteiro(o, 'alertas_ativos'),
+    regioesEmAtencao: inteiro(o, 'regioes_em_atencao'),
+    porCategoria: lista(o, 'por_categoria', (v) => {
+      const c = objeto(v, 'Categoria do resumo');
+      return { categoria: umDe(c, 'categoria', CATEGORIAS), total: inteiro(c, 'total') };
+    }),
+    semanal: lista(o, 'semanal', (v) => {
+      const s = objeto(v, 'Semana do resumo');
+      return { inicio: texto(s, 'inicio'), registradas: inteiro(s, 'registradas'), resolvidas: inteiro(s, 'resolvidas') };
+    }),
+    rankingRegioes: lista(o, 'ranking_regioes', (v) => {
+      const r = objeto(v, 'Região do ranking');
+      return { codigo: texto(r, 'codigo'), nome: texto(r, 'nome'), total: inteiro(r, 'total') };
+    }),
+  };
+}
+
+function parseOcorrenciaMapa(valor: unknown): OcorrenciaMapa {
+  const o = objeto(valor, 'Ponto do mapa');
+  return {
+    id: inteiro(o, 'id'),
+    latitude: numero(o, 'latitude'),
+    longitude: numero(o, 'longitude'),
+    categoria: umDe(o, 'categoria', CATEGORIAS),
+    prioridade: umDe(o, 'prioridade', PRIORIDADES),
+    status: umDe(o, 'status', STATUS_OCORRENCIA),
+    titulo: texto(o, 'titulo'),
+    endereco: textoOuNulo(o, 'endereco'),
+    confirmacoes: inteiro(o, 'confirmacoes'),
+  };
+}
+
+/** GET /ocorrencias/mapa → pontos da área visível, com o total e o aviso de corte. */
+export function parsePontosMapa(valor: unknown): PontosMapa {
+  const o = objeto(valor, 'Pontos do mapa');
+  return { itens: lista(o, 'itens', parseOcorrenciaMapa), total: inteiro(o, 'total'), truncado: booleano(o, 'truncado') };
 }
 
 /** GET /estatisticas/regioes → uma linha por subprefeitura. */

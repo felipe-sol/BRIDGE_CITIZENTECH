@@ -17,6 +17,8 @@ export function textoCompartilhamento(o: OcorrenciaDetalhe): string {
   const relatos =
     o.confirmacoes === 0 ? null : o.confirmacoes === 1 ? '1 outra pessoa também relatou.' : `${o.confirmacoes} outras pessoas também relataram.`;
   const linhas = [
+    // Dado fictício nunca sai do app sem rótulo.
+    o.origem === 'SIMULADA' ? '[DADO FICTÍCIO]' : null,
     cortar(o.titulo, MAX_TITULO),
     `${ROTULO_CATEGORIA[o.categoria]} · ${ROTULO_STATUS[o.status]}`,
     `Local: ${cortar(local, MAX_LOCAL)}`,

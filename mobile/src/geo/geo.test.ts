@@ -8,6 +8,7 @@ import amostra from './amostra-regioes.json' with { type: 'json' };
 import { CORES_DENSIDADE, COR_SEM_DADOS, classeDensidade, corDaRegiao } from './densidade.ts';
 import { aplicarResultadoMapa, avisoFalhaMapa, textoAtualizadoHa } from './estadoMapa.ts';
 import { montarEndereco } from './endereco.ts';
+import { interpretarModo, origemDoModo } from './modo.ts';
 import {
   CENTRO_SP,
   caixaDaRegiao,
@@ -222,24 +223,32 @@ describe('ponto do mapa a partir da ocorrência', () => {
 
 describe('estado do mapa ao vivo', () => {
   it('erro de atualização preserva os dados anteriores', () => {
+    const chave = 'aovivo|';
     const a = aplicarResultadoMapa<number[]>(
-      { dados: null, atualizadoEm: null, erro: null },
-      { ok: true, dados: [1], agora: 1000 },
+      { dados: null, atualizadoEm: null, erro: null, chave: null },
+      { ok: true, dados: [1], agora: 1000, chave },
+      chave,
     );
-    const b = aplicarResultadoMapa(a, { ok: false, erro: 'Sem conexão' });
-    assert.deepEqual(b, { dados: [1], atualizadoEm: 1000, erro: 'Sem conexão' });
-    const c = aplicarResultadoMapa(b, { ok: true, dados: [2], agora: 2000 });
-    assert.deepEqual(c, { dados: [2], atualizadoEm: 2000, erro: null });
+    const b = aplicarResultadoMapa(a, { ok: false, erro: 'Sem conexão', chave }, chave);
+    assert.deepEqual(b, { dados: [1], atualizadoEm: 1000, erro: 'Sem conexão', chave });
+    const c = aplicarResultadoMapa(b, { ok: true, dados: [2], agora: 2000, chave }, chave);
+    assert.deepEqual(c, { dados: [2], atualizadoEm: 2000, erro: null, chave });
+  });
+
+  it('resposta atrasada de outro modo ou filtro é descartada (não mistura real e fictício)', () => {
+    const atual = { dados: [1], atualizadoEm: 1000, erro: null, chave: 'aovivo|' };
+    assert.equal(aplicarResultadoMapa(atual, { ok: true, dados: [9, 9], agora: 2000, chave: 'exemplo|' }, 'aovivo|'), atual);
+    assert.equal(aplicarResultadoMapa(atual, { ok: false, erro: 'x', chave: 'exemplo|' }, 'aovivo|'), atual);
   });
 
   it('falha sem nenhum dado não deixa o mapa vazio parecer "nada registrado"', () => {
-    assert.equal(avisoFalhaMapa({ dados: [1], atualizadoEm: 1000, erro: null }), null);
+    assert.equal(avisoFalhaMapa({ dados: [1], atualizadoEm: 1000, erro: null, chave: null }), null);
     assert.equal(
-      avisoFalhaMapa({ dados: [1], atualizadoEm: 1000, erro: 'Sem conexão' }),
+      avisoFalhaMapa({ dados: [1], atualizadoEm: 1000, erro: 'Sem conexão', chave: null }),
       'Sem conexão com o servidor. Mostrando os últimos dados.',
     );
     assert.equal(
-      avisoFalhaMapa({ dados: null, atualizadoEm: null, erro: 'Sem conexão' }),
+      avisoFalhaMapa({ dados: null, atualizadoEm: null, erro: 'Sem conexão', chave: null }),
       'Não foi possível carregar os dados do mapa. Tentando de novo automaticamente.',
     );
   });
@@ -260,5 +269,20 @@ describe('enquadrar uma região', () => {
       latitudeDelta: 0.115,
       longitudeDelta: 0.23,
     });
+  });
+});
+
+describe('modo dos dados (Ao vivo ou Exemplo)', () => {
+  it('abre sempre no Ao vivo, salvo pedido explícito do Exemplo', () => {
+    assert.equal(interpretarModo('exemplo'), 'exemplo');
+    assert.equal(interpretarModo('aovivo'), 'aovivo');
+    assert.equal(interpretarModo(undefined), 'aovivo');
+    assert.equal(interpretarModo(['exemplo']), 'aovivo');
+    assert.equal(interpretarModo('EXEMPLO'), 'aovivo');
+  });
+
+  it('Exemplo consulta só os fictícios; Ao vivo só os reais', () => {
+    assert.equal(origemDoModo('exemplo'), 'SIMULADA');
+    assert.equal(origemDoModo('aovivo'), 'APP');
   });
 });

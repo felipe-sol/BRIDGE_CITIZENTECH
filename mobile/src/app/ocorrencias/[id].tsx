@@ -14,6 +14,7 @@ import { Aviso } from '../../components/Aviso';
 import { Botao } from '../../components/Botao';
 import { EstadoErro } from '../../components/Estados';
 import { Esqueleto } from '../../components/Esqueleto';
+import { FaixaFicticia } from '../../components/FaixaFicticia';
 import { ICONE_CATEGORIA, Icone } from '../../components/Icone';
 import { LinhaDoTempo } from '../../components/LinhaDoTempo';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
@@ -190,6 +191,8 @@ export default function TelaDetalheOcorrencia() {
       contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + espaco.xl }]}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={atualizar} />}
     >
+      {o.origem === 'SIMULADA' ? <FaixaFicticia singular /> : null}
+
       {acabouDeCriar ? (
         <Aviso tom="sucesso" titulo="Registro enviado">
           Você vai acompanhar cada atualização da equipe responsável por aqui e na aba Andamento.

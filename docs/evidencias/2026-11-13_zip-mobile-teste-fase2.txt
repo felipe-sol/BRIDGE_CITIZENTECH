@@ -1,0 +1,154 @@
+# Teste do ZIP de entrega do app (Bridge 2.0, fase 2) — cópia limpa fora do OneDrive e sem o backend ao lado
+Data: 2026-11-13 10:48:00 -0300
+ZIP de TESTE: gerado com --permitir-marcadores porque 'authors' ainda tem PREENCHER. Não é o ZIP de entrega.
+Executado com o código da fase 2 (inclui react-native-svg).
+
+## 1. Geração e conferência do conteúdo (lista fechada de arquivos; recusa node_modules, .expo, .env)
+$ python scripts/gerar_zip_mobile.py --permitir-marcadores --destino <ferramentas>/teste-zip/Bridge-Mobile.zip
+Gerado: <ferramentas>\teste-zip\Bridge-Mobile.zip (110 arquivos, 732 KB)
+authors: 3 integrante(s) — COM MARCADORES (não entregar)
+  Bridge-Mobile/package.json
+  Bridge-Mobile/package-lock.json
+  Bridge-Mobile/app.json
+  Bridge-Mobile/tsconfig.json
+  Bridge-Mobile/eslint.config.js
+  Bridge-Mobile/.env.example
+  Bridge-Mobile/.gitignore
+  Bridge-Mobile/README.md
+  Bridge-Mobile/DECISOES.md
+  Bridge-Mobile/src/acompanhamento/acompanhamento.test.ts
+  Bridge-Mobile/src/acompanhamento/compartilhar.ts
+  Bridge-Mobile/src/acompanhamento/etapas.ts
+  Bridge-Mobile/src/acompanhamento/lista.ts
+  Bridge-Mobile/src/acompanhamento/novidades.test.ts
+  Bridge-Mobile/src/acompanhamento/novidades.ts
+  Bridge-Mobile/src/alertas/alertas.test.ts
+  Bridge-Mobile/src/alertas/alertas.ts
+  Bridge-Mobile/src/analises/graficos.test.ts
+  Bridge-Mobile/src/analises/graficos.ts
+  Bridge-Mobile/src/app/(tabs)/_layout.tsx
+  Bridge-Mobile/src/app/(tabs)/analises.tsx
+  Bridge-Mobile/src/app/(tabs)/andamento.tsx
+  Bridge-Mobile/src/app/(tabs)/index.tsx
+  Bridge-Mobile/src/app/(tabs)/mapa.tsx
+  Bridge-Mobile/src/app/(tabs)/perfil.tsx
+  Bridge-Mobile/src/app/_layout.tsx
+  Bridge-Mobile/src/app/identificacao.tsx
+  Bridge-Mobile/src/app/ocorrencias/[id].tsx
+  Bridge-Mobile/src/app/regiao/[codigo].tsx
+  Bridge-Mobile/src/app/registrar.tsx
+  Bridge-Mobile/src/components/analises/GraficoBarras.tsx
+  Bridge-Mobile/src/components/analises/GraficoSemanal.tsx
+  Bridge-Mobile/src/components/analises/Indicador.tsx
+  Bridge-Mobile/src/components/Aviso.tsx
+  Bridge-Mobile/src/components/Botao.tsx
+  Bridge-Mobile/src/components/BotaoFlutuante.tsx
+  Bridge-Mobile/src/components/CabecalhoPlaca.tsx
+  Bridge-Mobile/src/components/CampoTexto.tsx
+  Bridge-Mobile/src/components/CartaoAcompanhamento.tsx
+  Bridge-Mobile/src/components/CartaoOcorrencia.tsx
+  Bridge-Mobile/src/components/Controles.tsx
+  Bridge-Mobile/src/components/Esqueleto.tsx
+  Bridge-Mobile/src/components/Estados.tsx
+  Bridge-Mobile/src/components/EtapasStatus.tsx
+  Bridge-Mobile/src/components/FaixaAlerta.tsx
+  Bridge-Mobile/src/components/FaixaFicticia.tsx
+  Bridge-Mobile/src/components/Icone.tsx
+  Bridge-Mobile/src/components/LinhaDoTempo.tsx
+  Bridge-Mobile/src/components/mapa/BarraBusca.tsx
+  Bridge-Mobile/src/components/mapa/CamadaDensidade.tsx
+  Bridge-Mobile/src/components/mapa/CamadaPontos.tsx
+  Bridge-Mobile/src/components/mapa/FiltrosMapa.tsx
+  Bridge-Mobile/src/components/mapa/IndicadorAoVivo.tsx
+  Bridge-Mobile/src/components/mapa/LegendaDensidade.tsx
+  Bridge-Mobile/src/components/MarcadorGravidade.tsx
+  Bridge-Mobile/src/components/registro/CartaoParecido.tsx
+  Bridge-Mobile/src/components/registro/GradeCategorias.tsx
+  Bridge-Mobile/src/components/registro/PinoCentral.tsx
+  Bridge-Mobile/src/components/SeletorModo.tsx
+  Bridge-Mobile/src/components/Sinalizacao.tsx
+  Bridge-Mobile/src/components/Texto.tsx
+  Bridge-Mobile/src/config/ambiente.ts
+  Bridge-Mobile/src/context/IdentificacaoContext.tsx
+  Bridge-Mobile/src/geo/agrupamento.ts
+  Bridge-Mobile/src/geo/amostra-regioes.json
+  Bridge-Mobile/src/geo/densidade.ts
+  Bridge-Mobile/src/geo/distancia.ts
+  Bridge-Mobile/src/geo/endereco.ts
+  Bridge-Mobile/src/geo/estadoMapa.ts
+  Bridge-Mobile/src/geo/geo.test.ts
+  Bridge-Mobile/src/geo/modo.ts
+  Bridge-Mobile/src/geo/pontos.ts
+  Bridge-Mobile/src/geo/regioes.ts
+  Bridge-Mobile/src/geo/tipos.ts
+  Bridge-Mobile/src/hooks/useAtualizacaoPeriodica.ts
+  Bridge-Mobile/src/models/api.ts
+  Bridge-Mobile/src/models/identificacao.ts
+  Bridge-Mobile/src/models/ocorrencia.ts
+  Bridge-Mobile/src/registro/fluxo.test.ts
+  Bridge-Mobile/src/registro/fluxo.ts
+  Bridge-Mobile/src/services/camera.ts
+  Bridge-Mobile/src/services/estatisticasService.ts
+  Bridge-Mobile/src/services/geocodificacao.ts
+  Bridge-Mobile/src/services/http.ts
+  Bridge-Mobile/src/services/idempotencia.ts
+  Bridge-Mobile/src/services/identificacaoLocal.ts
+  Bridge-Mobile/src/services/identificacoesService.ts
+  Bridge-Mobile/src/services/localizacao.ts
+  Bridge-Mobile/src/services/ocorrenciasService.ts
+  Bridge-Mobile/src/services/regioesService.ts
+  Bridge-Mobile/src/services/vistos.ts
+  Bridge-Mobile/src/theme/tema.ts
+  Bridge-Mobile/src/utils/formatacao.ts
+  Bridge-Mobile/src/utils/tempoLimite.ts
+  Bridge-Mobile/src/validation/diversos.test.ts
+  Bridge-Mobile/src/validation/guardas.ts
+  Bridge-Mobile/src/validation/identificacao.ts
+  Bridge-Mobile/src/validation/ocorrencia.test.ts
+  Bridge-Mobile/src/validation/ocorrencia.ts
+  Bridge-Mobile/src/validation/regioes.ts
+  Bridge-Mobile/src/validation/respostas.test.ts
+  Bridge-Mobile/src/validation/respostas.ts
+  Bridge-Mobile/src/validation/rotas.ts
+  Bridge-Mobile/src/validation/urlApi.ts
+  Bridge-Mobile/assets/android-icon-background.png
+  Bridge-Mobile/assets/android-icon-foreground.png
+  Bridge-Mobile/assets/android-icon-monochrome.png
+  Bridge-Mobile/assets/favicon.png
+  Bridge-Mobile/assets/icon.png
+  Bridge-Mobile/assets/splash-icon.png
+[código de saída: 0]
+
+## 2. Extração numa pasta vazia e instalação do zero
+$ (extração com zipfile) -> <ferramentas>/teste-zip/extraido/Bridge-Mobile
+$ npm ci --no-audit --no-fund
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 771 packages in 33s
+[código de saída: 0]
+
+## 3. TypeScript estrito
+$ npx tsc --noEmit
+(sem saída: nenhum erro)
+[código de saída: 0]
+
+## 4. Testes puros (node --test)
+$ npm test
+(resumo; a lista completa está em verificacao-mobile-fase2.txt)
+ℹ tests 82
+ℹ suites 29
+ℹ pass 82
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 454.588
+[código de saída: 0]
+
+## 5. ESLint
+$ npm run lint
+
+> bridge-mobile@1.0.0 lint
+> eslint .
+[código de saída: 0]
+

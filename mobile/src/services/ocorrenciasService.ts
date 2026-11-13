@@ -1,13 +1,14 @@
 import { File } from 'expo-file-system';
 import { fetch as expoFetch } from 'expo/fetch';
 
-import type { Caixa, Coordenada } from '../geo/tipos';
+import type { Caixa, Coordenada, PontosMapa } from '../geo/tipos';
 import type {
   Categoria,
   NovaOcorrencia,
   Ocorrencia,
   OcorrenciaDetalhe,
   OcorrenciaProxima,
+  Origem,
   PaginaOcorrencias,
   Prioridade,
   ResultadoConfirmacao,
@@ -18,6 +19,7 @@ import {
   parseOcorrencia,
   parseOcorrenciaDetalhe,
   parsePaginaOcorrencias,
+  parsePontosMapa,
   parseProximas,
 } from '../validation/respostas';
 import { baseUrlApi, comTempoLimite, interpretarResposta, requisitarJson } from './http';
@@ -46,22 +48,24 @@ export interface FiltrosMapa {
   status?: StatusOcorrencia;
 }
 
-/** Ocorrências reais dentro da área visível do mapa (as mais graves primeiro, até 100). */
-export function listarPontosMapa(caixa: Caixa, filtros: FiltrosMapa = {}): Promise<PaginaOcorrencias> {
+/**
+ * Pontos da área visível do mapa (GET /ocorrencias/mapa): formato enxuto, as mais graves
+ * primeiro, até 2000. Com `truncado`, a tela pede para aproximar. APP = reais; SIMULADA = Exemplo.
+ */
+export function listarPontosMapa(caixa: Caixa, filtros: FiltrosMapa = {}, origem: Origem = 'APP'): Promise<PontosMapa> {
   const consulta = new URLSearchParams({
     bbox: [caixa.minLon, caixa.minLat, caixa.maxLon, caixa.maxLat].join(','),
-    tamanho: '100',
-    ordenar: 'prioridade',
+    origem,
   });
   if (filtros.categoria) consulta.set('categoria', filtros.categoria);
   if (filtros.prioridade) consulta.set('prioridade', filtros.prioridade);
   if (filtros.status) consulta.set('status', filtros.status);
-  return requisitarJson(`/ocorrencias?${consulta.toString()}`, parsePaginaOcorrencias);
+  return requisitarJson(`/ocorrencias/mapa?${consulta.toString()}`, parsePontosMapa);
 }
 
 /** Busca por texto no título, na descrição e no endereço (2 a 60 caracteres). */
-export function buscarOcorrencias(q: string): Promise<PaginaOcorrencias> {
-  const consulta = new URLSearchParams({ q: q.trim().slice(0, 60), tamanho: '20', ordenar: 'recentes' });
+export function buscarOcorrencias(q: string, origem: Origem = 'APP'): Promise<PaginaOcorrencias> {
+  const consulta = new URLSearchParams({ q: q.trim().slice(0, 60), tamanho: '20', ordenar: 'recentes', origem });
   return requisitarJson(`/ocorrencias?${consulta.toString()}`, parsePaginaOcorrencias);
 }
 

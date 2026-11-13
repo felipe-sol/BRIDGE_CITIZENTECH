@@ -1,8 +1,10 @@
 /**
  * Mapa real da cidade (Apple Maps no iPhone) com a localização real da pessoa.
  * Camadas: Pontos (ocorrências por gravidade, agrupadas com zoom afastado) e
- * Densidade (32 subprefeituras pintadas por ocorrências/km²). "Ao vivo" = consulta
- * a cada 15 s com a tela visível; uma falha de rede não apaga o que já está na tela.
+ * Densidade (32 subprefeituras pintadas por ocorrências/km²; contorno tracejado = Alerta Bridge).
+ * Modos: "Ao vivo" (dados reais, consulta a cada 15 s com a tela visível) e "Exemplo"
+ * (dados fictícios de 4 meses, estáticos, sempre com a faixa DADOS FICTÍCIOS). Uma falha de
+ * rede não apaga o que está na tela, e resposta de outro modo nunca é exibida.
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -10,7 +12,9 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { avisoTruncado } from '../../analises/graficos';
 import { BotaoFlutuante } from '../../components/BotaoFlutuante';
+import { FaixaFicticia } from '../../components/FaixaFicticia';
 import { Icone } from '../../components/Icone';
 import { BarraBusca } from '../../components/mapa/BarraBusca';
 import { CamadaDensidade } from '../../components/mapa/CamadaDensidade';
@@ -19,13 +23,14 @@ import { FiltrosMapa } from '../../components/mapa/FiltrosMapa';
 import { IndicadorAoVivo } from '../../components/mapa/IndicadorAoVivo';
 import { LegendaDensidade } from '../../components/mapa/LegendaDensidade';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
+import { SeletorModo } from '../../components/SeletorModo';
 import { SeloStatus } from '../../components/Sinalizacao';
 import { Texto } from '../../components/Texto';
 import { agruparPontos } from '../../geo/agrupamento';
 import { caixaDaRegiao, regiaoDaCaixa, regiaoInicial } from '../../geo/distancia';
 import { aplicarResultadoMapa, avisoFalhaMapa, type EstadoDadosMapa } from '../../geo/estadoMapa';
-import { paraPontoMapa } from '../../geo/pontos';
-import type { RegiaoMapa, RegiaoSP } from '../../geo/tipos';
+import { interpretarModo, origemDoModo, type ModoDados } from '../../geo/modo';
+import type { OcorrenciaMapa, PontosMapa, RegiaoMapa, RegiaoSP } from '../../geo/tipos';
 import { useAtualizacaoPeriodica } from '../../hooks/useAtualizacaoPeriodica';
 import type { EstatisticaRegiao, Ocorrencia } from '../../models/ocorrencia';
 import { estatisticasPorRegiao } from '../../services/estatisticasService';
@@ -42,7 +47,17 @@ const ESPERA_APOS_MOVER_MS = 400;
 
 type Camada = 'pontos' | 'densidade';
 
-const VAZIO = { dados: null, atualizadoEm: null, erro: null };
+const VAZIO = { dados: null, atualizadoEm: null, erro: null, chave: null };
+
+/** Chave do pedido: modo + filtros. Respostas de outra chave são descartadas. */
+function chaveDoPedido(modo: ModoDados, filtros: Filtros): string {
+  return [modo, filtros.categoria ?? '', filtros.prioridade ?? '', filtros.status ?? ''].join('|');
+}
+
+/** Dados de um estado só valem para o modo em que foram pedidos. */
+function doModo<T>(estado: EstadoDadosMapa<T>, modo: ModoDados): EstadoDadosMapa<T> {
+  return estado.chave === null || estado.chave.startsWith(`${modo}|`) ? estado : VAZIO;
+}
 
 function SeletorCamada({ camada, onMudar }: { camada: Camada; onMudar: (c: Camada) => void }) {
   return (
@@ -75,7 +90,9 @@ function mensagemSemLocalizacao(r: ResultadoLocalizacao): string {
 }
 
 export default function TelaMapa() {
-  const { regiao: regiaoParam } = useLocalSearchParams<{ regiao?: string }>();
+  const { regiao: regiaoParam, modo: modoParam } = useLocalSearchParams<{ regiao?: string; modo?: string }>();
+  const modo = interpretarModo(modoParam);
+  const origem = origemDoModo(modo);
   const mapaRef = useRef<MapView>(null);
 
   const [localizacao, setLocalizacao] = useState<ResultadoLocalizacao | null>(null);
@@ -83,42 +100,58 @@ export default function TelaMapa() {
   const [regioes, setRegioes] = useState<RegiaoSP[]>([]);
   const [camada, setCamada] = useState<Camada>('pontos');
   const [filtros, setFiltros] = useState<Filtros>({});
-  const [pontos, setPontos] = useState<EstadoDadosMapa<Ocorrencia[]>>(VAZIO);
+  const [pontos, setPontos] = useState<EstadoDadosMapa<PontosMapa>>(VAZIO);
   const [estatisticas, setEstatisticas] = useState<EstadoDadosMapa<EstatisticaRegiao[]>>(VAZIO);
-  const [selecionada, setSelecionada] = useState<Ocorrencia | null>(null);
+  const [selecionada, setSelecionada] = useState<{ item: OcorrenciaMapa; modo: ModoDados } | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [busca, setBusca] = useState<{ texto: string; itens: Ocorrencia[] } | null>(null);
+  const [busca, setBusca] = useState<{ texto: string; itens: Ocorrencia[]; modo: ModoDados } | null>(null);
+
+  // A chave atual fica num ref para a resposta (que chega depois) ser comparada com ela.
+  const chave = chaveDoPedido(modo, filtros);
+  const chaveAtual = useRef(chave);
+  useEffect(() => {
+    chaveAtual.current = chave;
+  }, [chave]);
 
   const irPara = useCallback((destino: RegiaoMapa) => {
     mapaRef.current?.animateToRegion(destino, 600);
   }, []);
 
   const atualizar = useCallback(async () => {
+    const chavePedido = chaveDoPedido(modo, filtros);
     const [rPontos, rEstatisticas] = await Promise.allSettled([
-      listarPontosMapa(caixaDaRegiao(regiaoVisivel), filtros),
-      estatisticasPorRegiao(),
+      listarPontosMapa(caixaDaRegiao(regiaoVisivel), filtros, origem),
+      estatisticasPorRegiao(origem),
     ]);
     const agora = Date.now();
+    const atual = chaveAtual.current; // a chave pode ter mudado enquanto esperávamos
     setPontos((anterior) =>
       aplicarResultadoMapa(
         anterior,
         rPontos.status === 'fulfilled'
-          ? { ok: true, dados: rPontos.value.itens, agora }
-          : { ok: false, erro: mensagemDeErro(rPontos.reason) },
+          ? { ok: true, dados: rPontos.value, agora, chave: chavePedido }
+          : { ok: false, erro: mensagemDeErro(rPontos.reason), chave: chavePedido },
+        atual,
       ),
     );
     setEstatisticas((anterior) =>
       aplicarResultadoMapa(
         anterior,
         rEstatisticas.status === 'fulfilled'
-          ? { ok: true, dados: rEstatisticas.value, agora }
-          : { ok: false, erro: mensagemDeErro(rEstatisticas.reason) },
+          ? { ok: true, dados: rEstatisticas.value, agora, chave: chavePedido }
+          : { ok: false, erro: mensagemDeErro(rEstatisticas.reason), chave: chavePedido },
+        atual,
       ),
     );
-  }, [regiaoVisivel, filtros]);
+  }, [regiaoVisivel, filtros, modo, origem, setPontos, setEstatisticas]);
 
   // Ao vivo: a cada 15 s com a tela visível (pausa fora da aba e em segundo plano).
-  useAtualizacaoPeriodica(atualizar, INTERVALO_AO_VIVO_MS);
+  // O Exemplo é estático: carrega ao entrar no modo e ao mover o mapa, sem consulta periódica.
+  const atualizarAoVivo = useCallback(
+    () => (modo === 'aovivo' ? atualizar() : Promise.resolve()),
+    [modo, atualizar],
+  );
+  useAtualizacaoPeriodica(atualizarAoVivo, INTERVALO_AO_VIVO_MS);
 
   // Depois de mover o mapa ou trocar filtros, busca a nova área sem esperar os 15 s.
   useEffect(() => {
@@ -157,13 +190,32 @@ export default function TelaMapa() {
     if (alvo) irPara(regiaoDaCaixa(alvo.caixa));
   }, [regiaoParam, regioes, irPara]);
 
+  // Só o que foi pedido no modo atual aparece (nunca real e fictício misturados).
+  const pontosDoModo = doModo(pontos, modo);
+  const estatisticasDoModo = doModo(estatisticas, modo);
+  const selecaoAtual = selecionada?.modo === modo ? selecionada.item : null;
+  const buscaAtual = busca?.modo === modo ? busca : null;
+
   const itens = useMemo(
-    () => agruparPontos((pontos.dados ?? []).map(paraPontoMapa), regiaoVisivel),
-    [pontos.dados, regiaoVisivel],
+    () => agruparPontos(pontosDoModo.dados?.itens ?? [], regiaoVisivel),
+    [pontosDoModo.dados, regiaoVisivel],
   );
 
   // A faixa de erro segue a camada visível (pontos ou densidade).
-  const falha = avisoFalhaMapa(camada === 'pontos' ? pontos : estatisticas);
+  const falha = avisoFalhaMapa(camada === 'pontos' ? pontosDoModo : estatisticasDoModo);
+  const corte =
+    camada === 'pontos' && pontosDoModo.dados
+      ? avisoTruncado(pontosDoModo.dados.total, pontosDoModo.dados.itens.length)
+      : null;
+
+  function mudarModo(novo: ModoDados) {
+    setSelecionada(null);
+    setBusca(null);
+    setAviso(null);
+    setPontos(VAZIO);
+    setEstatisticas(VAZIO);
+    router.setParams({ modo: novo });
+  }
 
   async function irParaMinhaLocalizacao() {
     const r = await obterLocalizacaoAtual();
@@ -188,8 +240,8 @@ export default function TelaMapa() {
 
   async function buscarTexto(texto: string) {
     try {
-      const pagina = await buscarOcorrencias(texto);
-      setBusca({ texto, itens: pagina.itens });
+      const pagina = await buscarOcorrencias(texto, origem);
+      setBusca({ texto, itens: pagina.itens, modo });
       setAviso(null);
     } catch (erro: unknown) {
       setAviso(mensagemDeErro(erro));
@@ -198,7 +250,7 @@ export default function TelaMapa() {
 
   function abrirOcorrencia(o: Ocorrencia) {
     setBusca(null);
-    setSelecionada(o);
+    setSelecionada({ item: o, modo });
     irPara({ latitude: o.latitude, longitude: o.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
   }
 
@@ -218,13 +270,16 @@ export default function TelaMapa() {
         {camada === 'densidade' ? (
           <CamadaDensidade
             regioes={regioes}
-            estatisticas={estatisticas.dados}
-            onRegiao={(codigo) => router.push(rotaRegiao(codigo))}
+            estatisticas={estatisticasDoModo.dados}
+            onRegiao={(codigo) => router.push(rotaRegiao(codigo, modo))}
           />
         ) : (
           <CamadaPontos
             itens={itens}
-            onPonto={(ponto) => setSelecionada(pontos.dados?.find((o) => o.id === ponto.id) ?? null)}
+            onPonto={(ponto) => {
+              const item = pontosDoModo.dados?.itens.find((o) => o.id === ponto.id);
+              setSelecionada(item ? { item, modo } : null);
+            }}
             onGrupo={(latitude, longitude) =>
               irPara({
                 latitude,
@@ -250,16 +305,27 @@ export default function TelaMapa() {
         />
         {camada === 'pontos' ? <FiltrosMapa filtros={filtros} onMudar={setFiltros} /> : null}
         <View style={styles.linhaControles} pointerEvents="box-none">
-          <IndicadorAoVivo
-            atualizadoEm={camada === 'pontos' ? pontos.atualizadoEm : estatisticas.atualizadoEm}
-            comErro={(camada === 'pontos' ? pontos.erro : estatisticas.erro) !== null}
-          />
+          <SeletorModo modo={modo} onMudar={mudarModo} />
           <SeletorCamada camada={camada} onMudar={setCamada} />
         </View>
+        {modo === 'exemplo' ? (
+          <FaixaFicticia />
+        ) : (
+          <IndicadorAoVivo
+            atualizadoEm={camada === 'pontos' ? pontosDoModo.atualizadoEm : estatisticasDoModo.atualizadoEm}
+            comErro={(camada === 'pontos' ? pontosDoModo.erro : estatisticasDoModo.erro) !== null}
+          />
+        )}
         {falha ? (
           <View style={[styles.faixa, styles.faixaErro]}>
             <Icone nome="wifi-off" tamanho={18} cor={cores.alerta} />
             <Texto style={styles.faixaTexto}>{falha}</Texto>
+          </View>
+        ) : null}
+        {corte ? (
+          <View style={styles.faixa}>
+            <Icone nome="information-outline" tamanho={18} cor={cores.placa} />
+            <Texto style={styles.faixaTexto}>{corte}</Texto>
           </View>
         ) : null}
         {aviso ? (
@@ -268,18 +334,20 @@ export default function TelaMapa() {
             <Texto style={styles.faixaTexto}>{aviso}</Texto>
           </Pressable>
         ) : null}
-        {busca ? (
+        {buscaAtual ? (
           <View style={[styles.resultados, sombra.cartao]}>
             <View style={styles.resultadosTopo}>
               <Texto variante="placa" style={styles.flex}>
-                {busca.itens.length === 0 ? `Nada com “${busca.texto}”` : `Com “${busca.texto}” · ${busca.itens.length}`}
+                {buscaAtual.itens.length === 0
+                  ? `Nada com “${buscaAtual.texto}”`
+                  : `Com “${buscaAtual.texto}” · ${buscaAtual.itens.length}`}
               </Texto>
               <Pressable accessibilityRole="button" accessibilityLabel="Fechar resultados" hitSlop={8} onPress={() => setBusca(null)}>
                 <Icone nome="close" tamanho={20} />
               </Pressable>
             </View>
             <ScrollView style={styles.resultadosLista} keyboardShouldPersistTaps="handled">
-              {busca.itens.map((o) => (
+              {buscaAtual.itens.map((o) => (
                 <Pressable key={o.id} accessibilityRole="button" onPress={() => abrirOcorrencia(o)} style={styles.resultado}>
                   <MarcadorGravidade prioridade={o.prioridade} tamanho={14} />
                   <Texto style={styles.flex} numberOfLines={1}>
@@ -303,35 +371,35 @@ export default function TelaMapa() {
         <Icone nome="crosshairs-gps" tamanho={24} cor={cores.placa} />
       </Pressable>
 
-      {camada === 'densidade' && !selecionada ? (
+      {camada === 'densidade' && !selecaoAtual ? (
         <View style={styles.legenda} pointerEvents="box-none">
           <LegendaDensidade />
         </View>
       ) : null}
 
-      {selecionada ? (
+      {selecaoAtual ? (
         <View style={[styles.cartao, sombra.cartao]}>
           <View style={styles.cartaoTopo}>
-            <MarcadorGravidade prioridade={selecionada.prioridade} tamanho={20} />
+            <MarcadorGravidade prioridade={selecaoAtual.prioridade} tamanho={20} />
             <Texto variante="subtitulo" style={styles.flex} numberOfLines={2}>
-              {selecionada.titulo}
+              {selecaoAtual.titulo}
             </Texto>
             <Pressable accessibilityRole="button" accessibilityLabel="Fechar" hitSlop={10} onPress={() => setSelecionada(null)}>
               <Icone nome="close" tamanho={22} />
             </Pressable>
           </View>
-          <SeloStatus status={selecionada.status} />
-          {selecionada.endereco ? <Texto variante="apoio">{selecionada.endereco}</Texto> : null}
-          {selecionada.confirmacoes > 0 ? (
+          <SeloStatus status={selecaoAtual.status} />
+          {selecaoAtual.endereco ? <Texto variante="apoio">{selecaoAtual.endereco}</Texto> : null}
+          {selecaoAtual.confirmacoes > 0 ? (
             <Texto style={styles.relatos}>
-              {selecionada.confirmacoes === 1
+              {selecaoAtual.confirmacoes === 1
                 ? '1 pessoa também relatou'
-                : `${selecionada.confirmacoes} pessoas também relataram`}
+                : `${selecaoAtual.confirmacoes} pessoas também relataram`}
             </Texto>
           ) : null}
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push(rotaDetalhe(selecionada.id))}
+            onPress={() => router.push(rotaDetalhe(selecaoAtual.id))}
             style={styles.verDetalhe}
           >
             <Texto style={styles.verDetalheTexto}>Ver detalhe e andamento</Texto>
@@ -349,7 +417,7 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.concreto },
   flex: { flex: 1 },
   topo: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: espaco.md, paddingTop: espaco.sm, gap: espaco.sm },
-  linhaControles: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espaco.sm },
+  linhaControles: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: espaco.sm },
   seletor: { flexDirection: 'row', backgroundColor: cores.asfalto, borderRadius: 999, padding: 3 },
   opcao: { minHeight: 36, paddingHorizontal: espaco.md, borderRadius: 999, justifyContent: 'center' },
   opcaoMarcada: { backgroundColor: cores.sinal },

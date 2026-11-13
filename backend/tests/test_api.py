@@ -90,6 +90,24 @@ def test_identificacao_invalida_e_inexistente(client: TestClient) -> None:
     assert_erro(client.get("/identificacoes/123"), 422, "VALIDACAO")
 
 
+def test_identificacao_atual_pelo_cabecalho(client: TestClient) -> None:
+    ident = nova_identificacao(client)
+    r = client.get("/identificacoes/atual", headers={"X-Identificacao-Id": ident})
+    assert r.status_code == 200 and r.json()["id"] == ident
+
+
+def test_identificacao_atual_inexistente_e_sem_cabecalho(client: TestClient) -> None:
+    inexistente = {"X-Identificacao-Id": str(uuid.uuid4())}
+    assert_erro(client.get("/identificacoes/atual", headers=inexistente), 404, "NAO_ENCONTRADO")
+    assert_erro(client.get("/identificacoes/atual"), 422, "VALIDACAO")
+    assert_erro(client.get("/identificacoes/atual", headers={"X-Identificacao-Id": "abc"}), 422, "VALIDACAO")
+
+
+def test_rota_com_uuid_no_caminho_marcada_obsoleta(client: TestClient) -> None:
+    caminho = client.get("/openapi.json").json()["paths"]["/identificacoes/{identificacao_id}"]
+    assert caminho["get"]["deprecated"] is True
+
+
 # ------------------------------------------------------------- cadastro
 
 

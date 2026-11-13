@@ -20,7 +20,7 @@ import { mensagemDeErro } from '../../services/http';
 import { listarMinhas } from '../../services/ocorrenciasService';
 import { lerVistos } from '../../services/vistos';
 import { ALVO_TOQUE, cores, espaco, fontes, raio } from '../../theme/tema';
-import { ROTAS, rotaDetalhe } from '../../validation/rotas';
+import { ROTAS, rotaDetalhe, rotaMapa } from '../../validation/rotas';
 
 type Relacao = 'registradas' | 'confirmadas';
 
@@ -162,7 +162,7 @@ export default function TelaAndamento() {
               <EstadoVazio
                 titulo="Você ainda não confirmou nenhuma ocorrência"
                 mensagem="No mapa, abra uma ocorrência perto de você e toque em “Eu também vi” para acompanhá-la."
-                acao={{ titulo: 'Abrir o mapa', onPress: () => router.navigate(ROTAS.mapa) }}
+                acao={{ titulo: 'Abrir o mapa', onPress: () => router.navigate(rotaMapa()) }}
               />
             )
           }

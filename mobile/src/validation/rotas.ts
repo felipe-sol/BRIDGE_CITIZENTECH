@@ -6,6 +6,7 @@
  * Estrutura: abas em src/app/(tabs) (Início, Mapa, Andamento, Perfil);
  * telas por cima das abas: registrar (modal), ocorrencias/[id] e regiao/[codigo] (folha).
  */
+import type { ModoDados } from '../geo/modo.ts';
 
 export const ROTAS = {
   inicio: '/',
@@ -31,8 +32,19 @@ export function rotaDetalhe(id: number, criada = false) {
 }
 
 /** Folha com o resumo de uma subprefeitura (código GeoSampa de dois dígitos). */
-export function rotaRegiao(codigo: string) {
-  return { pathname: '/regiao/[codigo]', params: { codigo } } as const;
+export function rotaRegiao(codigo: string, modo: ModoDados = 'aovivo') {
+  return {
+    pathname: '/regiao/[codigo]',
+    params: modo === 'exemplo' ? { codigo, modo: 'exemplo' } : { codigo },
+  } as const;
+}
+
+/**
+ * Aba Mapa. O `modo` vai SEMPRE explícito: se a navegação mesclar parâmetros da aba,
+ * "Ao vivo" nunca herda um Exemplo anterior.
+ */
+export function rotaMapa(modo: ModoDados = 'aovivo', regiao?: string) {
+  return { pathname: '/mapa', params: { modo, ...(regiao ? { regiao } : {}) } } as const;
 }
 
 function primeiro(valor: string | string[] | undefined): string | undefined {

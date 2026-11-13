@@ -233,6 +233,24 @@ cd backend
 
 O túnel do Expo (`--tunnel`) publica só o app, **não** o backend.
 
+## Dados fictícios de demonstração (modo Exemplo)
+
+O app tem um modo **Exemplo** (Mapa e Análises) com cerca de 1.200 ocorrências **fictícias**
+dos últimos 120 dias, para testar e demonstrar o painel com volume. Elas ficam no banco com
+`origem = SIMULADA`, nunca se misturam com as reais e aparecem sempre com a faixa
+"DADOS FICTÍCIOS de demonstração". Regras em
+[`docs/REGRAS_DE_NEGOCIO.md`](docs/REGRAS_DE_NEGOCIO.md), seção 8.
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\dados_ficticios.py gerar            # gera (recusa se já existirem)
+.\.venv\Scripts\python.exe scripts\dados_ficticios.py gerar --recriar  # apaga os fictícios e gera de novo
+.\.venv\Scripts\python.exe scripts\dados_ficticios.py relatorio        # contagens e regiões em alerta
+.\.venv\Scripts\python.exe scripts\dados_ficticios.py remover          # volta ao real: apaga SÓ os fictícios
+```
+
+No app, o seletor **Ao vivo** volta aos dados reais com um toque, e o app sempre abre no Ao vivo.
+
 ## Endpoints
 
 Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](docs/CONTRATO_API.md).
@@ -241,11 +259,13 @@ Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](doc
 |---|---|---|---|
 | GET | `/health` | API, banco e status do modelo de IA | 200 (503 se banco fora) |
 | POST | `/identificacoes` | Cria a identificação (pseudônimo) | 201 |
-| GET | `/identificacoes/{id}` | Consulta identificação | 200 |
+| GET | `/identificacoes/atual` | Confere a identificação salva (UUID no cabeçalho `X-Identificacao-Id`) | 200 |
+| GET | `/identificacoes/{id}` | **Obsoleta** (UUID na URL); mantida só pela Rodada 1 do Insomnia | 200 |
 | POST | `/ocorrencias` | Registra ocorrência (`Idempotency-Key` opcional) | 201 (200 se a chave já foi usada) |
 | GET | `/ocorrencias` | Lista paginada (`pagina`, `tamanho`, `ordenar`, filtros, `bbox` do mapa, busca `q`, `subprefeitura`, `origem`) | 200 |
 | GET | `/ocorrencias/minhas` | O que esta identificação registrou ou confirmou (`X-Identificacao-Id`) | 200 |
 | GET | `/ocorrencias/proximas` | Ocorrências abertas parecidas a até 100 m (checagem de duplicatas) | 200 |
+| GET | `/ocorrencias/mapa` | Pontos de uma área do mapa (`bbox`, `origem`), formato enxuto, até 2000, com `truncado` | 200 |
 | GET | `/ocorrencias/{id}` | Detalhe + histórico; com `X-Identificacao-Id`, diz se você registrou/confirmou | 200 |
 | PATCH | `/ocorrencias/{id}/status` | **Administrativa** (`X-Admin-Token`) — muda status | 200 |
 | POST | `/ocorrencias/{id}/imagem` | Upload multipart da foto (`X-Identificacao-Id`) | 200 |
@@ -253,7 +273,8 @@ Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](doc
 | POST | `/ocorrencias/{id}/confirmacoes` | "Eu também vi" (`X-Identificacao-Id`; idempotente) | 201 (200 se já confirmada) |
 | DELETE | `/ocorrencias/{id}/confirmacoes` | Desfaz a confirmação | 200 |
 | GET | `/regioes` | Limites oficiais das 32 subprefeituras (GeoJSON, fonte GeoSampa) | 200 |
-| GET | `/estatisticas/regioes` | Ocorrências por subprefeitura e densidade por km² | 200 |
+| GET | `/estatisticas/regioes` | Ocorrências por subprefeitura, densidade por km² e **Alerta Bridge** (30 dias) | 200 |
+| GET | `/estatisticas/resumo` | Indicadores da aba Análises: totais, % resolvidas, tempo médio, categorias, semanas, ranking | 200 |
 
 Todos os erros seguem `{"erro": {"codigo", "mensagem", "detalhes": [{"campo", "mensagem"}]}}`
 com mensagens em português.
@@ -296,21 +317,25 @@ cd backend
   `test_api_confirmacoes.py`):** geometria, regiões oficiais com pontos conhecidos (Sé, Ibirapuera,
   fora de SP), migração 0003 e `alembic check`, endereço/região, filtros, densidade,
   proximidade, confirmações e a lista "minhas".
+- **Fase 2 (`test_alertas.py`, `test_api_resumo.py`, `test_ficticios.py` e acréscimos):**
+  regra do alerta nas bordas e calibração, resumo (semanas no horário de São Paulo),
+  pontos do mapa com corte, identificação pelo cabeçalho e dados fictícios (gerar e
+  remover sem tocar nos reais).
 
-Última execução: **127 passaram, 0 pulados**, em
-[`docs/evidencias/2026-11-12_pytest-backend-fase1.txt`](docs/evidencias/2026-11-12_pytest-backend-fase1.txt)
+Última execução: **151 passaram, 0 pulados**, em
+[`docs/evidencias/2026-11-13_pytest-backend-fase2.txt`](docs/evidencias/2026-11-13_pytest-backend-fase2.txt)
 (a execução do 1.0, com 95, está em `2026-11-11_pytest-backend-com-banco.txt`).
 
 Verificação ponta a ponta contra a API rodando (complementar):
 `python scripts/verificar_api.py --base-url http://localhost:8000 --admin-token <token>`.
-Resultado do Bridge 2.0 (52 verificações, conferindo também o conteúdo, e persistência
-após reiniciar a API):
-[`docs/evidencias/2026-11-13_verificacao-api-fase1.txt`](docs/evidencias/2026-11-13_verificacao-api-fase1.txt).
+Resultado com as fases 1 e 2 (67 verificações, conferindo também o conteúdo, e
+persistência após reiniciar a API):
+[`docs/evidencias/2026-11-13_verificacao-api-fase2.txt`](docs/evidencias/2026-11-13_verificacao-api-fase2.txt).
 
 ### Manuais (Insomnia) — exigência da disciplina
 
 - Coleção importável: [`docs/insomnia/bridge-insomnia.json`](docs/insomnia/bridge-insomnia.json)
-  (54 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 21; ambiente com
+  (64 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 31; ambiente com
   `base_url`, `admin_token` e IDs)
 - Ordem, resultados esperados e checklist de prints:
   [`docs/insomnia/ROTEIRO_TESTES_MANUAIS.md`](docs/insomnia/ROTEIRO_TESTES_MANUAIS.md)
@@ -319,7 +344,8 @@ após reiniciar a API):
   Eles foram feitos antes do Bridge 2.0. Por isso as respostas não mostram os campos novos
   (`endereco`, `subprefeitura`, `confirmacoes`, `origem`), mas o comportamento testado
   não mudou.
-- **Rodada 2 (pastas 09 a 12): pendente**, a ser executada pela equipe.
+- **Rodada 2 (pastas 09 a 13): pendente**, a ser executada pela equipe (a pasta 13 precisa
+  dos dados fictícios gerados).
 
 ## IA: situação real e limitações
 
@@ -337,17 +363,18 @@ após reiniciar a API):
 requisito: [`docs/REQUISITOS.md`](docs/REQUISITOS.md). Checklist de entrega:
 [`docs/ENTREGA.md`](docs/ENTREGA.md).
 
-## Situação atual (13/11/2026)
+## Situação atual (13/11/2026, fim da fase 2)
 
 | Item | Situação |
 |---|---|
 | Domínio, API, regras, upload, erros | Implementado e **verificado automaticamente** com PostgreSQL 18.4 local |
 | Migrações 0001/0002/0003 | **Verificadas** em banco vazio: `upgrade`, `check`, `downgrade` e migração de dados |
-| Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado e **verificado automaticamente** |
-| Testes automatizados (127, com PostgreSQL) | **Passando** |
+| Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
+| Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
+| Testes automatizados (151, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Fase 2 (alertas por região, dados fictícios, Análises) e fase 3 (Perfil completo, acabamento) | **A fazer** — ver `docs/superpowers/specs/2026-11-12-bridge-2-design.md` |
+| Fase 3 (Perfil completo, "Ainda não foi resolvido", acabamento) | **A fazer** — ver `docs/superpowers/specs/2026-11-12-bridge-2-design.md` |
 | Integração com o modelo de IA | **Pendente** — aguardando o material do colega |
 
 ## Uso de IA no desenvolvimento

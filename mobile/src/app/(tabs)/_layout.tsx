@@ -1,4 +1,4 @@
-/** Barra de abas do cidadão: Início, Mapa, Andamento e Perfil (Análises entra na fase 2). */
+/** Barra de abas do cidadão: Início, Mapa, Andamento, Análises e Perfil. */
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
 
@@ -30,6 +30,10 @@ export default function LayoutAbas() {
       <Tabs.Screen
         name="andamento"
         options={{ title: 'Andamento', tabBarIcon: iconeDaAba('progress-check', 'progress-check') }}
+      />
+      <Tabs.Screen
+        name="analises"
+        options={{ title: 'Análises', tabBarIcon: iconeDaAba('chart-box', 'chart-box-outline') }}
       />
       <Tabs.Screen
         name="perfil"

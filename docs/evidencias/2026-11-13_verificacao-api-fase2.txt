@@ -1,0 +1,98 @@
+# Verificação ponta a ponta — Bridge 2.0, fases 1 e 2 (API em execução + PostgreSQL 18.4)
+Data: 2026-11-13 10:44:47 -0300
+API de verificação: uvicorn na porta 8001 ligada ao banco de TESTES bridge_test, com pasta de uploads temporária
+(o banco de desenvolvimento usado pelo app não recebe dados de teste). Token administrativo gerado só para esta execução.
+
+## 1. Fluxo completo (1.0 + fase 1 + fase 2)
+$ python scripts/verificar_api.py --base-url http://127.0.0.1:8001 --admin-token <token desta execução>
+[OK  ] GET   /health                                -> 200 (esperado 200) — API e banco respondendo
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria identificação
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria 2ª identificação
+[OK  ] POST  /identificacoes                        -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro válido
+        prioridade=ALTA pontuação=7 ia=INDISPONIVEL
+[OK  ] POST  /ocorrencias                           -> 200 (esperado 200) — mesma Idempotency-Key não duplica
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — latitude 91
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — coordenadas (0,0)
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — identificação inexistente
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — 2ª ocorrência
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — listagem
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ordenação por prioridade
+[OK  ] GET   /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — tamanho inválido
+[OK  ] GET   /ocorrencias/5                         -> 200 (esperado 200) — detalhe
+[OK  ] GET   /ocorrencias/999999                    -> 404 (esperado 404 (NAO_ENCONTRADO)) — detalhe inexistente
+[OK  ] POST  /ocorrencias/5/imagem                  -> 200 (esperado 200) — upload válido
+[OK  ] GET   /ocorrencias/5/imagem                  -> 200 (esperado 200) — download da imagem
+[OK  ] POST  /ocorrencias/5/imagem                  -> 409 (esperado 409 (IMAGEM_JA_ENVIADA)) — upload repetido
+[OK  ] POST  /ocorrencias/6/imagem                  -> 415 (esperado 415 (FORMATO_NAO_SUPORTADO)) — texto com extensão .jpg
+[OK  ] POST  /ocorrencias/6/imagem                  -> 403 (esperado 403 (PROIBIDO)) — upload por outra identificação
+[OK  ] PATCH /ocorrencias/5/status                  -> 401 (esperado 401) — status sem token
+[OK  ] PATCH /ocorrencias/5/status                  -> 200 (esperado 200) — ABERTA → EM_ANALISE
+[OK  ] PATCH /ocorrencias/5/status                  -> 409 (esperado 409 (TRANSICAO_INVALIDA)) — EM_ANALISE → RESOLVIDA (inválida)
+[OK  ] PATCH /ocorrencias/5/status                  -> 200 (esperado 200) — EM_ANALISE → EM_ANDAMENTO
+[OK  ] PATCH /ocorrencias/5/status                  -> 200 (esperado 200) — EM_ANDAMENTO → RESOLVIDA
+        histórico: ['ABERTA', 'EM_ANALISE', 'EM_ANDAMENTO', 'RESOLVIDA']
+
+--- Bridge 2.0 (fase 1) ---
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro com endereço (Sé)
+        [OK  ] região Sé, endereço, 0 confirmações, origem APP
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro fora de SP
+        [OK  ] fora de SP: subprefeitura nula
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — endereço com 201 caracteres
+[OK  ] GET   /regioes                               -> 200 (esperado 200) — limites das regiões
+        [OK  ] 32 subprefeituras
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — estatísticas por região
+        [OK  ] 32 itens; Sé com ≥ 1
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ocorrências na área do mapa
+        [OK  ] a da Sé está na caixa; a do Rio não
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — busca por texto
+        [OK  ] busca acha a ocorrência pelo título/endereço
+[OK  ] GET   /ocorrencias/proximas                  -> 200 (esperado 200) — próximas (100 m, calçada)
+        [OK  ] a ocorrência da Sé aparece como parecida
+[OK  ] POST  /ocorrencias/7/confirmacoes            -> 201 (esperado 201) — 'eu também vi' (outra pessoa)
+        [OK  ] 1 confirmação
+[OK  ] POST  /ocorrencias/7/confirmacoes            -> 200 (esperado 200) — confirmação repetida (idempotente)
+[OK  ] POST  /ocorrencias/7/confirmacoes            -> 409 (esperado 409 (PROPRIA_OCORRENCIA)) — autor não confirma a própria
+[OK  ] POST  /ocorrencias/5/confirmacoes            -> 409 (esperado 409 (OCORRENCIA_ENCERRADA)) — ocorrência resolvida não recebe confirmação
+[OK  ] GET   /ocorrencias/7                         -> 200 (esperado 200) — detalhe com a relação de quem pergunta
+        [OK  ] relação confirmei=true; prioridade não mudou
+[OK  ] GET   /ocorrencias/minhas                    -> 200 (esperado 200) — minhas confirmadas (cabeçalho, não URL)
+        [OK  ] a confirmada aparece no Andamento da outra pessoa
+[OK  ] DELETE /ocorrencias/7/confirmacoes            -> 200 (esperado 200) — desfazer confirmação
+        [OK  ] 0 confirmações depois de desfazer
+[OK  ] GET   /ocorrencias/minhas                    -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — minhas com identificação inexistente
+
+--- Bridge 2.0 (fase 2) ---
+[OK  ] GET   /identificacoes/atual                  -> 200 (esperado 200) — identificação pelo cabeçalho
+        [OK  ] a identificação devolvida é a do cabeçalho
+[OK  ] GET   /identificacoes/atual                  -> 404 (esperado 404 (NAO_ENCONTRADO)) — identificação inexistente
+[OK  ] GET   /identificacoes/atual                  -> 422 (esperado 422 (VALIDACAO)) — identificação sem cabeçalho
+[OK  ] GET   /ocorrencias/mapa                      -> 200 (esperado 200) — pontos do mapa (Sé)
+        [OK  ] formato enxuto, total ≥ 1, sem corte
+[OK  ] GET   /ocorrencias/mapa                      -> 422 (esperado 422 (VALIDACAO)) — pontos do mapa sem bbox
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — Alerta Bridge por região
+        [OK  ] 32 regiões, cada uma com nível
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (reais)
+        [OK  ] total ≥ 1, 5 categorias, ao menos 1 semana
+        [OK  ] categorias somam o total
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (fictícios)
+        [OK  ] sem fictícios neste banco: % nulo, não zero
+[OK  ] GET   /estatisticas/resumo                   -> 422 (esperado 422 (VALIDACAO)) — resumo com dias inválido
+
+Ocorrência de referência para o teste de persistência: 5
+Depois de reiniciar a API: python scripts/verificar_api.py --base-url http://127.0.0.1:8001 --persistencia 5
+
+Resultado: SUCESSO
+[código de saída: 0]
+
+## 2. Persistência depois de reiniciar a API (processo novo)
+Data: 2026-11-13 10:44:53 -0300
+antes:  INFO:     Started server process [10900]
+depois: INFO:     Started server process [5352]
+$ python scripts/verificar_api.py --base-url http://127.0.0.1:8001 --persistencia 5
+[OK  ] GET   /ocorrencias/5                         -> 200 (esperado 200) — ocorrência continua no banco após reinício
+        status=RESOLVIDA imagem_url=/ocorrencias/5/imagem registros de histórico=4
+
+Resultado: SUCESSO
+[código de saída: 0]
+

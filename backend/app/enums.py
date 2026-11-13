@@ -32,6 +32,14 @@ class OrigemOcorrencia(StrEnum):
     SIMULADA = "SIMULADA"
 
 
+class NivelAlerta(StrEnum):
+    """Alerta Bridge da região: calculado automaticamente a partir dos relatos (não é oficial)."""
+
+    NORMAL = "NORMAL"
+    ATENCAO = "ATENCAO"
+    ALERTA = "ALERTA"
+
+
 class StatusAnaliseIA(StrEnum):
     PENDENTE = "PENDENTE"
     CONCLUIDA = "CONCLUIDA"

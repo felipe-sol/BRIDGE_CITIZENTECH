@@ -17,6 +17,10 @@ export function LegendaDensidade() {
           <Texto style={styles.texto}>{ROTULOS_DENSIDADE[c]}</Texto>
         </View>
       ))}
+      <View style={styles.linha} accessible accessibilityLabel="Contorno tracejado vermelho: região em Alerta Bridge">
+        <View style={styles.tracejado} />
+        <Texto style={styles.texto}>Alerta Bridge</Texto>
+      </View>
       <Texto variante="apoio" style={styles.nota}>
         Toque numa região para ver os números.
       </Texto>
@@ -28,6 +32,7 @@ const styles = StyleSheet.create({
   caixa: { backgroundColor: cores.papel, borderRadius: raio.md, padding: espaco.md, gap: 6 },
   linha: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   amostra: { width: 22, height: 14, borderRadius: 3, borderWidth: 1, borderColor: cores.borda },
+  tracejado: { width: 22, height: 14, borderRadius: 3, borderWidth: 2, borderColor: cores.alerta, borderStyle: 'dashed' },
   texto: { fontSize: 13 },
   nota: { fontSize: 12, lineHeight: 16 },
 });

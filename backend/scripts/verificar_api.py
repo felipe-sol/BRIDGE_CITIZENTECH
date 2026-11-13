@@ -124,6 +124,7 @@ def fluxo_completo(c: httpx.Client, admin_token: str | None) -> None:
         print("        (sem --admin-token: transições de status não verificadas)")
 
     fluxo_bridge2(c, ident, outra, oid if admin_token else None)
+    fluxo_fase2(c, ident)
 
     print(f"\nOcorrência de referência para o teste de persistência: {oid}")
     print(f"Depois de reiniciar a API: python scripts/verificar_api.py --base-url {c.base_url} --persistencia {oid}")
@@ -200,6 +201,41 @@ def fluxo_bridge2(c: httpx.Client, ident: str, outra: str, resolvida: int | None
     conferir("minhas com identificação inexistente", c.get("/ocorrencias/minhas",
                                                            headers={"X-Identificacao-Id": str(uuid.uuid4())}),
              422, "IDENTIFICACAO_INEXISTENTE")
+
+
+def fluxo_fase2(c: httpx.Client, ident: str) -> None:
+    """Fase 2: identificação pelo cabeçalho, pontos do mapa, Alerta Bridge e resumo das Análises."""
+    print("\n--- Bridge 2.0 (fase 2) ---")
+    atual = conferir("identificação pelo cabeçalho", c.get("/identificacoes/atual", headers={"X-Identificacao-Id": ident}), 200)
+    if atual:
+        checar(atual["id"] == ident, "a identificação devolvida é a do cabeçalho")
+    conferir("identificação inexistente", c.get("/identificacoes/atual",
+             headers={"X-Identificacao-Id": "00000000-0000-4000-8000-000000000000"}), 404, "NAO_ENCONTRADO")
+    conferir("identificação sem cabeçalho", c.get("/identificacoes/atual"), 422, "VALIDACAO")
+
+    mapa = conferir("pontos do mapa (Sé)", c.get("/ocorrencias/mapa", params={"bbox": "-46.70,-23.60,-46.60,-23.50"}), 200)
+    if mapa:
+        campos = {"id", "latitude", "longitude", "categoria", "prioridade", "status", "titulo", "endereco", "confirmacoes"}
+        checar(mapa["total"] >= 1 and mapa["truncado"] is False and all(set(i) == campos for i in mapa["itens"]),
+               "formato enxuto, total ≥ 1, sem corte")
+    conferir("pontos do mapa sem bbox", c.get("/ocorrencias/mapa"), 422, "VALIDACAO")
+
+    regioes = conferir("Alerta Bridge por região", c.get("/estatisticas/regioes"), 200)
+    if regioes:
+        niveis = {i["alerta"]["nivel"] for i in regioes["itens"]}
+        checar(len(regioes["itens"]) == 32 and niveis <= {"NORMAL", "ATENCAO", "ALERTA"}, "32 regiões, cada uma com nível")
+
+    resumo = conferir("resumo das Análises (reais)", c.get("/estatisticas/resumo"), 200)
+    if resumo:
+        checar(resumo["total"] >= 1 and len(resumo["por_categoria"]) == 5 and len(resumo["semanal"]) >= 1,
+               "total ≥ 1, 5 categorias, ao menos 1 semana")
+        checar(sum(x["total"] for x in resumo["por_categoria"]) == resumo["total"], "categorias somam o total")
+    simulado = conferir("resumo das Análises (fictícios)", c.get("/estatisticas/resumo", params={"origem": "SIMULADA"}), 200)
+    if simulado and simulado["total"] == 0:
+        checar(simulado["percentual_resolvidas"] is None, "sem fictícios neste banco: % nulo, não zero")
+    elif simulado:
+        checar(simulado["percentual_resolvidas"] is not None, f"{simulado['total']} fictícios neste banco: % calculado")
+    conferir("resumo com dias inválido", c.get("/estatisticas/resumo", params={"dias": 0}), 422, "VALIDACAO")
 
 
 def main() -> None:

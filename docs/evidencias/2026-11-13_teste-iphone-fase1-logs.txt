@@ -1,0 +1,39 @@
+# Teste manual no iPhone (Expo Go) — Bridge 2.0, fase 1 — resumo dos logs da API
+Data: 2026-11-13 (manhã). Teste feito pela equipe; aprovado pelo usuário ("fase 1 aprovada").
+Fonte: log do uvicorn desta execução da API (porta 8000, banco de desenvolvimento).
+Privacidade: só totais agregados. Sem UUID, sem IP do aparelho e sem parâmetros de consulta
+(as consultas do mapa carregam a área visível, próxima da localização real da pessoa).
+
+## Requisições por origem
+  92  iPhone
+   1  computador (verificação /health)
+
+## Requisições do iPhone por rota
+  32  GET /estatisticas/regioes
+  31  GET /ocorrencias
+  24  GET /ocorrencias/minhas
+   1  GET /identificacoes/{uuid}
+   1  GET /regioes
+   1  GET /ocorrencias/{id}
+   1  GET /ocorrencias/{id}/imagem
+   1  GET /ocorrencias/proximas
+
+## Códigos de resposta (iPhone)
+  92  HTTP 200
+
+## O que isso mostra
+- Identificação salva reaproveitada ao abrir (GET /identificacoes/{uuid}).
+- Mapa: limites das regiões (GET /regioes), pontos por área visível (GET /ocorrencias?bbox=…) e densidade
+  (GET /estatisticas/regioes) consultados repetidamente: atualização "ao vivo" funcionando.
+- Andamento/Início: GET /ocorrencias/minhas (cabeçalho X-Identificacao-Id).
+- Detalhe com foto: GET /ocorrencias/{id} e /imagem.
+- Registro em etapas até a etapa Parecidos: GET /ocorrencias/proximas.
+
+## O que NÃO aparece nestes logs (não exercitado nesta sessão)
+- Envio de um registro novo (POST /ocorrencias) e envio de foto (POST /ocorrencias/{id}/imagem).
+- "Eu também vi" / desfazer (POST/DELETE /ocorrencias/{id}/confirmacoes).
+- Geocodificação do endereço: acontece no próprio aparelho e não passa pela API.
+
+## Achado
+- Ao abrir, o app ainda confere a identificação por GET /identificacoes/{uuid} (rota do 1.0), com o UUID no
+  caminho da URL — que fica em logs de acesso. Corrigir na fase 2 (conferência pelo cabeçalho).

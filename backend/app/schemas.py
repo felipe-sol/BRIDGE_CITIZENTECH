@@ -2,12 +2,19 @@
 
 import math
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.enums import CategoriaOcorrencia, OrigemOcorrencia, Prioridade, StatusAnaliseIA, StatusOcorrencia
+from app.enums import (
+    CategoriaOcorrencia,
+    NivelAlerta,
+    OrigemOcorrencia,
+    Prioridade,
+    StatusAnaliseIA,
+    StatusOcorrencia,
+)
 from app.models import HistoricoStatus, Identificacao, Ocorrencia
 from app.services.regioes import regiao_por_codigo
 
@@ -206,6 +213,15 @@ class PaginaOcorrencias(BaseModel):
     total_paginas: int
 
 
+class AlertaRegiaoResposta(BaseModel):
+    """Alerta Bridge: calculado automaticamente a partir dos relatos (não é oficial)."""
+
+    nivel: NivelAlerta
+    indice: int
+    abertas_30d: int
+    abertas_alta_30d: int
+
+
 class EstatisticaRegiaoResposta(BaseModel):
     codigo: str
     nome: str
@@ -215,6 +231,7 @@ class EstatisticaRegiaoResposta(BaseModel):
     resolvidas: int
     confirmacoes: int
     densidade_km2: float
+    alerta: AlertaRegiaoResposta
 
 
 class EstatisticasRegioesResposta(BaseModel):
@@ -251,3 +268,72 @@ class ErroCorpo(BaseModel):
 
 class ErroResposta(BaseModel):
     erro: ErroCorpo
+
+
+class CategoriaTotalResposta(BaseModel):
+    categoria: CategoriaOcorrencia
+    total: int
+
+
+class SemanaResposta(BaseModel):
+    inicio: date = Field(description="Segunda-feira da semana (horário de São Paulo).")
+    registradas: int
+    resolvidas: int = Field(description="Transições para RESOLVIDA ocorridas na semana.")
+
+
+class RegiaoRankingResposta(BaseModel):
+    codigo: str
+    nome: str
+    total: int
+
+
+class ResumoResposta(BaseModel):
+    origem: OrigemOcorrencia
+    dias: int | None
+    total: int
+    abertas: int
+    resolvidas: int
+    rejeitadas: int
+    percentual_resolvidas: float | None = Field(description="Resolvidas ÷ total × 100 (1 casa); null sem ocorrências.")
+    tempo_medio_resolucao_dias: float | None = Field(
+        description="Média de dias entre o registro e a resolução (1 casa); null sem resolvidas."
+    )
+    alertas_ativos: int = Field(description="Regiões em ALERTA (Alerta Bridge, não oficial).")
+    regioes_em_atencao: int
+    por_categoria: list[CategoriaTotalResposta]
+    semanal: list[SemanaResposta]
+    ranking_regioes: list[RegiaoRankingResposta]
+
+
+class OcorrenciaMapaResposta(BaseModel):
+    """Ponto do mapa: só o necessário para desenhar o marcador e o cartão."""
+
+    id: int
+    latitude: float
+    longitude: float
+    categoria: CategoriaOcorrencia
+    prioridade: Prioridade
+    status: StatusOcorrencia
+    titulo: str
+    endereco: str | None
+    confirmacoes: int
+
+    @classmethod
+    def de_modelo(cls, o: Ocorrencia) -> "OcorrenciaMapaResposta":
+        return cls(
+            id=o.id,
+            latitude=float(o.latitude),
+            longitude=float(o.longitude),
+            categoria=o.categoria,
+            prioridade=o.prioridade,
+            status=o.status,
+            titulo=o.titulo,
+            endereco=o.endereco,
+            confirmacoes=o.confirmacoes_total,
+        )
+
+
+class PontosMapaResposta(BaseModel):
+    itens: list[OcorrenciaMapaResposta]
+    total: int = Field(description="Quantas existem na área com esses filtros.")
+    truncado: bool = Field(description="true quando a área tem mais do que o limite devolvido: aproxime o mapa.")

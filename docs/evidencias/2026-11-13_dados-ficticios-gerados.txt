@@ -1,0 +1,39 @@
+# Dados fictícios de demonstração gerados no banco de desenvolvimento (bridge) — Bridge 2.0, fase 2
+Data: 2026-11-13 (manhã), logo depois da tarefa 5 do plano da fase 2.
+Só contagens agregadas: nenhuma coordenada, endereço ou dado de pessoa.
+
+## 1. Antes (dados reais)
+banco: bridge
+ocorrencias APP: 3
+ocorrencias SIMULADA: 0
+identificacoes reais: 3
+historico das APP: 6
+confirmacoes das APP: 0
+
+## 2. Geração
+$ python scripts/dados_ficticios.py gerar
+Gerados: 1200 ocorrências fictícias (semente 2026, últimos 120 dias).
+Ocorrências reais (APP): 3
+Ocorrências fictícias (SIMULADA): 1200
+Alerta Bridge no Exemplo: 3 em ALERTA, 7 em ATENCAO
+  ALERTA: Freguesia/Brasilândia, Mooca, Sé
+  ATENCAO: Aricanduva/Formosa/Carrão, Campo Limpo, Capela do Socorro, Itaim Paulista, Itaquera, Jaçanã/Tremembé, Vila Mariana
+[código de saída: 0]
+
+## 3. Depois
+banco: bridge
+ocorrencias APP: 3
+ocorrencias SIMULADA: 1200
+identificacoes reais: 3
+historico das APP: 6
+confirmacoes das APP: 0
+Comparação dos números reais antes × depois (sem as linhas SIMULADA): idênticos (diff vazio).
+
+## 4. Segunda execução sem --recriar (deve recusar)
+$ python scripts/dados_ficticios.py gerar
+Já existem dados fictícios. Use --recriar para apagá-los e gerar de novo.
+[código de saída: 1]
+
+## 5. Como voltar só aos dados reais
+$ python scripts/dados_ficticios.py remover   # apaga SOMENTE origem=SIMULADA e as 40 identificações fictícias
+(não executado aqui: os fictícios ficam no banco para o modo Exemplo do app)

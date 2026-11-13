@@ -1,12 +1,18 @@
 """API: endereço e região no cadastro, filtros da listagem, regiões e densidade."""
 
+import math
 import uuid
+from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
+from app.services import ocorrencias as servico_ocorrencias
+from app.services.alertas import JANELA_ALERTA_DIAS, LIMIAR_ALERTA, MIN_ALTAS_PARA_ALERTA
 from app.services.regioes import regiao_por_codigo
 from tests.conftest import ADMIN_TOKEN_TESTE
+from tests.fabricas import confirmar_n, inserir_ocorrencia
 from tests.test_api import assert_erro, nova_identificacao, nova_ocorrencia, payload
 
 ADMIN = {"X-Admin-Token": ADMIN_TOKEN_TESTE}
@@ -150,6 +156,7 @@ def test_estatisticas_por_regiao(client: TestClient, banco_migrado: Engine) -> N
     assert itens["27"]["total"] == 1
     assert {k: v for k, v in itens["11"].items() if k not in ("codigo", "nome")} == {
         "total": 0, "abertas": 0, "alta_abertas": 0, "resolvidas": 0, "confirmacoes": 0, "densidade_km2": 0.0,
+        "alerta": {"nivel": "NORMAL", "indice": 0, "abertas_30d": 0, "abertas_alta_30d": 0},
     }
 
     simuladas = client.get("/estatisticas/regioes", params={"origem": "SIMULADA"}).json()
@@ -159,6 +166,71 @@ def test_estatisticas_por_regiao(client: TestClient, banco_migrado: Engine) -> N
         conn.execute(text("UPDATE ocorrencias SET criado_em = now() - interval '40 days' WHERE id = :o"), {"o": itaquera})
     recentes = {i["codigo"]: i["total"] for i in client.get("/estatisticas/regioes", params={"dias": 30}).json()["itens"]}
     assert (recentes["27"], recentes["09"]) == (0, 2)
+
+
+def test_alerta_por_regiao_conta_so_abertas_recentes_da_origem(client: TestClient, banco_migrado: Engine) -> None:
+    ident = nova_identificacao(client)
+    n = math.ceil(LIMIAR_ALERTA / 10)
+    assert n >= MIN_ALTAS_PARA_ALERTA
+    alta = {"prioridade": "ALTA", "pontuacao": 10}
+    for _ in range(n):
+        inserir_ocorrencia(banco_migrado, ident, **PRACA_DA_SE, **alta)
+    # Na Sé também, mas não contam: antiga demais, encerrada e fictícia.
+    antiga = datetime.now(UTC) - timedelta(days=JANELA_ALERTA_DIAS + 1)
+    inserir_ocorrencia(banco_migrado, ident, **PRACA_DA_SE, **alta, criado_em=antiga)
+    inserir_ocorrencia(banco_migrado, ident, **PRACA_DA_SE, **alta, status="RESOLVIDA")
+    inserir_ocorrencia(banco_migrado, ident, **PRACA_DA_SE, **alta, origem="SIMULADA")
+    # Itaquera: 1 aberta MEDIA (4 pontos) com 7 confirmações → índice 4 + 5.
+    oid = inserir_ocorrencia(banco_migrado, ident, **ARENA_ITAQUERA, subprefeitura="27")
+    confirmar_n(banco_migrado, oid, 7)
+
+    itens = {i["codigo"]: i for i in client.get("/estatisticas/regioes").json()["itens"]}
+    se = itens["09"]["alerta"]
+    assert (se["nivel"], se["abertas_30d"], se["abertas_alta_30d"], se["indice"]) == ("ALERTA", n, n, 10 * n)
+    assert itens["27"]["alerta"] == {"nivel": "NORMAL", "indice": 9, "abertas_30d": 1, "abertas_alta_30d": 0}
+    assert itens["20"]["alerta"] == {"nivel": "NORMAL", "indice": 0, "abertas_30d": 0, "abertas_alta_30d": 0}
+    simuladas = {i["codigo"]: i for i in client.get("/estatisticas/regioes?origem=SIMULADA").json()["itens"]}
+    assert simuladas["09"]["alerta"]["abertas_30d"] == 1
+
+
+CAIXA_SE = "-46.645,-23.556,-46.625,-23.545"
+CAMPOS_MAPA = {"id", "latitude", "longitude", "categoria", "prioridade", "status", "titulo", "endereco", "confirmacoes"}
+
+
+def cenario_mapa(client: TestClient, banco_migrado: Engine) -> None:
+    ident = nova_identificacao(client)
+    nova_ocorrencia(client, ident, **PRACA_DA_SE, risco_imediato=True, bloqueia_passagem=True)
+    nova_ocorrencia(
+        client, ident, **PRACA_DA_SE, endereco="Praça da Sé", categoria="OUTRO", risco_imediato=False, afeta_acessibilidade=False
+    )  # mais recente e menos grave: a ordem por gravidade a põe depois
+    nova_ocorrencia(client, ident, **ARENA_ITAQUERA)  # fora da caixa
+    inserir_simulada(banco_migrado, ident)  # fictícia na Sé
+
+
+def test_mapa_enxuto_por_area_e_origem(client: TestClient, banco_migrado: Engine) -> None:
+    cenario_mapa(client, banco_migrado)
+    r = client.get("/ocorrencias/mapa", params={"bbox": CAIXA_SE}).json()
+    assert (r["total"], r["truncado"], len(r["itens"])) == (2, False, 2)
+    assert set(r["itens"][0]) == CAMPOS_MAPA
+    # As mais graves primeiro (a com risco e bloqueio vem antes).
+    graus = [["ALTA", "MEDIA", "BAIXA"].index(i["prioridade"]) for i in r["itens"]]
+    assert graus == sorted(graus) and graus[0] < graus[1]
+    simuladas = client.get("/ocorrencias/mapa", params={"bbox": CAIXA_SE, "origem": "SIMULADA"}).json()
+    assert simuladas["total"] == 1
+    filtrada = client.get("/ocorrencias/mapa", params={"bbox": CAIXA_SE, "categoria": "ILUMINACAO_DEFEITUOSA"}).json()
+    assert filtrada["total"] == 0
+
+
+def test_mapa_truncado(client: TestClient, banco_migrado: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    cenario_mapa(client, banco_migrado)
+    monkeypatch.setattr(servico_ocorrencias, "MAX_ITENS_MAPA", 1)
+    r = client.get("/ocorrencias/mapa", params={"bbox": CAIXA_SE}).json()
+    assert (len(r["itens"]), r["total"], r["truncado"]) == (1, 2, True)
+
+
+def test_mapa_exige_bbox_valido(client: TestClient) -> None:
+    assert_erro(client.get("/ocorrencias/mapa"), 422, "VALIDACAO")
+    assert_erro(client.get("/ocorrencias/mapa", params={"bbox": "1,2,3"}), 422, "VALIDACAO")
 
 
 def test_estatisticas_parametros_invalidos(client: TestClient) -> None:

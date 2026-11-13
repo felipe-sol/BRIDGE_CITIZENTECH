@@ -1199,6 +1199,165 @@
       "authentication": {},
       "description": "**Esperado:** 422 IDENTIFICACAO_INEXISTENTE; campo \"X-Identificacao-Id\".",
       "metaSortKey": 71
+    },
+    {
+      "_id": "fld_13",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "13 · Fase 2 — identificação, mapa, alertas e resumo",
+      "description": "Rotas da fase 2. As 13.5, 13.7 e 13.9 precisam dos dados fictícios gerados (backend: python scripts/dados_ficticios.py gerar).",
+      "environment": {},
+      "metaSortKey": 110
+    },
+    {
+      "_id": "req_13_1",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.1 GET /identificacoes/atual (cabeçalho)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "{{ _.identificacao_id }}"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com o `id` e o `apelido` da 02.1. O UUID vai no cabeçalho, nunca na URL.",
+      "metaSortKey": 111
+    },
+    {
+      "_id": "req_13_2",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.2 GET /identificacoes/atual (inexistente)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {},
+      "headers": [
+        {
+          "name": "X-Identificacao-Id",
+          "value": "00000000-0000-4000-8000-000000000000"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 404, código `NAO_ENCONTRADO`.",
+      "metaSortKey": 112
+    },
+    {
+      "_id": "req_13_3",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.3 GET /identificacoes/atual (sem cabeçalho)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/identificacoes/atual",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422, código `VALIDACAO` (cabeçalho X-Identificacao-Id obrigatório).",
+      "metaSortKey": 113
+    },
+    {
+      "_id": "req_13_4",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.4 GET /ocorrencias/mapa (Sé, reais)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/mapa?bbox=-46.645,-23.556,-46.625,-23.545",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com `itens` (formato enxuto: id, latitude, longitude, categoria, prioridade, status, titulo, endereco, confirmacoes), `total` e `truncado: false`.",
+      "metaSortKey": 114
+    },
+    {
+      "_id": "req_13_5",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.5 GET /ocorrencias/mapa (cidade, fictícios)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/mapa?bbox=-46.83,-24.01,-46.36,-23.36&origem=SIMULADA",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; com os fictícios gerados, `total` = 1200, 1200 itens (limite 2000) e `truncado: false`. Só ocorrências SIMULADA.",
+      "metaSortKey": 115
+    },
+    {
+      "_id": "req_13_6",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.6 GET /ocorrencias/mapa (sem bbox)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/ocorrencias/mapa",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422, código `VALIDACAO` (bbox obrigatório).",
+      "metaSortKey": 116
+    },
+    {
+      "_id": "req_13_7",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.7 GET /estatisticas/regioes (fictícios, com alerta)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/estatisticas/regioes?origem=SIMULADA",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com 32 itens, cada um com `alerta` {nivel, indice, abertas_30d, abertas_alta_30d}. Com os fictícios recém-gerados: 3 regiões em ALERTA e 7 em ATENCAO.",
+      "metaSortKey": 117
+    },
+    {
+      "_id": "req_13_8",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.8 GET /estatisticas/resumo (reais)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/estatisticas/resumo",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200 com total, % resolvidas, tempo médio, alertas, por_categoria (5), semanal e ranking — só registros reais (APP).",
+      "metaSortKey": 118
+    },
+    {
+      "_id": "req_13_9",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.9 GET /estatisticas/resumo (fictícios)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/estatisticas/resumo?origem=SIMULADA",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; com os fictícios gerados, total = 1200 e cerca de 18 semanas em `semanal`.",
+      "metaSortKey": 119
+    },
+    {
+      "_id": "req_13_10",
+      "_type": "request",
+      "parentId": "fld_13",
+      "name": "13.10 GET /estatisticas/resumo (dias inválido)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/estatisticas/resumo?dias=0",
+      "body": {},
+      "headers": [],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422, código `VALIDACAO` (dias entre 1 e 365).",
+      "metaSortKey": 120
     }
   ]
 }

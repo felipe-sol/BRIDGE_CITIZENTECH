@@ -47,6 +47,16 @@ export interface PontoMapa {
   confirmacoes: number;
 }
 
+/** Item de GET /ocorrencias/mapa: o ponto e o endereço para o cartão. */
+export type OcorrenciaMapa = PontoMapa & { endereco: string | null };
+
+export interface PontosMapa {
+  itens: OcorrenciaMapa[];
+  /** Quantas existem na área com os filtros; maior que itens.length quando truncado. */
+  total: number;
+  truncado: boolean;
+}
+
 export type ItemMapa =
   | { tipo: 'ponto'; ponto: PontoMapa }
   | {

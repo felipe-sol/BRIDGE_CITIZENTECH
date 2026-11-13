@@ -1,0 +1,179 @@
+# Verificação do app — Bridge 2.0, fase 2 (Expo SDK 58)
+Data: 2026-11-13 10:45:44 -0300
+
+$ npx tsc --noEmit
+
+[código de saída: 0]
+
+$ npx eslint .
+
+[código de saída: 0]
+
+$ npm test
+✔ posiciona cada status no seu passo (1.1446ms)
+  ✔ rejeitada é um estado próprio, fora da sequência (0.3174ms)
+✔ etapaDoStatus (barra de 4 passos) (4.6214ms)
+  ✔ junta registradas e confirmadas sem repetir e ordena pela atualização mais recente (0.8275ms)
+  ✔ respeita o limite (0.4721ms)
+✔ juntarAcompanhadas (Início) (2.7708ms)
+  ✔ só marca quando houve atualização depois da última visita (1.055ms)
+  ✔ sem visita registrada ou com data inválida, não marca (0.3481ms)
+✔ estaAtualizada (selo "Atualizada") (4.0283ms)
+  ✔ resume a ocorrência sem coordenadas e sem link (0.6062ms)
+  ✔ sem endereço usa a região; nunca passa de 500 caracteres (0.3319ms)
+  ✔ ocorrência fictícia sai rotulada no compartilhamento (0.4287ms)
+✔ textoCompartilhamento (1.7667ms)
+  ✔ nunca se apresenta como oficial (1.203ms)
+  ✔ explica o motivo com os números da região (0.1628ms)
+  ✔ a região da própria pessoa em atenção vem primeiro, com distância 0 (0.3183ms)
+  ✔ senão, a região em ALERTA mais próxima, com a distância até ela (0.4861ms)
+  ✔ sem localização, a região em ALERTA de maior índice; sem alerta, nada (0.2349ms)
+✔ Alerta Bridge (3.4437ms)
+  ✔ barras proporcionais ao maior valor, sem NaN com zeros (1.2233ms)
+  ✔ linha SVG dentro da área; vazia sem dados; na base com máximo 0 (0.24ms)
+  ✔ toque no gráfico escolhe a semana mais próxima (0.1247ms)
+  ✔ marcas redondas do eixo cobrindo o máximo (0.282ms)
+✔ escalas dos gráficos (2.8478ms)
+  ✔ resumem os dados ou dizem que não há dados (0.2935ms)
+  ✔ formata dias e o aviso de corte do mapa (0.1353ms)
+✔ textos dos gráficos (leitores de tela) (0.562ms)
+  ✔ localiza pontos reais e devolve null fora de SP (0.7546ms)
+  ✔ lê nome de exibição, área e caixa (0.1599ms)
+  ✔ rejeita resposta fora do formato (0.3117ms)
+  ✔ busca sem acento, com mínimo de 2 letras (1.8817ms)
+✔ regiões (4.4276ms)
+  ✔ limita a 64 itens com zoom afastado e preserva a contagem (2.9041ms)
+  ✔ com zoom próximo não agrupa (0.5002ms)
+  ✔ o grupo herda a maior prioridade (0.8246ms)
+✔ agrupamento de pontos (4.6142ms)
+  ✔ mede e formata distâncias (0.3547ms)
+  ✔ sem permissão de localização, abre no centro de São Paulo (1.3341ms)
+  ✔ com localização, abre perto da pessoa (0.6436ms)
+  ✔ ao voltar à etapa Local, reabre no ponto já escolhido (não no centro da cidade) (0.3513ms)
+  ✔ converte a área visível em caixa (0.4519ms)
+✔ distâncias e região inicial (3.7772ms)
+  ✔ classifica ocorrências por km² em 5 faixas fixas (0.3152ms)
+  ✔ região sem estatística carregada não é pintada como "Nenhuma" (0.2165ms)
+✔ densidade (0.7183ms)
+  ✔ monta "Rua, número — Bairro" e omite o que falta (0.4487ms)
+  ✔ nunca passa de 200 caracteres (0.2025ms)
+✔ endereço legível (0.8033ms)
+  ✔ copia só o que o marcador precisa (0.2876ms)
+✔ ponto do mapa a partir da ocorrência (0.3983ms)
+  ✔ erro de atualização preserva os dados anteriores (0.314ms)
+  ✔ resposta atrasada de outro modo ou filtro é descartada (não mistura real e fictício) (0.1287ms)
+  ✔ falha sem nenhum dado não deixa o mapa vazio parecer "nada registrado" (0.2581ms)
+  ✔ diz há quanto tempo foi a última atualização (0.1309ms)
+✔ estado do mapa ao vivo (1.0237ms)
+  ✔ centraliza na caixa com uma folga de 15% (0.3053ms)
+✔ enquadrar uma região (0.3669ms)
+  ✔ abre sempre no Ao vivo, salvo pedido explícito do Exemplo (0.1134ms)
+  ✔ Exemplo consulta só os fictícios; Ao vivo só os reais (0.0583ms)
+✔ modo dos dados (Ao vivo ou Exemplo) (0.2451ms)
+  ✔ começa no local e, ao escolher a categoria, fica verificando parecidos (1.1244ms)
+  ✔ sem parecidos vai direto para os detalhes (0.1704ms)
+  ✔ com parecidos para na etapa de parecidos; "é outro" segue para os detalhes (1.2778ms)
+  ✔ falha na consulta de parecidos segue para os detalhes com aviso (0.1345ms)
+  ✔ voltar dos detalhes leva à categoria; da categoria, ao local (0.1354ms)
+  ✔ avançar dos detalhes leva à revisão, e voltar retorna aos detalhes (0.1219ms)
+  ✔ ignora (0, 0) e coordenadas inválidas ao confirmar o local (0.1144ms)
+  ✔ ignora resposta atrasada de parecidos depois de voltar (0.1464ms)
+✔ fluxo do registro em etapas (4.4047ms)
+  ✔ normaliza espaços e aceita 2 a 60 caracteres (1.1201ms)
+  ✔ dá mensagens específicas (0.1579ms)
+✔ validarApelido (2.1162ms)
+  ✔ aceita só inteiros positivos (0.2242ms)
+✔ interpretarIdRota (0.3433ms)
+  ✔ remove barra final e identifica localhost (0.412ms)
+  ✔ recusa ausente ou malformada (0.1058ms)
+✔ interpretarUrlApi (0.6543ms)
+  ✔ aceita só dois dígitos (código de subprefeitura) (0.1916ms)
+  ✔ monta a rota da folha da região (0.1323ms)
+✔ interpretarCodigoRegiao (0.5203ms)
+  ✔ usa vírgula e corta casas inúteis (0.1171ms)
+✔ formatarDecimal (0.1825ms)
+  ✔ pega a primeira letra da primeira e da última palavra (0.5175ms)
+✔ iniciais (0.5901ms)
+  ✔ aceita ponto ou vírgula decimal e sinal (1.2156ms)
+  ✔ recusa textos que não são número (0.1755ms)
+✔ interpretarCoordenada (3.2953ms)
+  ✔ aceita formulário válido, apara textos e arredonda para 6 casas (0.942ms)
+  ✔ formulário vazio gera mensagem específica para cada campo (0.2592ms)
+  ✔ valida tamanhos de texto (0.1914ms)
+  ✔ valida faixa das coordenadas (0.1378ms)
+  ✔ recusa (0, 0) como localização ausente (0.1264ms)
+  ✔ recusa coordenada em formato inválido (0.1424ms)
+✔ validarOcorrencia (2.1302ms)
+  ✔ aceita JPEG/PNG até 5 MB e tamanho desconhecido (0.1678ms)
+  ✔ recusa formato e tamanho excedente (0.1362ms)
+✔ validarFoto (0.443ms)
+  ✔ apara o endereço e transforma vazio em null (0.2689ms)
+  ✔ recusa endereço com mais de 200 caracteres (0.1079ms)
+✔ endereço no formulário (0.4536ms)
+  ✔ converte página e detalhe para camelCase (1.5619ms)
+  ✔ lê os campos do Bridge 2.0 (endereço, região, confirmações, origem, relação) (0.2242ms)
+  ✔ lê proximidade, confirmação e estatísticas por região (0.3063ms)
+  ✔ recusa campos ausentes, tipos errados e valores fora do enum (0.568ms)
+  ✔ lê erro padronizado e ignora formatos desconhecidos (0.1923ms)
+✔ parsers de resposta da API (4.0517ms)
+  ✔ lê o resumo das análises (0.4499ms)
+  ✔ aceita resumo vazio (nada registrado ainda) (0.2617ms)
+  ✔ lê os pontos do mapa e o aviso de corte (0.2332ms)
+  ✔ recusa nível de alerta desconhecido, percentual como texto e ponto sem título (0.3379ms)
+✔ respostas da fase 2 (1.5903ms)
+ℹ tests 82
+ℹ suites 29
+ℹ pass 82
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 420.6216
+[código de saída: 0]
+
+$ npx expo-doctor
+Running 20 checks on your project...
+20/20 checks passed. No issues detected!
+[código de saída: 0]
+
+$ npx expo export --platform ios --output-dir <rascunho> --clear
+iOS Bundled 18047ms node_modules\expo-router\entry.js (1448 modules)
+node_modules\expo-router\assets\error.png (469B)
+Exported: <rascunho>
+[código de saída: 0]
+
+## Buscas no código e no bundle
+Uso de 'any' em src/ (anotação, 'as any' ou genérico <any>):
+0
+@ts-ignore / @ts-expect-error / eslint-disable em src/:
+0
+Bundle: entry-12618d92ca61adf8a53a8e560001a7e2.hbc (3236 KB)
+Ocorrências no bundle de: token administrativo, DATABASE_URL, senha do banco, X-Admin-Token:
+  ADMIN_TOKEN: 0
+  DATABASE_URL: 0
+  bridge_dev: 0
+  X-Admin-Token: 0
+
+## Adendo — revisão final da fase 2 (correção com teste escrito antes)
+Data: 2026-11-13 10:54:10 -0300
+Correção: a rota do Mapa passa a levar o modo SEMPRE explícito (Ao vivo nunca herda um Exemplo anterior);
+Início e Andamento abrem o Mapa por essa rota. O teste novo falhou antes da correção e passa depois:
+  ✔ a rota do Mapa sempre diz o modo, para "Ao vivo" nunca herdar o Exemplo (0.2733ms)
+$ npm test
+ℹ tests 83
+ℹ suites 29
+ℹ pass 83
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+[código de saída: 0]
+$ npx tsc --noEmit
+(sem saída: nenhum erro)
+[código de saída: 0]
+$ npx eslint .
+(sem problemas)
+[código de saída: 0]
+$ npx expo export --platform ios (pasta temporária)
+iOS Bundled 12355ms node_modules\expo-router\entry.js (1448 modules)
+[código de saída: 0]

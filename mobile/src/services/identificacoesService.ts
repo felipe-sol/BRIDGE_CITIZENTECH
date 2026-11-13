@@ -7,7 +7,10 @@ export function criarIdentificacao(apelido: string): Promise<Identificacao> {
   return requisitarJson('/identificacoes', parseIdentificacao, { metodo: 'POST', corpo: { apelido } });
 }
 
-/** GET /identificacoes/{id} — confirma se a identificação salva ainda existe. */
+/**
+ * GET /identificacoes/atual — confirma se a identificação salva ainda existe.
+ * O UUID vai no cabeçalho, nunca na URL (que aparece em logs de acesso).
+ */
 export function obterIdentificacao(id: string): Promise<Identificacao> {
-  return requisitarJson(`/identificacoes/${encodeURIComponent(id)}`, parseIdentificacao);
+  return requisitarJson('/identificacoes/atual', parseIdentificacao, { cabecalhos: { 'X-Identificacao-Id': id } });
 }

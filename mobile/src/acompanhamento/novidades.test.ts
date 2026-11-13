@@ -62,4 +62,10 @@ describe('textoCompartilhamento', () => {
     const enorme = textoCompartilhamento({ ...base, titulo: 'T'.repeat(400), endereco: 'E'.repeat(200) });
     assert.ok(enorme.length <= 500, String(enorme.length));
   });
+
+  it('ocorrência fictícia sai rotulada no compartilhamento', () => {
+    const texto = textoCompartilhamento({ ...base, origem: 'SIMULADA' });
+    assert.equal(texto.split('\n')[0], '[DADO FICTÍCIO]');
+    assert.ok(!textoCompartilhamento(base).includes('FICTÍCIO'));
+  });
 });

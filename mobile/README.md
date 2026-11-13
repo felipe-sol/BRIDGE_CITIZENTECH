@@ -37,19 +37,22 @@ Também registrados no array `authors` do [`package.json`](package.json).
 
 ## Telas
 
-Barra de abas: **Início · Mapa · Andamento · Perfil**. O botão amarelo "Registrar
-problema" fica no Início e no Mapa.
+Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão amarelo
+"Registrar problema" fica no Início e no Mapa. Mapa e Análises têm dois modos: **Ao vivo**
+(dados reais; o app sempre abre nele) e **Exemplo · 4 meses** (dados fictícios de
+demonstração, sempre com a faixa "DADOS FICTÍCIOS").
 
 | Tela | Rota (Expo Router) | O que faz |
 |---|---|---|
 | Identificação | `/identificacao` | Cria o apelido salvo no aparelho (só aparece sem identificação) |
-| Início | `/` (aba) | Placa com o bairro e a subprefeitura de onde a pessoa está, mapa real pequeno e as ocorrências que ela acompanha |
-| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Tem busca por região, endereço ou texto, filtros e atualização automática a cada 15 s |
+| Início | `/` (aba) | Placa com o bairro e a subprefeitura de onde a pessoa está, faixa do **Alerta Bridge** mais relevante (ou "Sem alertas na sua região"), mapa real pequeno e as ocorrências que ela acompanha |
+| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Regiões em **Alerta Bridge** ganham contorno tracejado. Tem busca por região, endereço ou texto, filtros, atualização automática a cada 15 s (Ao vivo) e o modo **Exemplo** |
 | Andamento | `/andamento` (aba) | O que a pessoa registrou ou confirmou, com etapas e o selo "Atualizada"; tem estados de carregando, erro e vazio e puxar para atualizar |
+| Análises | `/analises` (aba) | Indicadores (registradas, % resolvidas, tempo médio até resolver, regiões em alerta) e gráficos: por categoria, evolução semanal (registradas × resolvidas, com leitura ao tocar e tabela) e regiões com mais relatos; Ao vivo ou Exemplo |
 | Perfil | `/perfil` (aba) | Apelido, participação, privacidade, equipe e criar nova identificação |
 | Registrar | `/registrar` | Etapas: local no mapa (pino central e endereço sugerido) → categoria → parecidos a até 100 m (confirmar ou "é outro") → foto e detalhes → revisão e envio |
 | Detalhe | `/ocorrencias/[id]` | Foto, local no mapa, prioridade e justificativa, "Eu também vi", linha do tempo com a equipe responsável, compartilhar e análise de IA |
-| Região | `/regiao/[codigo]` | Folha com os números de uma subprefeitura (total, abertas, alta gravidade, resolvidas, densidade) |
+| Região | `/regiao/[codigo]` | Folha com os números de uma subprefeitura (total, abertas, alta gravidade, resolvidas, densidade) e o nível do Alerta Bridge com o motivo |
 
 ## Tecnologias
 
@@ -62,7 +65,7 @@ problema" fica no Início e no Mapa.
 | Mapa | `react-native-maps` 1.29.11, incluído no Expo Go: Apple Maps no iPhone, Google Maps no Android, sem chave de API |
 | Persistência local | `@react-native-async-storage/async-storage` 2.2.0 |
 | Recursos nativos | `expo-location` (GPS e geocodificação do próprio aparelho), `expo-image-picker` (câmera), `expo-haptics` (vibração leve) |
-| Visual | `@expo-google-fonts/overpass` (fonte Overpass, licença OFL) e `@expo/vector-icons` |
+| Visual | `@expo-google-fonts/overpass` (fonte Overpass, licença OFL), `@expo/vector-icons` e `react-native-svg` 15.16.0 (gráficos e listras da faixa de alerta) |
 | Upload | `expo-file-system` (`File`) + `FormData` + `expo/fetch` |
 
 Testado com Node.js 24.19 e npm 11.
@@ -131,9 +134,9 @@ npm run lint         # ESLint (eslint-config-expo)
 npx expo-doctor      # compatibilidade das dependências com o SDK
 ```
 
-Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase1.txt`:
+Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase2.txt`:
 - `tsc` sem erros e ESLint sem problemas;
-- **63/63 testes** (60 da fase 1 + 3 da revisão final);
+- **83/83 testes** (82 da fase 2 + 1 da revisão final);
 - expo-doctor 20/20;
 - bundle iOS gerado;
 - nenhum `any` ou `@ts-ignore`;
@@ -141,7 +144,9 @@ Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase1.txt`:
 
 Os testes cobrem: regiões e ponto em polígono, agrupamento do mapa (no máximo 64 itens),
 distâncias, densidade, enquadramento, endereço, etapas do registro, selo "Atualizada",
-compartilhamento, validação do formulário e parsers das respostas da API.
+compartilhamento (inclusive o rótulo de dado fictício), validação do formulário, parsers
+das respostas da API, regra de exibição do alerta no Início, modo Ao vivo/Exemplo (resposta
+de outro modo é descartada) e as escalas e textos dos gráficos.
 
 ## Estrutura
 
@@ -152,6 +157,8 @@ src/
 ├── geo/             # funções puras de mapa: regiões, agrupamento, distância, densidade, endereço
 ├── registro/        # redutor puro das etapas do registro
 ├── acompanhamento/  # selo "Atualizada", etapas do status, compartilhamento
+├── alertas/         # Alerta Bridge: texto do motivo e qual alerta o Início mostra
+├── analises/        # escalas, marcas de eixo e resumos em texto dos gráficos
 ├── hooks/           # atualização periódica do "ao vivo"
 ├── context/         # IdentificacaoContext (estado global da identificação)
 ├── services/        # http, ocorrências, regiões, estatísticas, geocodificação, câmera, localização, vistos
@@ -166,17 +173,23 @@ src/
 
 - **Identificação não é login:** apelido + UUID guardados no aparelho, sem senha. Quem
   usar o mesmo celular usa a mesma identificação.
+- **Modo Exemplo** mostra dados **fictícios** (gerados por script no backend), sempre
+  rotulados. Para voltar ao real basta tocar em "Ao vivo"; no servidor,
+  `scripts/dados_ficticios.py remover` apaga só os fictícios.
+- **Alerta Bridge** é calculado automaticamente a partir dos relatos. Não é alerta oficial.
 - **"Ao vivo"** é uma consulta a cada 15 s com a tela aberta. Não é instantâneo, e o
   mapa mostra "atualizado há X s".
-- **No mapa**, cada área visível mostra até 100 ocorrências, as mais graves primeiro.
+- **No mapa**, cada área visível recebe até 2000 ocorrências, as mais graves primeiro;
+  acima disso o app avisa e pede para aproximar.
 - **Status** quem muda é a equipe responsável do projeto (rota administrativa). Não há
   integração oficial com a Prefeitura nem notificação push. O aviso de atualização
   aparece dentro do app.
 - **IA:** o modelo do colega ainda não foi entregue. O detalhe mostra "Análise
   indisponível" e nada é inventado.
 - **Testes no aparelho:**
-  - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026;
-  - **a versão com mapa (Bridge 2.0) ainda precisa do teste manual no iPhone**;
+  - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e a fase 1
+    do Bridge 2.0 em 13/11/2026;
+  - **a fase 2 (Análises, modo Exemplo, alertas) ainda precisa do teste manual no iPhone**;
   - Android não foi testado em aparelho físico.
 - Sem modo offline: sem conexão, o app mostra o erro e permite tentar de novo. Os dados
   digitados continuam no formulário.
@@ -186,15 +199,15 @@ src/
 
 O app consome a API REST do repositório Bridge (pasta `backend/`, entrega de SOA).
 O contrato está em `docs/CONTRATO_API.md` do repositório. Rotas usadas:
-- `/ocorrencias` (com `bbox`, `q` e filtros);
+- `/ocorrencias` (busca por texto) e `/ocorrencias/mapa` (pontos da área visível);
 - `/ocorrencias/minhas`;
 - `/ocorrencias/proximas`;
 - `/ocorrencias/{id}`;
 - `/ocorrencias/{id}/confirmacoes`;
 - `/ocorrencias/{id}/imagem`;
 - `/regioes`;
-- `/estatisticas/regioes`;
-- `/identificacoes`.
+- `/estatisticas/regioes` e `/estatisticas/resumo`;
+- `/identificacoes` e `/identificacoes/atual`.
 
 O UUID da identificação vai sempre no cabeçalho `X-Identificacao-Id`, nunca na URL.
 As decisões de projeto estão em [`DECISOES.md`](DECISOES.md).

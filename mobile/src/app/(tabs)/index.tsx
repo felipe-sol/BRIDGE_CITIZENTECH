@@ -9,6 +9,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { juntarAcompanhadas } from '../../acompanhamento/lista';
+import { alertaParaInicio } from '../../alertas/alertas';
 import { estaAtualizada } from '../../acompanhamento/novidades';
 import { Aviso } from '../../components/Aviso';
 import { Botao } from '../../components/Botao';
@@ -16,6 +17,7 @@ import { BotaoFlutuante } from '../../components/BotaoFlutuante';
 import { CabecalhoPlaca } from '../../components/CabecalhoPlaca';
 import { CartaoAcompanhamento } from '../../components/CartaoAcompanhamento';
 import { Esqueleto } from '../../components/Esqueleto';
+import { FaixaAlerta } from '../../components/FaixaAlerta';
 import { Icone } from '../../components/Icone';
 import { MarcadorGravidade } from '../../components/MarcadorGravidade';
 import { Texto } from '../../components/Texto';
@@ -23,7 +25,8 @@ import { useIdentificacao } from '../../context/IdentificacaoContext';
 import { regiaoInicial } from '../../geo/distancia';
 import { localizarRegiao } from '../../geo/regioes';
 import type { RegiaoSP } from '../../geo/tipos';
-import type { Ocorrencia } from '../../models/ocorrencia';
+import type { EstatisticaRegiao, Ocorrencia } from '../../models/ocorrencia';
+import { estatisticasPorRegiao } from '../../services/estatisticasService';
 import { enderecoDe } from '../../services/geocodificacao';
 import { mensagemDeErro } from '../../services/http';
 import {
@@ -35,7 +38,7 @@ import { listarMinhas } from '../../services/ocorrenciasService';
 import { carregarRegioes } from '../../services/regioesService';
 import { lerVistos } from '../../services/vistos';
 import { cores, espaco, fontes, raio, sombra } from '../../theme/tema';
-import { ROTAS, rotaDetalhe } from '../../validation/rotas';
+import { ROTAS, rotaDetalhe, rotaMapa, rotaRegiao } from '../../validation/rotas';
 
 const LIMITE_ACOMPANHANDO = 3;
 
@@ -71,6 +74,8 @@ export default function TelaInicio() {
   const [lugar, setLugar] = useState<Lugar>({ bairro: null, regiao: null });
   const [lista, setLista] = useState<EstadoLista>({ tipo: 'carregando' });
   const [atualizando, setAtualizando] = useState(false);
+  // Só dados reais no Início. null = ainda não carregou (ou falhou: a faixa não aparece).
+  const [cidade, setCidade] = useState<{ regioes: RegiaoSP[]; estatisticas: EstatisticaRegiao[] } | null>(null);
 
   const descobrirLugar = useCallback(async (resultado: ResultadoLocalizacao) => {
     setLocalizacao(resultado);
@@ -101,6 +106,15 @@ export default function TelaInicio() {
     }
   }, [identificacaoId]);
 
+  const carregarCidade = useCallback(async () => {
+    try {
+      const [regioes, estatisticas] = await Promise.all([carregarRegioes(), estatisticasPorRegiao('APP')]);
+      setCidade({ regioes, estatisticas });
+    } catch {
+      // Sem estatísticas a faixa de alerta simplesmente não aparece; o resto do Início segue.
+    }
+  }, []);
+
   // Localização: só lê se a permissão já existe (o pedido fica no botão).
   useEffect(() => {
     let ativo = true;
@@ -116,18 +130,24 @@ export default function TelaInicio() {
   useFocusEffect(
     useCallback(() => {
       carregarLista().catch(() => undefined);
-    }, [carregarLista]),
+      carregarCidade().catch(() => undefined);
+    }, [carregarLista, carregarCidade]),
   );
 
   async function atualizarTudo() {
     setAtualizando(true);
-    await Promise.all([carregarLista(), obterLocalizacaoSePermitida().then(descobrirLugar)]).catch(() => undefined);
+    await Promise.all([carregarLista(), carregarCidade(), obterLocalizacaoSePermitida().then(descobrirLugar)]).catch(
+      () => undefined,
+    );
     setAtualizando(false);
   }
 
   const cabecalho = textosDoCabecalho(localizacao, lugar);
   const semPermissao = localizacao?.tipo === 'sem_permissao' && localizacao.podePerguntarDeNovo;
   const regiaoMapa = regiaoInicial(localizacao);
+  const ponto = localizacao?.tipo === 'ok' ? { latitude: localizacao.latitude, longitude: localizacao.longitude } : null;
+  const alerta = cidade ? alertaParaInicio(cidade.regioes, cidade.estatisticas, ponto) : null;
+  const semDadosReais = cidade !== null && cidade.estatisticas.every((e) => e.total === 0);
 
   return (
     <SafeAreaView style={styles.tela} edges={['top']}>
@@ -150,10 +170,12 @@ export default function TelaInicio() {
           }
         />
 
+        {cidade ? <FaixaAlerta alerta={alerta} onAbrir={(codigo) => router.push(rotaRegiao(codigo))} /> : null}
+
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Abrir o mapa da cidade"
-          onPress={() => router.navigate(ROTAS.mapa)}
+          onPress={() => router.navigate(rotaMapa())}
           style={[styles.mapaCartao, sombra.cartao]}
         >
           <View pointerEvents="none" style={styles.mapa}>
@@ -186,6 +208,22 @@ export default function TelaInicio() {
             <Icone nome="chevron-right" tamanho={20} cor={cores.placa} />
           </View>
         </Pressable>
+
+        {semDadosReais ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint="Abre o mapa com dados fictícios de demonstração"
+            onPress={() => router.navigate(rotaMapa('exemplo'))}
+            style={[styles.convite, sombra.cartao]}
+          >
+            <Icone nome="flask-outline" tamanho={22} cor={cores.asfalto} />
+            <View style={styles.flexConvite}>
+              <Texto style={styles.conviteTitulo}>Ver exemplo com dados fictícios</Texto>
+              <Texto variante="apoio">Ainda não há registros reais. Veja como o mapa fica com 4 meses de dados de demonstração.</Texto>
+            </View>
+            <Icone nome="chevron-right" tamanho={20} cor={cores.textoSuave} />
+          </Pressable>
+        ) : null}
 
         <Texto variante="placa" style={styles.secao}>
           Acompanhando
@@ -239,6 +277,19 @@ export default function TelaInicio() {
 }
 
 const styles = StyleSheet.create({
+  convite: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.sm,
+    backgroundColor: cores.sinalClaro,
+    borderRadius: raio.lg,
+    borderWidth: 2,
+    borderColor: cores.sinal,
+    borderStyle: 'dashed',
+    padding: espaco.md,
+  },
+  flexConvite: { flex: 1, gap: 2 },
+  conviteTitulo: { fontFamily: fontes.black, fontSize: 16, color: cores.asfalto },
   tela: { flex: 1, backgroundColor: cores.concreto },
   conteudo: { padding: espaco.lg, gap: espaco.md, paddingBottom: 110 },
   mapaCartao: { borderRadius: raio.lg, overflow: 'hidden', backgroundColor: cores.papel, borderWidth: 1, borderColor: cores.borda },

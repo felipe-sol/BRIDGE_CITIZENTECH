@@ -13,9 +13,11 @@ from app.schemas import (
     ErroResposta,
     OcorrenciaCriar,
     OcorrenciaDetalheResposta,
+    OcorrenciaMapaResposta,
     OcorrenciaProximaResposta,
     OcorrenciaResposta,
     PaginaOcorrencias,
+    PontosMapaResposta,
     ProximasResposta,
     StatusAtualizar,
 )
@@ -90,8 +92,33 @@ def listar(
     )
 
 
-# As rotas fixas abaixo precisam vir ANTES de "/{ocorrencia_id}": senão "minhas" e
-# "proximas" seriam lidos como id.
+# As rotas fixas abaixo precisam vir ANTES de "/{ocorrencia_id}": senão "minhas",
+# "proximas" e "mapa" seriam lidos como id.
+@router.get(
+    "/mapa",
+    response_model=PontosMapaResposta,
+    summary="Pontos do mapa numa área (formato enxuto, as mais graves primeiro, até 2000)",
+    responses=ERROS_COMUNS,
+)
+def mapa(
+    db: DbSession,
+    bbox: Annotated[str, Query(description="Área do mapa: min_lon,min_lat,max_lon,max_lat (graus).")],
+    origem: Annotated[
+        OrigemOcorrencia, Query(description="APP = registros reais (padrão); SIMULADA = dados fictícios.")
+    ] = OrigemOcorrencia.APP,
+    categoria: Annotated[CategoriaOcorrencia | None, Query()] = None,
+    prioridade: Annotated[Prioridade | None, Query()] = None,
+    status_filtro: Annotated[StatusOcorrencia | None, Query(alias="status")] = None,
+) -> PontosMapaResposta:
+    caixa = servico.interpretar_caixa(bbox)
+    itens, total = servico.listar_para_mapa(db, caixa, origem, categoria, prioridade, status_filtro)
+    return PontosMapaResposta(
+        itens=[OcorrenciaMapaResposta.de_modelo(o) for o in itens],
+        total=total,
+        truncado=total > len(itens),
+    )
+
+
 @router.get(
     "/minhas",
     response_model=PaginaOcorrencias,

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import status as http
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -146,6 +146,52 @@ def criar_ocorrencia(
 # ---------------------------------------------------------------- Consulta
 
 
+def _filtros_basicos(
+    origem: OrigemOcorrencia,
+    status: StatusOcorrencia | None,
+    categoria: CategoriaOcorrencia | None,
+    prioridade: Prioridade | None,
+    caixa: Caixa | None,
+) -> list[ColumnElement[bool]]:
+    # Dados reais e fictícios nunca se misturam: o padrão é só APP.
+    filtros: list[ColumnElement[bool]] = [Ocorrencia.origem == origem]
+    if status is not None:
+        filtros.append(Ocorrencia.status == status)
+    if categoria is not None:
+        filtros.append(Ocorrencia.categoria == categoria)
+    if prioridade is not None:
+        filtros.append(Ocorrencia.prioridade == prioridade)
+    if caixa is not None:
+        min_lon, min_lat, max_lon, max_lat = caixa
+        filtros.append(Ocorrencia.longitude.between(min_lon, max_lon))
+        filtros.append(Ocorrencia.latitude.between(min_lat, max_lat))
+    return filtros
+
+
+# Pontos do mapa: limite alto para o agrupamento contar tudo o que está na área;
+# acima disso a resposta avisa (truncado) e o app pede para aproximar.
+MAX_ITENS_MAPA = 2000
+
+
+def listar_para_mapa(
+    db: Session,
+    caixa: Caixa,
+    origem: OrigemOcorrencia,
+    categoria: CategoriaOcorrencia | None,
+    prioridade: Prioridade | None,
+    status: StatusOcorrencia | None,
+) -> tuple[list[Ocorrencia], int]:
+    filtros = _filtros_basicos(origem, status, categoria, prioridade, caixa)
+    total = db.scalar(select(func.count()).select_from(Ocorrencia).where(*filtros)) or 0
+    consulta = (
+        select(Ocorrencia)
+        .where(*filtros)
+        .order_by(Ocorrencia.prioridade_pontuacao.desc(), Ocorrencia.id.desc())
+        .limit(MAX_ITENS_MAPA)
+    )
+    return list(db.scalars(consulta).all()), total
+
+
 def listar_ocorrencias(
     db: Session,
     pagina: int,
@@ -159,18 +205,7 @@ def listar_ocorrencias(
     q: str | None = None,
     subprefeitura: str | None = None,
 ) -> tuple[list[Ocorrencia], int]:
-    # Dados reais e fictícios nunca se misturam: o padrão é só APP.
-    filtros = [Ocorrencia.origem == origem]
-    if status is not None:
-        filtros.append(Ocorrencia.status == status)
-    if categoria is not None:
-        filtros.append(Ocorrencia.categoria == categoria)
-    if prioridade is not None:
-        filtros.append(Ocorrencia.prioridade == prioridade)
-    if caixa is not None:
-        min_lon, min_lat, max_lon, max_lat = caixa
-        filtros.append(Ocorrencia.longitude.between(min_lon, max_lon))
-        filtros.append(Ocorrencia.latitude.between(min_lat, max_lat))
+    filtros = _filtros_basicos(origem, status, categoria, prioridade, caixa)
     if q is not None:
         padrao = f"%{_escapar_like(q)}%"
         filtros.append(
