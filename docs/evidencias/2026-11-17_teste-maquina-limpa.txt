@@ -1,0 +1,222 @@
+# Teste em "máquina limpa": o projeto do GitHub, do zero, seguindo só o README
+Data: 2026-11-17
+Objetivo: simular o computador do professor. Nada da pasta de desenvolvimento foi usado.
+
+Ambiente
+- Origem: git clone https://github.com/felipe-sol/BRIDGE_CITIZENTECH.git (commit 4667b3f), 271 arquivos,
+  numa pasta nova fora do OneDrive.
+- Windows 11; Python 3.11.15 (a versão MÍNIMA do README; o desenvolvimento usa 3.14); Node 24.19.0, npm 11.17.0.
+- PostgreSQL 18.4: instância NOVA e vazia (initdb), só para este teste.
+  Única diferença do README: porta 5433, porque a 5432 já está em uso nesta máquina
+  (no .env do clone, só a porta da DATABASE_URL foi trocada; ADMIN_TOKEN definido com um valor aleatório, não registrado).
+- API do clone na porta 8002 (a 8000 está em uso nesta máquina).
+
+## 1. Instalação (README, seção Instalação)
+$ python -m venv .venv   (Python 3.11.15)
+$ .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+[código de saída: 0]
+$ Copy-Item .env.example .env
+
+## 2. Banco de dados (README: psql -U postgres -h localhost -f scripts/criar_banco.sql)
+CREATE ROLE
+CREATE DATABASE
+CREATE DATABASE
+[código de saída: 0]
+
+## 3. Migrações (README, seção Migrações)
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001, Cria as tabelas identificacoes e ocorrencias.
+INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Cria a tabela historico_status e registra o status atual das ocorrências existentes.
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, Endereço, subprefeitura e origem nas ocorrências; tabela de confirmações.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+$ alembic current
+0004 (head)
+$ alembic check
+No new upgrade operations detected.
+$ alembic downgrade -1
+INFO  [alembic.runtime.migration] Running downgrade 0004 -> 0003, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+$ alembic current
+0004 (head)
+Conferência final:
+$ alembic current
+0004 (head)
+[código de saída: 0]
+$ alembic check
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+No new upgrade operations detected.
+[código de saída: 0]
+
+## 4. Testes automatizados (pytest, com o banco de testes da instância nova)
+159 passed in 14.52s
+[código de saída: 0]
+
+## 5. Execução da API + verificação HTTP completa (scripts/verificar_api.py)
+GET /health -> {"status":"ok","banco":"ok","modelo_ia":{"disponivel":false,"versao":null},"versao_api":"1.0.0"}
+GET /docs -> HTTP 200
+Resultado: 57 verificações de resposta HTTP OK + 22 conferências de conteúdo OK; 0 falhas.
+[OK  ] GET   /health                                -> 200 (esperado 200) — API e banco respondendo
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria identificação
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria 2ª identificação
+[OK  ] POST  /identificacoes                        -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro válido
+        prioridade=ALTA pontuação=7 ia=INDISPONIVEL
+[OK  ] POST  /ocorrencias                           -> 200 (esperado 200) — mesma Idempotency-Key não duplica
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — latitude 91
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — coordenadas (0,0)
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — identificação inexistente
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — 2ª ocorrência
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — listagem
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ordenação por prioridade
+[OK  ] GET   /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — tamanho inválido
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — detalhe
+[OK  ] GET   /ocorrencias/999999                    -> 404 (esperado 404 (NAO_ENCONTRADO)) — detalhe inexistente
+[OK  ] POST  /ocorrencias/1/imagem                  -> 200 (esperado 200) — upload válido
+[OK  ] GET   /ocorrencias/1/imagem                  -> 200 (esperado 200) — download da imagem
+[OK  ] POST  /ocorrencias/1/imagem                  -> 409 (esperado 409 (IMAGEM_JA_ENVIADA)) — upload repetido
+[OK  ] POST  /ocorrencias/2/imagem                  -> 415 (esperado 415 (FORMATO_NAO_SUPORTADO)) — texto com extensão .jpg
+[OK  ] POST  /ocorrencias/2/imagem                  -> 403 (esperado 403 (PROIBIDO)) — upload por outra identificação
+[OK  ] PATCH /ocorrencias/1/status                  -> 401 (esperado 401) — status sem token
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — ABERTA → EM_ANALISE
+[OK  ] PATCH /ocorrencias/1/status                  -> 409 (esperado 409 (TRANSICAO_INVALIDA)) — EM_ANALISE → RESOLVIDA (inválida)
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANALISE → EM_ANDAMENTO
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANDAMENTO → RESOLVIDA
+        histórico: ['ABERTA', 'EM_ANALISE', 'EM_ANDAMENTO', 'RESOLVIDA']
+
+--- Bridge 2.0 (fase 1) ---
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro com endereço (Sé)
+        [OK  ] região Sé, endereço, 0 confirmações, origem APP
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro fora de SP
+        [OK  ] fora de SP: subprefeitura nula
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — endereço com 201 caracteres
+[OK  ] GET   /regioes                               -> 200 (esperado 200) — limites das regiões
+        [OK  ] 32 subprefeituras
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — estatísticas por região
+        [OK  ] 32 itens; Sé com ≥ 1
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ocorrências na área do mapa
+        [OK  ] a da Sé está na caixa; a do Rio não
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — busca por texto
+        [OK  ] busca acha a ocorrência pelo título/endereço
+[OK  ] GET   /ocorrencias/proximas                  -> 200 (esperado 200) — próximas (100 m, calçada)
+        [OK  ] a ocorrência da Sé aparece como parecida
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 201 (esperado 201) — 'eu também vi' (outra pessoa)
+        [OK  ] 1 confirmação
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 200 (esperado 200) — confirmação repetida (idempotente)
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 409 (esperado 409 (PROPRIA_OCORRENCIA)) — autor não confirma a própria
+[OK  ] POST  /ocorrencias/1/confirmacoes            -> 409 (esperado 409 (OCORRENCIA_ENCERRADA)) — ocorrência resolvida não recebe confirmação
+[OK  ] GET   /ocorrencias/3                         -> 200 (esperado 200) — detalhe com a relação de quem pergunta
+        [OK  ] relação confirmei=true; prioridade não mudou
+[OK  ] GET   /ocorrencias/minhas                    -> 200 (esperado 200) — minhas confirmadas (cabeçalho, não URL)
+        [OK  ] a confirmada aparece no Andamento da outra pessoa
+[OK  ] DELETE /ocorrencias/3/confirmacoes            -> 200 (esperado 200) — desfazer confirmação
+        [OK  ] 0 confirmações depois de desfazer
+[OK  ] GET   /ocorrencias/minhas                    -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — minhas com identificação inexistente
+
+--- Bridge 2.0 (fase 2) ---
+[OK  ] GET   /identificacoes/atual                  -> 200 (esperado 200) — identificação pelo cabeçalho
+        [OK  ] a identificação devolvida é a do cabeçalho
+[OK  ] GET   /identificacoes/atual                  -> 404 (esperado 404 (NAO_ENCONTRADO)) — identificação inexistente
+[OK  ] GET   /identificacoes/atual                  -> 422 (esperado 422 (VALIDACAO)) — identificação sem cabeçalho
+[OK  ] GET   /ocorrencias/mapa                      -> 200 (esperado 200) — pontos do mapa (Sé)
+        [OK  ] formato enxuto, total ≥ 1, sem corte
+[OK  ] GET   /ocorrencias/mapa                      -> 422 (esperado 422 (VALIDACAO)) — pontos do mapa sem bbox
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — Alerta Bridge por região
+        [OK  ] 32 regiões, cada uma com nível
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (reais)
+        [OK  ] total ≥ 1, 5 categorias, ao menos 1 semana
+        [OK  ] categorias somam o total
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (fictícios)
+        [OK  ] sem fictícios neste banco: % nulo, não zero
+[OK  ] GET   /estatisticas/resumo                   -> 422 (esperado 422 (VALIDACAO)) — resumo com dias inválido
+
+--- Bridge 2.0 (fase 3) ---
+[OK  ] PATCH /identificacoes/atual                  -> 200 (esperado 200) — trocar apelido pelo cabeçalho
+        [OK  ] apelido trocado, mesmo id
+[OK  ] PATCH /identificacoes/atual                  -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] GET   /identificacoes/atual/participacao     -> 200 (esperado 200) — participação da pessoa
+        [OK  ] números da participação
+[OK  ] POST  /ocorrencias/1/nao-resolvido           -> 201 (esperado 201) — ainda não foi resolvido
+        [OK  ] 1 aviso registrado
+[OK  ] POST  /ocorrencias/1/nao-resolvido           -> 200 (esperado 200) — aviso repetido
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — detalhe com o aviso
+        [OK  ] continua RESOLVIDA; aviso contado e marcado
+[OK  ] DELETE /ocorrencias/1/nao-resolvido           -> 200 (esperado 200) — desfazer aviso
+        [OK  ] 0 avisos depois de desfazer
+
+Ocorrência de referência para o teste de persistência: 1
+Depois de reiniciar a API: python scripts/verificar_api.py --base-url http://127.0.0.1:8002 --persistencia 1
+
+Resultado: SUCESSO
+
+## 6. Persistência após reiniciar a API
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — ocorrência continua no banco após reinício
+        status=RESOLVIDA imagem_url=/ocorrencias/1/imagem registros de histórico=4
+
+Resultado: SUCESSO
+
+## 7. Dados fictícios do modo Exemplo (README, seção Dados fictícios)
+$ python scripts/dados_ficticios.py gerar
+Gerados: 1200 ocorrências fictícias (semente 2026, últimos 120 dias).
+Ocorrências reais (APP): 4
+Ocorrências fictícias (SIMULADA): 1200
+Alerta Bridge no Exemplo: 3 em ALERTA, 7 em ATENCAO
+  ALERTA: Freguesia/Brasilândia, Mooca, Sé
+  ATENCAO: Aricanduva/Formosa/Carrão, Campo Limpo, Capela do Socorro, Itaim Paulista, Itaquera, Jaçanã/Tremembé, Vila Mariana
+$ python scripts/dados_ficticios.py relatorio
+Ocorrências reais (APP): 4
+Ocorrências fictícias (SIMULADA): 1200
+Alerta Bridge no Exemplo: 3 em ALERTA, 7 em ATENCAO
+  ALERTA: Freguesia/Brasilândia, Mooca, Sé
+  ATENCAO: Aricanduva/Formosa/Carrão, Campo Limpo, Capela do Socorro, Itaim Paulista, Itaquera, Jaçanã/Tremembé, Vila Mariana
+GET /ocorrencias/mapa (cidade inteira, origem=SIMULADA) -> total 1200, itens 1200, truncado False
+
+## 8. App mobile (mobile/README, seções Instalação e Verificação)
+$ npm ci
+added 771 packages, and audited 772 packages in 2m
+40 vulnerabilities (6 moderate, 34 high)
+[código de saída: 0]
+(o npm audit acusa vulnerabilidades em dependências instaladas; não foram analisadas uma a uma.
+ "npm audit fix --force" não deve ser usado: troca versões fixadas pelo Expo SDK 58)
+$ npx tsc --noEmit
+(sem saída: nenhum erro)  [código de saída: 0]
+$ npm test
+ℹ tests 118
+ℹ pass 118
+ℹ fail 0
+[código de saída: 0]
+$ npm run lint
+[código de saída: 0]
+$ npx expo-doctor
+Running 20 checks on your project...
+19/20 checks passed. 1 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+✖ Check that packages match versions required by installed Expo SDK
+
+🔧 Patch version mismatches
+package           expected  found    
+expo              ~58.0.26  58.0.25  
+expo-file-system  ~58.0.14  58.0.13  
+expo-router       ~58.0.32  58.0.31  
+
+Changelogs:
+- expo-file-system → https://github.com/expo/expo/blob/sdk-58/packages/expo-file-system/CHANGELOG.md
+- expo-router → https://github.com/expo/expo/blob/sdk-58/packages/expo-router/CHANGELOG.md
+
+3 packages out of date.
+Advice:
+Use 'npx expo install --check' to review and upgrade your dependencies.
+To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
+
+1 check failed, indicating possible issues with the project.
+[código de saída: 1]
+Observação: em 13/11 o expo-doctor deu 20/20. Depois disso o Expo publicou versões de correção
+(patch) de 3 pacotes; o aviso é só "existe versão mais nova". O app compila e passa nos testes com
+as versões fixadas no package-lock.json.
+
+## O que este teste NÃO cobre
+- Abrir o app num celular a partir deste clone (o app no iPhone foi testado a partir da pasta de desenvolvimento).
+- Docker, macOS e Linux; Python 3.12 e 3.13; Node diferente do 24.
+- Testes manuais no Insomnia (Rodada 2 continua pendente).

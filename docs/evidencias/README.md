@@ -32,6 +32,7 @@ Nenhuma foi editada para parecer melhor do que é.
 | `2026-11-13_verificacao-mobile-fase3.txt` | Automática (Bridge 2.0, fase 3) | `tsc` limpo, ESLint sem problemas, 106 testes puros, expo-doctor 20/20, bundle iOS, 0 `any`/`@ts-ignore`, nenhum segredo no bundle | Funcionamento no iPhone |
 | `2026-11-13_zip-mobile-teste-fase3.txt` | Automática (Bridge 2.0, fase 3) | ZIP de **teste** (125 arquivos, versão 2.0.0) instalado do zero numa pasta limpa fora do OneDrive: `npm ci`, `tsc`, 106/106 testes, ESLint | ZIP final (depende de `authors`); iPhone |
 | `2026-11-13_verificacao-mobile-fase1.txt` | Automática (Bridge 2.0) | `tsc` limpo, ESLint sem problemas, 60 testes puros (+ adendo da revisão final: 63/63 e bundle iOS de novo), expo-doctor 20/20, bundle iOS, 0 `any`/`@ts-ignore`, nenhum segredo no bundle | Funcionamento no iPhone |
+| `2026-11-17_teste-maquina-limpa.txt` | Automática ("máquina do professor") | O repositório **clonado do GitHub** roda do zero seguindo só o README, com **Python 3.11** (versão mínima) e um PostgreSQL novo e vazio: instalação, banco, migrações 0001–0004 + `check`, 159 testes, API com 79 verificações e persistência, dados fictícios; app com `npm ci`, `tsc`, 118/118 testes e lint. expo-doctor 19/20 (só versões de correção mais novas publicadas depois de 13/11) | App no celular a partir do clone; Docker, macOS/Linux; Insomnia (Rodada 2) |
 
 ## Pendentes (manuais)
 
