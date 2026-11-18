@@ -107,13 +107,16 @@ Implementação: [`backend/app/services/transicoes.py`](../backend/app/services/
 Sem modelo, o sistema **não fabrica** categoria nem confiança. Detalhes em
 [CONTRATO_IA.md](CONTRATO_IA.md).
 
-- **Sugestão incerta:** confiança abaixo de 50%. O app mostra como palpite ("incerta") e, no
-  registro, não oferece trocar a categoria.
+- **Sugestão incerta:** confiança abaixo de 50%. O app mostra como palpite ("incerta"). No
+  registro, quando a IA discorda da categoria escolhida, o app sempre oferece trocar (a pessoa
+  decide); abaixo de 30% a sugestão não aparece (com 5 categorias, o acaso dá 20%).
+- **Título automático:** o título que o app preenche com o nome da categoria escolhida não vai
+  para a IA (`app/services/ia/texto.py`); o título gravado não muda.
 - **Sugestão no registro** (`POST /ia/sugestao-categoria`): só sugere; a categoria muda apenas se
   a pessoa aceitar. Ao aceitar, o app verifica de novo os parecidos com a categoria nova (a
   checagem de duplicatas é por categoria).
 - **Registros antigos:** `scripts/analisar_ia.py` analisa as ocorrências `INDISPONIVEL` ou
-  `FALHOU`, sem refazer as concluídas e sem mudar categoria, prioridade ou `atualizado_em`
+  `FALHOU` (com `--refazer`, também as concluídas) e sem mudar categoria, prioridade ou `atualizado_em`
   (analisar não é uma atualização da equipe e não acende o selo "Atualizada").
 
 ## 4. Confirmação ("eu também vi")

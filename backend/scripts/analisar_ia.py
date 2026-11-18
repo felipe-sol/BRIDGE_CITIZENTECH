@@ -4,8 +4,9 @@ Uso (na pasta backend/, com o .env apontando para o banco e para o modelo):
     python scripts/analisar_ia.py                 # reais e fictícias sem análise
     python scripts/analisar_ia.py --origem APP    # só as reais
     python scripts/analisar_ia.py --origem SIMULADA
+    python scripts/analisar_ia.py --refazer       # refaz também as já concluídas
 
-Analisa só as que estão "INDISPONIVEL" ou "FALHOU"; as já concluídas não são refeitas.
+Sem --refazer, analisa só as que estão "INDISPONIVEL" ou "FALHOU".
 Não muda a categoria escolhida, a prioridade nem a data de atualização. Mostra só contagens.
 """
 
@@ -25,6 +26,7 @@ from app.services.ocorrencias import analisar_pendentes  # noqa: E402
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--origem", choices=[o.value for o in OrigemOcorrencia], help="padrão: todas")
+    parser.add_argument("--refazer", action="store_true", help="refaz também as análises já concluídas")
     args = parser.parse_args()
 
     classificador = criar_classificador(get_settings())
@@ -34,7 +36,7 @@ def main() -> None:
 
     origem = OrigemOcorrencia(args.origem) if args.origem else None
     with SessionLocal() as db:
-        resumo = analisar_pendentes(db, classificador, origem)
+        resumo = analisar_pendentes(db, classificador, origem, refazer=args.refazer)
     print(
         f"Modelo {classificador.versao}: {resumo.analisadas} ocorrências analisadas "
         f"({resumo.concluidas} concluídas, {resumo.falharam} com falha)."

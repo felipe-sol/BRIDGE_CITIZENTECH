@@ -57,3 +57,33 @@ Bundle iOS servido pelo Metro: HTTP 200, com os textos novos da IA e a URL da AP
 ## O que esta evidência NÃO comprova
 - A tela do registro com a sugestão e o botão "Trocar para …" no iPhone (teste manual pendente).
 - Desempenho da IA em relatos reais (treino e fictícios são sintéticos).
+
+## Adendo (18/11/2026) — título automático vazava a escolha da pessoa para a IA
+Relato do teste no iPhone: "acurácia ruim; deve alertar e redirecionar para outra categoria".
+Diagnóstico: o app preenche o título com o nome da categoria escolhida; a IA lia título + descrição
+e só repetia a escolha. Registro de teste: categoria Calçada danificada, descrição "luz danificada".
+O que a IA leu                                      -> resposta
+título automático + "luz danificada"                -> CALCADA_DANIFICADA 0.47
+só "luz danificada"                                 -> ILUMINACAO_DEFEITUOSA 0.44
+título automático + "poste apagado"                 -> ILUMINACAO_DEFEITUOSA 0.43
+só "poste apagado"                                  -> ILUMINACAO_DEFEITUOSA 0.75
+título automático Buraco + "lâmpada queimada"       -> BURACO 0.44
+só "lâmpada queimada"                               -> ILUMINACAO_DEFEITUOSA 0.66
+Correção: título igual ao nome de uma categoria não vai para a IA (app/services/ia/texto.py), no
+cadastro e na sugestão; o título gravado não muda. No app, quando a IA discorda, o botão "Trocar para …"
+aparece também no palpite (abaixo de 50%); abaixo de 30% nada aparece.
+Testes primeiro:
+  ModuleNotFoundError: No module named 'app.services.ia.texto'
+  TypeError: analisar_pendentes() got an unexpected keyword argument 'refazer'
+  4 failed, 11 passed   ->   15 passed
+  app: does not provide an export named 'LIMIAR_MINIMO_REGISTRO'   ->   138 passed
+$ python scripts/analisar_ia.py --refazer   (banco de desenvolvimento)
+Modelo bridge-text-classifier-1.0.0: 1208 ocorrências analisadas (1208 concluídas, 0 com falha).
+Registros reais (8): a IA agora discorda da categoria escolhida em 3. Em 2 o texto descreve outra
+categoria (escolhida Iluminação com texto de calçada -> CALCADA_DANIFICADA 0,65; escolhida Calçada com
+"luz danificada" -> ILUMINACAO_DEFEITUOSA 0,44): a IA aponta o descompasso. No 3º o texto é vago
+(-> OUTRO 0,33). Antes da correção, os 8 "concordavam" porque a IA lia o título automático.
+API em execução: título automático + "luz danificada" -> {"disponivel":true,"categoria_sugerida":"ILUMINACAO_DEFEITUOSA","confianca":0.4377...}
+$ python -m pytest -q   ->   174 passed      $ npm test   ->   138 passed      tsc e ESLint sem erros
+Não comprova: desempenho em relatos reais (o modelo conhece 327 palavras e foi treinado com frases de
+modelo); a foto não é usada pelo modelo.

@@ -66,6 +66,9 @@ class ClassificadorOcorrencia(Protocol):
   `MODELO_IA_CAMINHO` aponta para o artefato; `ClassificadorIndisponivel` (`disponivel = False`)
   quando o caminho está vazio **ou** o artefato não pode ser carregado (arquivo ausente ou
   corrompido, dependência faltando). Nesse caso a API sobe normalmente e registra o motivo no log.
+- Antes da inferência, um título que seja só o nome de uma categoria (o app preenche o título
+  com a categoria escolhida) é descartado (`app/services/ia/texto.py`): senão a IA leria a
+  escolha da pessoa e só a repetiria.
 - O classificador é criado **uma vez por processo**, na inicialização da API
   (`lifespan` do FastAPI), e reutilizado em todas as requisições.
 - Nunca há treinamento em requisição e **não** existe rota para enviar modelos:

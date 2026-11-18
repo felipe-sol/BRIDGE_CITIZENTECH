@@ -76,3 +76,17 @@ def test_falha_do_modelo_responde_indisponivel_sem_erro_500(client: TestClient) 
 
     assert r.status_code == 200
     assert r.json()["disponivel"] is False
+
+
+def test_titulo_automatico_da_categoria_nao_entra_na_sugestao(client: TestClient) -> None:
+    # O app preenche o título com o nome da categoria escolhida ("Calçada danificada"). Se isso
+    # entrar no texto, a IA só repete a escolha da pessoa. Caso real do teste no iPhone (17/11).
+    _usar(client, criar_classificador(Settings(modelo_ia_caminho=str(CAMINHO_MODELO), modelo_ia_versao=VERSAO_MODELO)))
+
+    r = client.post(
+        ROTA,
+        json={**PEDIDO, "titulo": "Calçada danificada", "descricao": "luz danificada", "categoria": "CALCADA_DANIFICADA"},
+    )
+
+    assert r.status_code == 200
+    assert r.json()["categoria_sugerida"] == "ILUMINACAO_DEFEITUOSA"

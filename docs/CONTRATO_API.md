@@ -436,7 +436,8 @@ cadastro (sem `identificacao_id` e `endereco`):
 _Valor de `confianca` ilustrativo._ Sem modelo (ou se o modelo falhar): `200` com
 `{"disponivel": false, "categoria_sugerida": null, "confianca": null, "versao_modelo": null}`.
 Campos inválidos: `422` (`VALIDACAO`), como no cadastro. A categoria escolhida pela pessoa só
-muda se ela aceitar a sugestão no app.
+muda se ela aceitar a sugestão no app. Um título que seja só o nome de uma categoria não é usado
+pela IA (o app preenche o título com a categoria escolhida).
 
 ## 4. Fluxo de cadastro com foto (decisão)
 

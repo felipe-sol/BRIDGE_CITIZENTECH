@@ -146,7 +146,7 @@ npx expo-doctor      # compatibilidade das dependências com o SDK
 Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt` (com os
 adendos das correções do mapa) e `../docs/evidencias/2026-11-17_melhorias-ia.txt`:
 - `tsc` sem erros e ESLint sem problemas;
-- **136/136 testes**;
+- **138/138 testes**;
 - expo-doctor 20/20;
 - bundle iOS gerado;
 - nenhum `any` ou `@ts-ignore`;

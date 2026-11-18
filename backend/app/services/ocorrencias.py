@@ -25,6 +25,7 @@ from app.models import Confirmacao, HistoricoStatus, Identificacao, Ocorrencia
 from app.schemas import OcorrenciaCriar, StatusAtualizar
 from app.services.armazenamento import ImagemInvalida, caminho_seguro, remover_imagem, salvar_imagem
 from app.services.ia import ClassificadorOcorrencia, EntradaClassificacao
+from app.services.ia.texto import titulo_para_ia
 from app.services.prioridade import calcular_prioridade
 from app.services.geo import distancia_metros
 from app.services.regioes import localizar_regiao
@@ -431,7 +432,8 @@ def _executar_analise(
 ) -> None:
     """Roda a inferência e grava o resultado. Falha não derruba o cadastro."""
     entrada = EntradaClassificacao(
-        titulo=ocorrencia.titulo,
+        # Título que é só o nome da categoria (preenchido pelo app) não vai: a IA repetiria a escolha.
+        titulo=titulo_para_ia(ocorrencia.titulo),
         descricao=ocorrencia.descricao,
         categoria_informada=ocorrencia.categoria,
         latitude=float(ocorrencia.latitude),
@@ -469,19 +471,24 @@ class ResumoAnalise:
 
 
 def analisar_pendentes(
-    db: Session, classificador: ClassificadorOcorrencia, origem: OrigemOcorrencia | None = None
+    db: Session,
+    classificador: ClassificadorOcorrencia,
+    origem: OrigemOcorrencia | None = None,
+    refazer: bool = False,
 ) -> ResumoAnalise:
     """Roda a IA nas ocorrências sem análise (`INDISPONIVEL` ou `FALHOU`), por exemplo as registradas
-    antes de o modelo ser ativado. As já concluídas não são refeitas. Sem modelo, não faz nada.
+    antes de o modelo ser ativado. As já concluídas só são refeitas com `refazer=True` (ex.: depois
+    de uma correção na forma de analisar). Sem modelo, não faz nada.
 
     `atualizado_em` é preservado: analisar não é uma atualização da equipe e não pode acender o
     selo "Atualizada" do app nem reordenar o Andamento.
     """
     if not classificador.disponivel or classificador.requer_imagem:
         return ResumoAnalise(analisadas=0, concluidas=0, falharam=0)
-    filtros: list[ColumnElement[bool]] = [
-        Ocorrencia.ia_status.in_([StatusAnaliseIA.INDISPONIVEL, StatusAnaliseIA.FALHOU])
-    ]
+    status_alvo = [StatusAnaliseIA.INDISPONIVEL, StatusAnaliseIA.FALHOU]
+    if refazer:
+        status_alvo.append(StatusAnaliseIA.CONCLUIDA)
+    filtros: list[ColumnElement[bool]] = [Ocorrencia.ia_status.in_(status_alvo)]
     if origem is not None:
         filtros.append(Ocorrencia.origem == origem)
     ocorrencias = db.scalars(select(Ocorrencia).where(*filtros).order_by(Ocorrencia.id)).all()

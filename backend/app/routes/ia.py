@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from app.deps import Classificador
 from app.schemas import SugestaoCategoriaPedido, SugestaoCategoriaResposta
 from app.services.ia import EntradaClassificacao
+from app.services.ia.texto import titulo_para_ia
 
 logger = logging.getLogger("bridge.ia")
 
@@ -26,7 +27,8 @@ def sugerir_categoria(dados: SugestaoCategoriaPedido, classificador: Classificad
     if not classificador.disponivel or classificador.requer_imagem:
         return INDISPONIVEL
     entrada = EntradaClassificacao(
-        titulo=dados.titulo,
+        # Título que é só o nome da categoria (preenchido pelo app) não vai: a IA repetiria a escolha.
+        titulo=titulo_para_ia(dados.titulo),
         descricao=dados.descricao,
         categoria_informada=dados.categoria,
         latitude=dados.latitude,

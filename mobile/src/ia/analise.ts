@@ -56,9 +56,13 @@ export type DecisaoSugestao =
   | { tipo: 'nada' }
   | { tipo: 'concorda' | 'sugere' | 'incerta'; categoria: Categoria; confianca: number | null };
 
+/** No registro, abaixo disso a IA está chutando (com 5 categorias, o acaso dá 20%): não mostra nada. */
+export const LIMIAR_MINIMO_REGISTRO = 0.3;
+
 export function decidirSugestaoRegistro(escolhida: Categoria, sugestao: SugestaoIA): DecisaoSugestao {
   const sugerida = sugestao.categoriaSugerida;
   if (!sugestao.disponivel || sugerida === null || !ehCategoria(sugerida)) return { tipo: 'nada' };
+  if (sugestao.confianca !== null && sugestao.confianca < LIMIAR_MINIMO_REGISTRO) return { tipo: 'nada' };
   const base = { categoria: sugerida, confianca: sugestao.confianca };
   if (sugerida === escolhida) return { tipo: 'concorda', ...base };
   return { tipo: sugestaoIncerta(sugestao.confianca) ? 'incerta' : 'sugere', ...base };
@@ -79,7 +83,12 @@ export function textoSugestaoRegistro(decisao: DecisaoSugestao): { titulo: strin
     case 'incerta':
       return {
         titulo: 'Palpite da IA',
-        texto: `A IA acha que pode ser ${nome}, mas com pouca confiança${pct}. Mantenha a sua escolha se tiver certeza.`,
+        texto: `A IA acha que pode ser ${nome}, mas com pouca confiança${pct}. Troque só se fizer sentido para você.`,
       };
   }
+}
+
+/** Quando a IA discorda da categoria escolhida (com ou sem certeza), a pessoa pode trocar com um toque. */
+export function ofereceTrocar(decisao: DecisaoSugestao): boolean {
+  return decisao.tipo === 'sugere' || decisao.tipo === 'incerta';
 }

@@ -92,3 +92,20 @@ def test_sem_modelo_a_analise_em_lote_nao_mexe_em_nada(client: TestClient, banco
 
     assert resumo == ResumoAnalise(analisadas=0, concluidas=0, falharam=0)
     assert _status_ia(banco_migrado, real) == "INDISPONIVEL"
+
+
+def test_refazer_reanalisa_tambem_as_ja_concluidas(client: TestClient, banco_migrado: Engine) -> None:
+    ident = nova_identificacao(client)
+    antiga = datetime.now(UTC) - timedelta(days=3)
+    concluida = inserir_ocorrencia(banco_migrado, ident, **SE, criado_em=antiga, **POSTE)
+    _definir_ia(banco_migrado, concluida, "CONCLUIDA", "OUTRO", 0.9)
+
+    with Session(banco_migrado) as db:
+        resumo = analisar_pendentes(db, _modelo(), refazer=True)
+
+    assert resumo.analisadas == 1
+    with Session(banco_migrado) as db:
+        ocorrencia = db.get(Ocorrencia, concluida)
+        assert ocorrencia is not None
+        assert ocorrencia.ia_categoria_sugerida == "ILUMINACAO_DEFEITUOSA"
+        assert ocorrencia.atualizado_em == antiga

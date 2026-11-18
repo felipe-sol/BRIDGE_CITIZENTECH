@@ -380,9 +380,10 @@ cd backend
   o cadastro pela API grava a sugestão sem mudar a categoria escolhida nem a prioridade;
   modelo ausente ou corrompido não derruba a API; análise em lote dos registros antigos
   (`test_ia_lote.py`, sem mexer na data de atualização) e a rota de sugestão no registro
-  (`test_api_ia.py`: com e sem modelo, validações, falha do modelo sem erro 500).
+  (`test_api_ia.py`: com e sem modelo, validações, falha do modelo sem erro 500) e o título
+  automático (nome da categoria) fora da análise.
 
-Última execução: **170 passaram, 0 pulados**, em
+Última execução: **174 passaram, 0 pulados**, em
 [`docs/evidencias/2026-11-17_melhorias-ia.txt`](docs/evidencias/2026-11-17_melhorias-ia.txt)
 (integração da IA: 163, em `2026-11-17_integracao-ia.txt`; fim da fase 3: 159, em `2026-11-13_pytest-backend-fase3.txt`; versão 1.0: 95, em
 `2026-11-11_pytest-backend-com-banco.txt`).
@@ -423,11 +424,15 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
   mesmo jeito e as análises ficam `INDISPONIVEL`; se a inferência falhar, a ocorrência é
   salva com a análise `FALHOU`.
 - **No registro:** na revisão, antes de enviar, o app pergunta à IA (`POST /ia/sugestao-categoria`).
-  Se ela sugerir outra categoria com confiança de 50% ou mais, o app oferece trocar (e verifica
-  de novo os parecidos com a categoria nova); abaixo de 50%, mostra só como palpite.
+  Se ela discordar da categoria escolhida, o app avisa e oferece trocar com um toque (e verifica
+  de novo os parecidos com a categoria nova). Abaixo de 50% de confiança o aviso aparece como
+  palpite; abaixo de 30% não aparece.
+- **Só o que a pessoa escreveu vai para a IA:** o título que o app preenche sozinho com o nome da
+  categoria não entra na análise (senão a IA só repetiria a escolha da pessoa).
 - **No mapa:** o cartão da ocorrência mostra a sugestão; abaixo de 50%, marcada como "incerta".
 - **Registros antigos:** os feitos antes de ativar o modelo ficam `INDISPONIVEL` até rodar
-  `scripts/analisar_ia.py`; o `dados_ficticios.py gerar` já analisa os fictícios.
+  `scripts/analisar_ia.py` (`--refazer` refaz também as concluídas); o `dados_ficticios.py gerar`
+  já analisa os fictícios.
 - O dataset é sintético/simulado (4.000 registros gerados por templates). As métricas
   perfeitas demonstram o funcionamento do pipeline nesse conjunto controlado; não
   comprovam desempenho em relatos reais. Consulte [`ia_ml/README.md`](ia_ml/README.md).
@@ -447,7 +452,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 | Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
-| Testes automatizados (170, com PostgreSQL) | **Passando** |
+| Testes automatizados (174, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
 | Integração com o modelo de IA | **Implementada e verificada automaticamente** (17/11): classificador textual de `ia_ml/` carregado pelo backend, sugestão gravada no cadastro, oferecida na revisão do registro e mostrada no cartão do mapa; cadastro com a sugestão testado no iPhone (17/11) |

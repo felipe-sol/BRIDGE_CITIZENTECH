@@ -39,7 +39,7 @@ import { useIdentificacao } from '../context/IdentificacaoContext';
 import { CENTRO_SP, regiaoDaEtapaLocal, regiaoInicial } from '../geo/distancia';
 import { localizarRegiao } from '../geo/regioes';
 import type { Coordenada, RegiaoSP } from '../geo/tipos';
-import { decidirSugestaoRegistro, textoSugestaoRegistro, type DecisaoSugestao } from '../ia/analise';
+import { decidirSugestaoRegistro, ofereceTrocar, textoSugestaoRegistro, type DecisaoSugestao } from '../ia/analise';
 import {
   CATEGORIAS,
   ROTULO_CATEGORIA,
@@ -664,9 +664,9 @@ export default function TelaRegistrar() {
         </Texto>
 
         {decisaoIA && decisaoIA.tipo !== 'nada' && textoIA ? (
-          <Aviso tom={decisaoIA.tipo === 'sugere' ? 'atencao' : 'info'} titulo={textoIA.titulo}>
+          <Aviso tom={ofereceTrocar(decisaoIA) ? 'atencao' : 'info'} titulo={textoIA.titulo}>
             {textoIA.texto}
-            {decisaoIA.tipo === 'sugere' && !enviando ? (
+            {ofereceTrocar(decisaoIA) && !enviando ? (
               <Botao
                 titulo={`Trocar para ${ROTULO_CATEGORIA[decisaoIA.categoria]}`}
                 variante="discreto"

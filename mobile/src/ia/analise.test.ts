@@ -4,6 +4,8 @@ import { describe, it } from 'node:test';
 import type { AnaliseIA, SugestaoIA } from '../models/ocorrencia.ts';
 import {
   LIMIAR_INCERTA,
+  LIMIAR_MINIMO_REGISTRO,
+  ofereceTrocar,
   decidirSugestaoRegistro,
   descreverAnaliseIA,
   resumoSugestaoIA,
@@ -110,12 +112,26 @@ describe('sugestão da IA na revisão do registro', () => {
     });
   });
 
-  it('a IA sugere outra categoria sem confiança: só um palpite, sem botão de trocar', () => {
+  it('a IA sugere outra categoria com pouca confiança: é um palpite (a pessoa ainda pode trocar)', () => {
     assert.deepEqual(decidirSugestaoRegistro('CALCADA_DANIFICADA', sugestao('BURACO', 0.4)), {
       tipo: 'incerta',
       categoria: 'BURACO',
       confianca: 0.4,
     });
+  });
+
+  it('abaixo de 30% a IA está chutando: não mostra nada (com 5 categorias, o acaso dá 20%)', () => {
+    assert.equal(LIMIAR_MINIMO_REGISTRO, 0.3);
+    assert.deepEqual(decidirSugestaoRegistro('CALCADA_DANIFICADA', sugestao('BURACO', 0.25)), { tipo: 'nada' });
+    assert.deepEqual(decidirSugestaoRegistro('BURACO', sugestao('BURACO', 0.25)), { tipo: 'nada' });
+    assert.equal(decidirSugestaoRegistro('CALCADA_DANIFICADA', sugestao('BURACO', 0.3)).tipo, 'incerta');
+  });
+
+  it('o botão de trocar aparece quando a IA discorda, com ou sem certeza', () => {
+    assert.equal(ofereceTrocar({ tipo: 'sugere', categoria: 'BURACO', confianca: 0.78 }), true);
+    assert.equal(ofereceTrocar({ tipo: 'incerta', categoria: 'BURACO', confianca: 0.44 }), true);
+    assert.equal(ofereceTrocar({ tipo: 'concorda', categoria: 'BURACO', confianca: 0.78 }), false);
+    assert.equal(ofereceTrocar({ tipo: 'nada' }), false);
   });
 
   it('textos de cada caso', () => {
@@ -130,7 +146,7 @@ describe('sugestão da IA na revisão do registro', () => {
     });
     assert.deepEqual(textoSugestaoRegistro({ tipo: 'incerta', categoria: 'BURACO', confianca: 0.4 }), {
       titulo: 'Palpite da IA',
-      texto: 'A IA acha que pode ser Buraco, mas com pouca confiança (40%). Mantenha a sua escolha se tiver certeza.',
+      texto: 'A IA acha que pode ser Buraco, mas com pouca confiança (40%). Troque só se fizer sentido para você.',
     });
   });
 });

@@ -83,8 +83,10 @@ Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão
 - **Foto e detalhes:** câmera ou galeria (a foto é opcional), descrição e a situação no local
   (risco imediato, bloqueia a passagem, afeta acessibilidade).
 - **Revisão e envio:** antes de enviar, a IA dá a opinião dela pelo que a pessoa escreveu. Se
-  sugerir outra categoria com confiança de 50% ou mais, aparece o botão "Trocar para …" (o app
-  verifica de novo os parecidos com a categoria nova); abaixo disso, é só um palpite. O envio usa
+  discordar da categoria escolhida, o app avisa e mostra o botão "Trocar para …" (o app verifica de
+  novo os parecidos com a categoria nova); abaixo de 50% de confiança, o aviso aparece como palpite,
+  e abaixo de 30% não aparece. Vale só o que a pessoa escreveu: o título que o app preenche com o
+  nome da categoria não entra na análise. O envio usa
   uma chave de idempotência, então repetir o envio não cria
   duplicata; se só a foto falhar, o app reenvia só a foto.
 
@@ -201,7 +203,7 @@ A regra do app fica em **funções puras** (sem tela), testadas com `node --test
 ## Qualidade
 
 - `tsc --noEmit` sem erros, **nenhum `any`** nem `@ts-ignore`.
-- **136 testes** de funções puras passando (`npm test`).
+- **138 testes** de funções puras passando (`npm test`).
 - ESLint sem problemas e `expo-doctor` 20/20.
 - Evidência: [`docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt`](docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt).
 

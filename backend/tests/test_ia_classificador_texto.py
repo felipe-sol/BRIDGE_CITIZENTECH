@@ -7,6 +7,7 @@ from app.config import Settings
 from app.deps import get_classificador
 from app.enums import CategoriaOcorrencia
 from app.services.ia import ClassificadorIndisponivel, EntradaClassificacao, criar_classificador
+from app.services.ia.texto import titulo_para_ia
 from tests.test_api import nova_identificacao, nova_ocorrencia
 
 CAMINHO_MODELO = Path(__file__).resolve().parents[2] / "ia_ml" / "artifacts" / "bridge_text_classifier.joblib"
@@ -84,3 +85,32 @@ def test_cadastro_com_modelo_grava_sugestao_sem_mudar_categoria_nem_prioridade(c
     assert corpo["categoria"] == "OUTRO"
     assert corpo["prioridade"] == "BAIXA"
     assert corpo["prioridade_pontuacao"] == 1
+
+
+def test_titulo_igual_ao_nome_de_uma_categoria_nao_vai_para_a_ia() -> None:
+    assert titulo_para_ia("Calçada danificada") == ""
+    assert titulo_para_ia("  calcada   DANIFICADA ") == ""
+    assert titulo_para_ia("Obstáculo à circulação") == ""
+    assert titulo_para_ia("Outro problema") == ""
+    assert titulo_para_ia("Buraco") == ""
+    # O que a pessoa escreveu continua indo.
+    assert titulo_para_ia("Calçada quebrada na esquina") == "Calçada quebrada na esquina"
+    assert titulo_para_ia("Buraco enorme na rua") == "Buraco enorme na rua"
+
+
+def test_cadastro_com_titulo_automatico_analisa_so_o_que_a_pessoa_escreveu(client: TestClient) -> None:
+    classificador = criar_classificador(Settings(modelo_ia_caminho=str(CAMINHO_MODELO), modelo_ia_versao=VERSAO_MODELO))
+    app = client.app
+    assert isinstance(app, FastAPI)
+    app.dependency_overrides[get_classificador] = lambda: classificador
+
+    corpo = nova_ocorrencia(
+        client,
+        nova_identificacao(client),
+        titulo="Calçada danificada",
+        descricao="luz danificada",
+        categoria="CALCADA_DANIFICADA",
+    )
+
+    assert corpo["analise_ia"]["categoria_sugerida"] == "ILUMINACAO_DEFEITUOSA"
+    assert corpo["titulo"] == "Calçada danificada"  # o título gravado não muda
