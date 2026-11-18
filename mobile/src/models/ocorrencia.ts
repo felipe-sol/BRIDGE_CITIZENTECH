@@ -57,6 +57,14 @@ export interface AnaliseIA {
   analisadaEm: string | null;
 }
 
+/** POST /ia/sugestao-categoria: o que a IA acha antes de enviar (não fica gravado). */
+export interface SugestaoIA {
+  disponivel: boolean;
+  categoriaSugerida: string | null;
+  confianca: number | null;
+  versaoModelo: string | null;
+}
+
 /** Subprefeitura oficial (GeoSampa) calculada pela API a partir das coordenadas. */
 export interface Subprefeitura {
   codigo: string;

@@ -15,7 +15,28 @@ import {
   parseOcorrenciaDetalhe,
   parsePaginaOcorrencias,
   parseProximas,
+  parseSugestaoIA,
 } from './respostas.ts';
+
+describe('sugestão da IA no registro (POST /ia/sugestao-categoria)', () => {
+  it('lê a sugestão com e sem modelo', () => {
+    assert.deepEqual(
+      parseSugestaoIA({ disponivel: true, categoria_sugerida: 'BURACO', confianca: 0.78, versao_modelo: 'bridge-text-classifier-1.0.0' }),
+      { disponivel: true, categoriaSugerida: 'BURACO', confianca: 0.78, versaoModelo: 'bridge-text-classifier-1.0.0' },
+    );
+    assert.deepEqual(parseSugestaoIA({ disponivel: false, categoria_sugerida: null, confianca: null, versao_modelo: null }), {
+      disponivel: false,
+      categoriaSugerida: null,
+      confianca: null,
+      versaoModelo: null,
+    });
+  });
+
+  it('recusa resposta fora do formato', () => {
+    assert.throws(() => parseSugestaoIA({ disponivel: 'sim', categoria_sugerida: null, confianca: null, versao_modelo: null }), ErroFormato);
+    assert.throws(() => parseSugestaoIA({ disponivel: true, categoria_sugerida: 'BURACO', confianca: '78%', versao_modelo: null }), ErroFormato);
+  });
+});
 
 // Exemplo no formato do contrato (docs/CONTRATO_API.md). Dados fictícios.
 const OCORRENCIA_API = {

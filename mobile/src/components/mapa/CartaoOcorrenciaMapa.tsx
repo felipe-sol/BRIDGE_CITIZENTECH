@@ -7,6 +7,8 @@ import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { podeConfirmarNoMapa, tempoDesde, ultimaAtualizacaoEquipe } from '../../geo/cartaoMapa';
+import { useAgora } from '../../hooks/useAgora';
+import { resumoSugestaoIA } from '../../ia/analise';
 import type { OcorrenciaMapa } from '../../geo/tipos';
 import { ROTULO_CATEGORIA, ROTULO_PRIORIDADE, type OcorrenciaDetalhe } from '../../models/ocorrencia';
 import { urlAbsoluta } from '../../services/http';
@@ -50,9 +52,10 @@ export function CartaoOcorrenciaMapa(props: PropsCartao) {
   const o = detalhe.tipo === 'ok' ? detalhe.ocorrencia : null;
   const foto = uriDaFoto(o?.imagemUrl ?? null);
   const ultima = o ? ultimaAtualizacaoEquipe(o.historico) : null;
-  // Momento de abertura do cartão ("há X" não precisa de precisão de segundos).
-  const [agora] = useState(() => Date.now());
+  // Referência do "há X": anda a cada 30 s com o cartão aberto (não precisa de precisão de segundos).
+  const agora = useAgora(30_000);
   const relatos = o?.confirmacoes ?? basico.confirmacoes;
+  const sugestaoIA = o ? resumoSugestaoIA(o.analiseIa) : null;
 
   return (
     <View style={[styles.cartao, sombra.cartao]}>
@@ -116,6 +119,14 @@ export function CartaoOcorrenciaMapa(props: PropsCartao) {
           {o ? `Registrada ${tempoDesde(o.criadoEm, agora)}` : 'Carregando…'}
           {relatos > 0 ? ` · ${relatos === 1 ? '1 pessoa também relatou' : `${relatos} pessoas também relataram`}` : ''}
         </Texto>
+        {sugestaoIA ? (
+          <View style={styles.linhaPequena}>
+            <Icone nome="robot-outline" tamanho={18} cor={cores.textoSuave} />
+            <Texto variante="apoio" style={styles.flex}>
+              {sugestaoIA}
+            </Texto>
+          </View>
+        ) : null}
         {ultima ? (
           <View style={styles.atualizacao}>
             <Texto variante="placa">Equipe responsável · {tempoDesde(ultima.quando, agora)}</Texto>

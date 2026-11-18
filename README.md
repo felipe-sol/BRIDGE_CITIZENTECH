@@ -294,6 +294,10 @@ cd backend
 
 No app, o seletor **Ao vivo** volta aos dados reais com um toque, e o app sempre abre no Ao vivo.
 
+Com o modelo de IA ativo, o `gerar` já analisa os fictícios. Para analisar registros feitos antes
+de ativar o modelo: `.\.venv\Scripts\python.exe scripts\analisar_ia.py` (só os que estão sem
+análise; não muda categoria, prioridade nem a data de atualização).
+
 ## Endpoints
 
 Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](docs/CONTRATO_API.md).
@@ -322,6 +326,7 @@ Contrato completo, com exemplos e códigos de erro: [`docs/CONTRATO_API.md`](doc
 | GET | `/estatisticas/resumo` | Indicadores da aba Análises: totais, % resolvidas, tempo médio, categorias, semanas, ranking | 200 |
 | POST | `/ocorrencias/{id}/nao-resolvido` | "Ainda não foi resolvido? Avise" — só em RESOLVIDA; não reabre (`X-Identificacao-Id`) | 201 (200 se já avisado) |
 | DELETE | `/ocorrencias/{id}/nao-resolvido` | Desfaz o aviso | 200 |
+| POST | `/ia/sugestao-categoria` | Sugestão da IA durante o registro, antes de enviar (só sugere; não grava nada) | 200 (`disponivel: false` sem modelo) |
 
 Todos os erros seguem `{"erro": {"codigo", "mensagem", "detalhes": [{"campo", "mensagem"}]}}`
 com mensagens em português.
@@ -373,11 +378,13 @@ cd backend
   apelido, participação e remoção de fictícios à prova de uso indevido.
 - **IA (`test_ia_classificador_texto.py`):** o modelo entregue sugere a categoria pelo texto;
   o cadastro pela API grava a sugestão sem mudar a categoria escolhida nem a prioridade;
-  modelo ausente ou corrompido não derruba a API.
+  modelo ausente ou corrompido não derruba a API; análise em lote dos registros antigos
+  (`test_ia_lote.py`, sem mexer na data de atualização) e a rota de sugestão no registro
+  (`test_api_ia.py`: com e sem modelo, validações, falha do modelo sem erro 500).
 
-Última execução: **163 passaram, 0 pulados**, em
-[`docs/evidencias/2026-11-17_integracao-ia.txt`](docs/evidencias/2026-11-17_integracao-ia.txt)
-(fim da fase 3: 159, em `2026-11-13_pytest-backend-fase3.txt`; versão 1.0: 95, em
+Última execução: **170 passaram, 0 pulados**, em
+[`docs/evidencias/2026-11-17_melhorias-ia.txt`](docs/evidencias/2026-11-17_melhorias-ia.txt)
+(integração da IA: 163, em `2026-11-17_integracao-ia.txt`; fim da fase 3: 159, em `2026-11-13_pytest-backend-fase3.txt`; versão 1.0: 95, em
 `2026-11-11_pytest-backend-com-banco.txt`).
 
 Verificação ponta a ponta contra a API rodando (complementar):
@@ -391,7 +398,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 ### Manuais (Insomnia) — exigência da disciplina
 
 - Coleção importável: [`docs/insomnia/bridge-insomnia.json`](docs/insomnia/bridge-insomnia.json)
-  (73 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 40; ambiente com
+  (75 requisições: Rodada 1 com 33 e Rodada 2, do Bridge 2.0, com 42; ambiente com
   `base_url`, `admin_token` e IDs)
 - Ordem, resultados esperados e checklist de prints:
   [`docs/insomnia/ROTEIRO_TESTES_MANUAIS.md`](docs/insomnia/ROTEIRO_TESTES_MANUAIS.md)
@@ -400,7 +407,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
   Eles foram feitos antes do Bridge 2.0. Por isso as respostas não mostram os campos novos
   (`endereco`, `subprefeitura`, `confirmacoes`, `origem`), mas o comportamento testado
   não mudou.
-- **Rodada 2 (pastas 09 a 14): pendente**, a ser executada pela equipe (a pasta 13 precisa
+- **Rodada 2 (pastas 09 a 15): pendente**, a ser executada pela equipe (a pasta 13 precisa
   dos dados fictícios gerados; a 14, do banco na migração 0004).
 
 ## IA: situação real e limitações
@@ -415,8 +422,12 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
   aponta para `ia_ml/artifacts/`). Se o arquivo faltar ou estiver corrompido, a API sobe do
   mesmo jeito e as análises ficam `INDISPONIVEL`; se a inferência falhar, a ocorrência é
   salva com a análise `FALHOU`.
-- Só as ocorrências registradas com o modelo ativo recebem sugestão. As anteriores e as
-  fictícias continuam com a análise `INDISPONIVEL`.
+- **No registro:** na revisão, antes de enviar, o app pergunta à IA (`POST /ia/sugestao-categoria`).
+  Se ela sugerir outra categoria com confiança de 50% ou mais, o app oferece trocar (e verifica
+  de novo os parecidos com a categoria nova); abaixo de 50%, mostra só como palpite.
+- **No mapa:** o cartão da ocorrência mostra a sugestão; abaixo de 50%, marcada como "incerta".
+- **Registros antigos:** os feitos antes de ativar o modelo ficam `INDISPONIVEL` até rodar
+  `scripts/analisar_ia.py`; o `dados_ficticios.py gerar` já analisa os fictícios.
 - O dataset é sintético/simulado (4.000 registros gerados por templates). As métricas
   perfeitas demonstram o funcionamento do pipeline nesse conjunto controlado; não
   comprovam desempenho em relatos reais. Consulte [`ia_ml/README.md`](ia_ml/README.md).
@@ -436,7 +447,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 | Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
-| Testes automatizados (163, com PostgreSQL) | **Passando** |
+| Testes automatizados (170, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Integração com o modelo de IA | **Implementada e verificada automaticamente** (17/11): classificador textual de `ia_ml/` carregado pelo backend, sugestão gravada no cadastro; teste no iPhone **pendente** |
+| Integração com o modelo de IA | **Implementada e verificada automaticamente** (17/11): classificador textual de `ia_ml/` carregado pelo backend, sugestão gravada no cadastro, oferecida na revisão do registro e mostrada no cartão do mapa; cadastro com a sugestão testado no iPhone (17/11) |

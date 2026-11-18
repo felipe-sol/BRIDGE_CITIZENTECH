@@ -39,13 +39,22 @@ import { useIdentificacao } from '../context/IdentificacaoContext';
 import { CENTRO_SP, regiaoDaEtapaLocal, regiaoInicial } from '../geo/distancia';
 import { localizarRegiao } from '../geo/regioes';
 import type { Coordenada, RegiaoSP } from '../geo/tipos';
-import { CATEGORIAS, ROTULO_CATEGORIA, type Categoria, type Ocorrencia, type OcorrenciaProxima } from '../models/ocorrencia';
+import { decidirSugestaoRegistro, textoSugestaoRegistro, type DecisaoSugestao } from '../ia/analise';
+import {
+  CATEGORIAS,
+  ROTULO_CATEGORIA,
+  type Categoria,
+  type NovaOcorrencia,
+  type Ocorrencia,
+  type OcorrenciaProxima,
+} from '../models/ocorrencia';
 import { FLUXO_INICIAL, reduzirFluxo, type Etapa } from '../registro/fluxo';
 import { escolherDaGaleria, tirarFoto, type FotoSelecionada, type ResultadoFoto } from '../services/camera';
 import { enderecoDe } from '../services/geocodificacao';
 import { ErroApi, mensagemDeErro } from '../services/http';
 import { novaChaveEnvio } from '../services/idempotencia';
 import { obterLocalizacaoAtual, type ResultadoLocalizacao } from '../services/localizacao';
+import { sugerirCategoria } from '../services/iaService';
 import { confirmarOcorrencia, criarOcorrencia, enviarFoto, listarProximas } from '../services/ocorrenciasService';
 import { carregarRegioes } from '../services/regioesService';
 import { marcarVisto } from '../services/vistos';
@@ -143,6 +152,9 @@ export default function TelaRegistrar() {
 
   // Mesma chave para todas as tentativas deste registro (evita duplicatas).
   const [chaveEnvio] = useState(novaChaveEnvio);
+  // Sugestão da IA na revisão (só vale para a categoria com que foi pedida) e contador contra resposta atrasada.
+  const [sugestaoIA, setSugestaoIA] = useState<{ categoria: Categoria; decisao: DecisaoSugestao } | null>(null);
+  const pedidoSugestao = useRef(0);
   // Trava síncrona contra duplo toque (o estado do React só atualiza no próximo render).
   const travaEnvio = useRef(false);
 
@@ -227,9 +239,8 @@ export default function TelaRegistrar() {
 
   // ------------------------------------------------------------ Categoria e parecidos
 
-  function escolherCategoria(categoria: Categoria) {
-    const ponto = fluxo.ponto;
-    if (ponto === null) return;
+  /** Guarda a categoria no formulário e procura parecidos com ela (a regra de duplicatas é por categoria). */
+  function aplicarCategoria(ponto: Coordenada, categoria: Categoria) {
     const titulosAutomaticos: readonly string[] = CATEGORIAS.map((c) => ROTULO_CATEGORIA[c]);
     setForm((atual) => ({
       ...atual,
@@ -238,10 +249,39 @@ export default function TelaRegistrar() {
       titulo: atual.titulo.trim() === '' || titulosAutomaticos.includes(atual.titulo) ? ROTULO_CATEGORIA[categoria] : atual.titulo,
     }));
     setConfirmacao({ tipo: 'ocioso' });
-    despachar({ tipo: 'escolher_categoria', categoria });
     listarProximas(ponto, categoria)
       .then((itens) => despachar({ tipo: 'parecidos_carregados', itens: itens.slice(0, MAX_PARECIDOS) }))
       .catch((erro: unknown) => despachar({ tipo: 'parecidos_falharam', mensagem: mensagemDeErro(erro) }));
+  }
+
+  function escolherCategoria(categoria: Categoria) {
+    const ponto = fluxo.ponto;
+    if (ponto === null) return;
+    despachar({ tipo: 'escolher_categoria', categoria });
+    aplicarCategoria(ponto, categoria);
+  }
+
+  /** Na revisão: aceitar a categoria sugerida pela IA (volta a verificar parecidos com ela). */
+  function trocarCategoriaPelaIA(categoria: Categoria) {
+    const ponto = fluxo.ponto;
+    if (ponto === null) return;
+    setSugestaoIA(null);
+    despachar({ tipo: 'trocar_categoria', categoria });
+    aplicarCategoria(ponto, categoria);
+  }
+
+  /** Pergunta à IA o que ela acha, sem travar nada: se falhar ou demorar, a revisão segue sem a sugestão. */
+  function pedirSugestaoIA(dados: NovaOcorrencia) {
+    pedidoSugestao.current += 1;
+    const pedido = pedidoSugestao.current;
+    setSugestaoIA(null);
+    sugerirCategoria(dados)
+      .then((sugestao) => {
+        if (pedido === pedidoSugestao.current) {
+          setSugestaoIA({ categoria: dados.categoria, decisao: decidirSugestaoRegistro(dados.categoria, sugestao) });
+        }
+      })
+      .catch(() => undefined);
   }
 
   async function confirmarParecido(o: OcorrenciaProxima) {
@@ -297,6 +337,7 @@ export default function TelaRegistrar() {
     }
     setErros({});
     despachar({ tipo: 'avancar' });
+    pedirSugestaoIA(validacao.dados);
   }
 
   // ------------------------------------------------------------ Envio (lógica do 1.0 preservada)
@@ -588,6 +629,9 @@ export default function TelaRegistrar() {
 
   function etapaRevisao() {
     const categoria = form.categoria;
+    // Só vale a sugestão pedida para a categoria que está escolhida agora.
+    const decisaoIA = sugestaoIA !== null && sugestaoIA.categoria === categoria ? sugestaoIA.decisao : null;
+    const textoIA = decisaoIA ? textoSugestaoRegistro(decisaoIA) : null;
     const situacoes = [
       form.riscoImediato ? 'Risco imediato' : null,
       form.bloqueiaPassagem ? 'Bloqueia a passagem' : null,
@@ -618,6 +662,19 @@ export default function TelaRegistrar() {
           Ao enviar, a API calcula a prioridade (baixa, média ou alta) com regras públicas. Ela não é uma avaliação oficial
           de segurança.
         </Texto>
+
+        {decisaoIA && decisaoIA.tipo !== 'nada' && textoIA ? (
+          <Aviso tom={decisaoIA.tipo === 'sugere' ? 'atencao' : 'info'} titulo={textoIA.titulo}>
+            {textoIA.texto}
+            {decisaoIA.tipo === 'sugere' && !enviando ? (
+              <Botao
+                titulo={`Trocar para ${ROTULO_CATEGORIA[decisaoIA.categoria]}`}
+                variante="discreto"
+                onPress={() => trocarCategoriaPelaIA(decisaoIA.categoria)}
+              />
+            ) : null}
+          </Aviso>
+        ) : null}
 
         {envio.tipo === 'erro_cadastro' ? (
           <Aviso tom="erro" titulo="A ocorrência não foi registrada">

@@ -263,6 +263,26 @@ class HealthResposta(BaseModel):
     versao_api: str
 
 
+class SugestaoCategoriaPedido(EntradaBase):
+    """O que o app já tem na revisão do registro. Mesmas regras do cadastro (`OcorrenciaCriar`)."""
+
+    titulo: str = Field(min_length=5, max_length=120)
+    descricao: str = Field(min_length=10, max_length=2000)
+    categoria: CategoriaOcorrencia
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False, strict=True)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False, strict=True)
+    risco_imediato: bool = Field(default=False, strict=True)
+    bloqueia_passagem: bool = Field(default=False, strict=True)
+    afeta_acessibilidade: bool = Field(default=False, strict=True)
+
+
+class SugestaoCategoriaResposta(BaseModel):
+    disponivel: bool
+    categoria_sugerida: str | None
+    confianca: float | None
+    versao_modelo: str | None
+
+
 # ---------------------------------------------------------------- Erros
 
 

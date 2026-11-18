@@ -97,12 +97,12 @@ python -c "open(r'C:\temp\grande.jpg','wb').write(b'\xff\xd8' + b'0' * 6 * 1024 
 - Salve em `docs/evidencias/insomnia/` com o nome indicado.
 - Marque ☑ nesta tabela somente depois disso.
 
-## 4. Rodada 2 — Bridge 2.0, fases 1 a 3 (pastas 09 a 14)
+## 4. Rodada 2 — Bridge 2.0 (pastas 09 a 15)
 
 Testa as rotas novas: endereço e região, mapa e densidade, proximidade (duplicatas),
 "eu também vi", a lista do Andamento e, na pasta 13, a identificação pelo cabeçalho, os
 pontos do mapa, o Alerta Bridge e o resumo da aba Análises; na pasta 14, trocar o apelido,
-a participação da pessoa e o aviso "ainda não foi resolvido". Pode ser feita depois da Rodada 1, **no mesmo
+a participação da pessoa e o aviso "ainda não foi resolvido"; na pasta 15, a sugestão da IA no registro. Pode ser feita depois da Rodada 1, **no mesmo
 banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificações).
 
 **Preparação**
@@ -111,7 +111,7 @@ banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificaç�
    Para a pasta 13, gere antes os dados fictícios (na pasta `backend/`):
    `python scripts/dados_ficticios.py gerar` (se já existirem, use `--recriar`).
 2. No Insomnia, importe de novo `bridge-insomnia.json`. A coleção mantém os mesmos IDs
-   e ganha as pastas 09 a 14. Se aparecer uma cópia duplicada, apague a antiga.
+   e ganha as pastas 09 a 15. Se aparecer uma cópia duplicada, apague a antiga.
 3. No ambiente "Local (demonstração)", confira `identificacao_id`, `outra_identificacao_id`
    e `admin_token` (os mesmos da Rodada 1). A variável nova `terceira_ocorrencia_id` é
    preenchida na 09.1.
@@ -158,6 +158,8 @@ banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificaç�
 | 14.7 | POST na ocorrência 2 (aberta) | 409 `OCORRENCIA_NAO_RESOLVIDA` | ☐ `14-7-aviso-em-aberta.png` |
 | 14.8 | GET detalhe com o cabeçalho da outra pessoa | 200; RESOLVIDA, `avisos_nao_resolvido` 1, `avisei_nao_resolvido` true | ☐ `14-8-detalhe-com-aviso.png` |
 | 14.9 | DELETE /ocorrencias/1/nao-resolvido | 200; `avisos_nao_resolvido` 0 | ☐ `14-9-desfazer-aviso.png` |
+| 15.1 | POST /ia/sugestao-categoria (poste apagado, categoria OUTRO) | 200; `disponivel` true, `ILUMINACAO_DEFEITUOSA`, `confianca` entre 0 e 1; nada é gravado | ☐ `15-1-sugestao-ia.png` |
+| 15.2 | POST /ia/sugestao-categoria (textos curtos) | 422 `VALIDACAO` (`titulo` e `descricao`) | ☐ `15-2-sugestao-invalida.png` |
 
 Observação: os números da 13.5, 13.7 e 13.9 valem para os fictícios recém-gerados com a
 semente padrão; com o passar dos dias, os alertas (janela de 30 dias) podem diminuir —

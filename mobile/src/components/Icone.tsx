@@ -47,6 +47,7 @@ export const NOMES_ICONE = [
   'clock-outline',
   'undo-variant',
   'wifi-off',
+  'robot-outline',
 ] as const;
 
 export type NomeIcone = (typeof NOMES_ICONE)[number];

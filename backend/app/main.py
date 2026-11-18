@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.errors import registrar_handlers, resposta_erro
-from app.routes import estatisticas, health, identificacoes, ocorrencias, regioes
+from app.routes import estatisticas, health, ia, identificacoes, ocorrencias, regioes
 from app.routes.health import VERSAO_API
 from app.services.ia import criar_classificador
 
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(ocorrencias.router)
     app.include_router(regioes.router)
     app.include_router(estatisticas.router)
+    app.include_router(ia.router)
     return app
 
 

@@ -171,8 +171,19 @@ Acertos nas frases de sondagem: 10/12
 Observação: as duas frases erradas têm confiança baixa (0,40 e 0,25). A sugestão nunca muda a categoria
 escolhida pela pessoa nem a prioridade (regras fixas).
 
+## 6. Teste no iPhone (Expo Go, 17/11/2026, banco de desenvolvimento)
+Registro novo feito pelo app, pelas etapas, com foto. Pedidos vistos no log da API:
+POST /ocorrencias -> 201 Created
+POST /ocorrencias/1205/imagem -> 200 OK
+GET /ocorrencias/1205 -> 200 OK  (detalhe aberto no app)
+GET /ocorrencias/1205/imagem -> 200 OK
+Gravado no banco para a ocorrência 1205:
+categoria escolhida: ILUMINACAO_DEFEITUOSA | prioridade: ALTA (9)
+IA: status=CONCLUIDA | sugerida=ILUMINACAO_DEFEITUOSA | confiança=0.92 | modelo=bridge-text-classifier-1.0.0
+(IP do aparelho e localização omitidos de propósito.)
+
 ## O que esta evidência NÃO comprova
 - Desempenho do modelo em relatos reais: as métricas de 100% do PR são no conjunto sintético, e a
   sondagem acima tem só 4 registros reais e 12 frases.
-- A exibição da sugestão no iPhone (teste manual pendente).
+- A exibição da sugestão na tela do iPhone: a API registrou o detalhe aberto, mas o texto na tela só a pessoa vê.
 - Ocorrências registradas antes da ativação (e as fictícias) continuam com a análise INDISPONIVEL.

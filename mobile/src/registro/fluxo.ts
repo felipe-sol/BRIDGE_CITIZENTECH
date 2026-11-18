@@ -29,7 +29,9 @@ export type EventoFluxo =
   | { tipo: 'parecidos_falharam'; mensagem: string }
   | { tipo: 'e_outro' }
   | { tipo: 'avancar' }
-  | { tipo: 'voltar' };
+  | { tipo: 'voltar' }
+  /** Na revisão, aceitar a categoria sugerida pela IA. */
+  | { tipo: 'trocar_categoria'; categoria: Categoria };
 
 export const FLUXO_INICIAL: EstadoFluxo = {
   etapa: 'local',
@@ -97,5 +99,17 @@ export function reduzirFluxo(estado: EstadoFluxo, evento: EventoFluxo): EstadoFl
 
     case 'voltar':
       return { ...estado, etapa: ANTERIOR[estado.etapa], verificando: false };
+
+    case 'trocar_categoria':
+      // A verificação de parecidos é por categoria: com a categoria nova, verifica de novo.
+      if (estado.etapa !== 'revisao' || evento.categoria === estado.categoria) return estado;
+      return {
+        ...estado,
+        etapa: 'parecidos',
+        categoria: evento.categoria,
+        parecidos: [],
+        verificando: true,
+        avisoParecidos: null,
+      };
   }
 }

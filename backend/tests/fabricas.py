@@ -23,6 +23,8 @@ def inserir_ocorrencia(
     criado_em: datetime | None = None,
     subprefeitura: str | None = "09",
     categoria: str = "BURACO",
+    titulo: str = "Ocorrência de teste",
+    descricao: str = "Criada pela fábrica de testes.",
 ) -> int:
     with engine.begin() as conn:
         return int(
@@ -31,12 +33,14 @@ def inserir_ocorrencia(
                     "INSERT INTO ocorrencias (identificacao_id, titulo, descricao, categoria, latitude, longitude,"
                     " status, prioridade, prioridade_pontuacao, prioridade_justificativa, ia_status, origem,"
                     " subprefeitura_codigo, criado_em, atualizado_em)"
-                    " VALUES (:i, 'Ocorrência de teste', 'Criada pela fábrica de testes.', :cat, :lat, :lon,"
+                    " VALUES (:i, :tit, :desc, :cat, :lat, :lon,"
                     " :st, :pri, :pts, 'Teste', 'INDISPONIVEL', :orig, :sub,"
                     " COALESCE(:criado, now()), COALESCE(:criado, now())) RETURNING id"
                 ),
                 {
                     "i": uuid.UUID(identificacao_id),
+                    "tit": titulo,
+                    "desc": descricao,
                     "cat": categoria,
                     "lat": latitude,
                     "lon": longitude,

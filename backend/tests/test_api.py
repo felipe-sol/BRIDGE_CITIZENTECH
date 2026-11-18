@@ -62,7 +62,7 @@ def test_health_ok(client: TestClient) -> None:
         "status": "ok",
         "banco": "ok",
         "modelo_ia": {"disponivel": False, "versao": None},
-        "versao_api": "1.0.0",
+        "versao_api": "2.0.0",
     }
 
 

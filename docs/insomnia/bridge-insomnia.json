@@ -1559,6 +1559,59 @@
       "authentication": {},
       "description": "**Esperado:** 200 `{avisos_nao_resolvido: 0, avisado: false}`.",
       "metaSortKey": 129
+    },
+    {
+      "_id": "fld_15",
+      "_type": "request_group",
+      "parentId": "wrk_bridge",
+      "name": "15 · IA — sugestão no registro",
+      "description": "Sugestão de categoria antes de enviar. Não grava nada. A API precisa estar com o modelo de IA ativo (MODELO_IA_CAMINHO no backend/.env).",
+      "environment": {},
+      "metaSortKey": 130
+    },
+    {
+      "_id": "req_15_1",
+      "_type": "request",
+      "parentId": "fld_15",
+      "name": "15.1 POST /ia/sugestao-categoria (texto de poste apagado)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ia/sugestao-categoria",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"titulo\": \"Poste apagado na esquina\",\n  \"descricao\": \"A lâmpada está queimada e a rua fica escura à noite.\",\n  \"categoria\": \"OUTRO\",\n  \"latitude\": -23.5503,\n  \"longitude\": -46.634,\n  \"risco_imediato\": false,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": false\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 200; `disponivel` true, `categoria_sugerida` ILUMINACAO_DEFEITUOSA e `confianca` entre 0 e 1. Nenhuma ocorrência é criada (confira com GET /ocorrencias).",
+      "metaSortKey": 131
+    },
+    {
+      "_id": "req_15_2",
+      "_type": "request",
+      "parentId": "fld_15",
+      "name": "15.2 POST /ia/sugestao-categoria (textos curtos) → 422",
+      "method": "POST",
+      "url": "{{ _.base_url }}/ia/sugestao-categoria",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"titulo\": \"abc\",\n  \"descricao\": \"curta\",\n  \"categoria\": \"OUTRO\",\n  \"latitude\": -23.5503,\n  \"longitude\": -46.634,\n  \"risco_imediato\": false,\n  \"bloqueia_passagem\": false,\n  \"afeta_acessibilidade\": false\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "description": "**Esperado:** 422 `VALIDACAO`, com detalhes para `titulo` e `descricao` (mesmas regras do cadastro).",
+      "metaSortKey": 132
     }
   ]
 }

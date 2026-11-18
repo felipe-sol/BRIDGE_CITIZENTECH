@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import func, select  # noqa: E402
 
+from app.config import get_settings  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 from app.enums import NivelAlerta, OrigemOcorrencia  # noqa: E402
 from app.models import Ocorrencia  # noqa: E402
@@ -33,6 +34,8 @@ from app.services.ficticios import (  # noqa: E402
     gravar_lote,
     remover_ficticios,
 )
+from app.services.ia import criar_classificador  # noqa: E402
+from app.services.ocorrencias import analisar_pendentes  # noqa: E402
 from app.services.regioes import regiao_por_codigo  # noqa: E402
 
 
@@ -83,7 +86,14 @@ def main() -> None:
             remover_ficticios(db)
         lote = gerar_lote(args.semente, args.quantidade, args.dias, datetime.now(UTC))
         gravados = gravar_lote(db, lote)
+        # Com modelo de IA configurado, os fictícios já saem com a sugestão (o modo Exemplo mostra a IA).
+        classificador = criar_classificador(get_settings())
+        analise = analisar_pendentes(db, classificador, OrigemOcorrencia.SIMULADA)
     print(f"Gerados: {gravados} ocorrências fictícias (semente {args.semente}, últimos {args.dias} dias).")
+    if classificador.disponivel:
+        print(f"IA: {analise.concluidas} analisadas pelo modelo {classificador.versao} ({analise.falharam} com falha).")
+    else:
+        print("IA: nenhum modelo carregado; as fictícias ficam com a análise INDISPONIVEL.")
     relatorio()
 
 

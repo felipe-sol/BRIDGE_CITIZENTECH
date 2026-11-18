@@ -99,3 +99,25 @@ describe('fluxo do registro em etapas', () => {
     assert.equal(reduzirFluxo(voltou, { tipo: 'parecidos_carregados', itens: [parecida(7)] }), voltou);
   });
 });
+
+describe('trocar a categoria pela sugestão da IA, na revisão', () => {
+  const ATE_REVISAO: EventoFluxo[] = [...ATE_CATEGORIA, { tipo: 'parecidos_carregados', itens: [] }, { tipo: 'avancar' }];
+
+  it('volta a verificar parecidos com a categoria nova (a regra de duplicatas é por categoria)', () => {
+    const antes = aplicar(...ATE_REVISAO);
+    assert.equal(antes.etapa, 'revisao');
+    const e = reduzirFluxo(antes, { tipo: 'trocar_categoria', categoria: 'BURACO' });
+    assert.equal(e.etapa, 'parecidos');
+    assert.equal(e.categoria, 'BURACO');
+    assert.equal(e.verificando, true);
+    assert.deepEqual(e.parecidos, []);
+    assert.deepEqual(e.ponto, PONTO);
+  });
+
+  it('fora da revisão, ou com a mesma categoria, não faz nada', () => {
+    const naCategoria = aplicar({ tipo: 'confirmar_local', ponto: PONTO });
+    assert.equal(reduzirFluxo(naCategoria, { tipo: 'trocar_categoria', categoria: 'BURACO' }), naCategoria);
+    const naRevisao = aplicar(...ATE_REVISAO);
+    assert.equal(reduzirFluxo(naRevisao, { tipo: 'trocar_categoria', categoria: 'CALCADA_DANIFICADA' }), naRevisao);
+  });
+});

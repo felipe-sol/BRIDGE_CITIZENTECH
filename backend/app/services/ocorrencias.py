@@ -7,6 +7,7 @@ nenhum SQL é montado por concatenação de entradas.
 import logging
 import math
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -16,6 +17,7 @@ from fastapi import status as http
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.enums import CategoriaOcorrencia, OrigemOcorrencia, Prioridade, StatusAnaliseIA, StatusOcorrencia
 from app.errors import ErroAPI, nao_encontrado
@@ -457,3 +459,38 @@ def _executar_analise(
     ocorrencia.ia_status = StatusAnaliseIA.CONCLUIDA
     ocorrencia.ia_categoria_sugerida = resultado.categoria_sugerida[:50]
     ocorrencia.ia_confianca = confianca
+
+
+@dataclass(frozen=True)
+class ResumoAnalise:
+    analisadas: int
+    concluidas: int
+    falharam: int
+
+
+def analisar_pendentes(
+    db: Session, classificador: ClassificadorOcorrencia, origem: OrigemOcorrencia | None = None
+) -> ResumoAnalise:
+    """Roda a IA nas ocorrências sem análise (`INDISPONIVEL` ou `FALHOU`), por exemplo as registradas
+    antes de o modelo ser ativado. As já concluídas não são refeitas. Sem modelo, não faz nada.
+
+    `atualizado_em` é preservado: analisar não é uma atualização da equipe e não pode acender o
+    selo "Atualizada" do app nem reordenar o Andamento.
+    """
+    if not classificador.disponivel or classificador.requer_imagem:
+        return ResumoAnalise(analisadas=0, concluidas=0, falharam=0)
+    filtros: list[ColumnElement[bool]] = [
+        Ocorrencia.ia_status.in_([StatusAnaliseIA.INDISPONIVEL, StatusAnaliseIA.FALHOU])
+    ]
+    if origem is not None:
+        filtros.append(Ocorrencia.origem == origem)
+    ocorrencias = db.scalars(select(Ocorrencia).where(*filtros).order_by(Ocorrencia.id)).all()
+    for ocorrencia in ocorrencias:
+        atualizado_em = ocorrencia.atualizado_em
+        _executar_analise(ocorrencia, classificador, caminho_imagem=None)
+        # Valor explícito no UPDATE: o onupdate=now() da coluna não entra em ação.
+        ocorrencia.atualizado_em = atualizado_em
+        flag_modified(ocorrencia, "atualizado_em")
+    db.commit()
+    concluidas = sum(1 for o in ocorrencias if o.ia_status == StatusAnaliseIA.CONCLUIDA)
+    return ResumoAnalise(analisadas=len(ocorrencias), concluidas=concluidas, falharam=len(ocorrencias) - concluidas)

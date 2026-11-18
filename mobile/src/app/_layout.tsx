@@ -20,11 +20,14 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { Carregando, EstadoErro } from '../components/Estados';
 import { IdentificacaoProvider, useIdentificacao } from '../context/IdentificacaoContext';
-import { PreferenciasProvider } from '../context/PreferenciasContext';
+import { PreferenciasProvider, useEscalaTexto } from '../context/PreferenciasContext';
+import { escalarEstiloTexto } from '../preferencias/preferencias';
 import { cores, fontes } from '../theme/tema';
 
 function Navegacao() {
   const { estado, recarregar, limpar } = useIdentificacao();
+  // "Texto maior" também nos títulos do cabeçalho (desenhados pela navegação, fora dos nossos componentes).
+  const escala = useEscalaTexto();
   const [erroLimpeza, setErroLimpeza] = useState<string | null>(null);
 
   if (estado.tipo === 'carregando') {
@@ -58,7 +61,7 @@ function Navegacao() {
       screenOptions={{
         headerStyle: { backgroundColor: cores.papel },
         headerTintColor: cores.asfalto,
-        headerTitleStyle: { fontFamily: fontes.extrabold, fontSize: 19 },
+        headerTitleStyle: { fontFamily: fontes.extrabold, ...escalarEstiloTexto({ fontSize: 19 }, escala) },
         headerShadowVisible: true,
         contentStyle: { backgroundColor: cores.concreto },
         headerBackButtonDisplayMode: 'minimal',

@@ -1,0 +1,59 @@
+# Melhorias depois da integração da IA (17/11/2026)
+Pedido da equipe: (1) IA nos registros antigos e no mapa; (2) acabamento do app; (3) IA no momento do registro.
+Todas as saídas abaixo são de comandos executados nesta data.
+
+## 1. IA nos registros antigos (backend) — testes primeiro
+$ pytest tests/test_ia_lote.py            (antes da implementação)
+E   ImportError: cannot import name 'ResumoAnalise' from 'app.services.ocorrencias'
+$ pytest tests/test_ia_lote.py            (depois)
+3 passed in 4.14s
+Conferência do teste da data de atualização: sem as 2 linhas que preservam atualizado_em, o teste falha
+(  assert por_id[ocorrencia_id].atualizado_em == antiga  -> 1 failed); com elas, passa.
+
+$ python scripts/analisar_ia.py           (banco de desenvolvimento)
+Modelo bridge-text-classifier-1.0.0: 1204 ocorrências analisadas (1204 concluídas, 0 com falha).
+Depois: APP 7 CONCLUIDA; SIMULADA 1200 CONCLUIDA (nenhuma INDISPONIVEL).
+Concordância entre a sugestão da IA e a categoria registrada:
+APP       total=7    | sugestão = categoria escolhida: 7 (100%)    | confiança < 50%: 0
+SIMULADA  total=1200 | sugestão = categoria escolhida: 1151 (96%) | confiança < 50%: 212
+(os fictícios são gerados pelo nosso script, não pelo do treino; ainda assim são textos sintéticos)
+
+## 2. Acabamento
+- /health com versao_api 2.0.0 (teste primeiro):
+  E   {'versao_api': '1.0.0'} != {'versao_api': '2.0.0'}   ->   1 passed
+  GET /health -> {"status":"ok","banco":"ok","modelo_ia":{"disponivel":true,"versao":"bridge-text-classifier-1.0.0"},"versao_api":"2.0.0"}
+- "Texto maior" também nos rótulos das abas e nos títulos do cabeçalho (usa escalarEstiloTexto, já testada).
+- Cartão do mapa: "há X" com relógio de 30 s e um cartão por ocorrência (zera ao trocar de ponto).
+- Detalhe e cartão do mapa: sugestão com confiança abaixo de 50% marcada como "incerta" (src/ia/analise.ts,
+  9 testes; antes da implementação: ERR_MODULE_NOT_FOUND).
+
+## 3. IA no momento do registro
+Backend: POST /ia/sugestao-categoria (não grava nada). Testes primeiro:
+$ pytest tests/test_api_ia.py   (antes)  ->  assert 404 == 200 (rota inexistente)
+$ pytest tests/test_api_ia.py   (depois) ->  4 passed in 4.76s
+API em execução (modelo ativo):
+  escolheu Calçada, texto de buraco: HTTP 200 {"disponivel":true,"categoria_sugerida":"BURACO","confianca":0.4664686014707995,...}
+  escolheu Outro, texto de pichação: HTTP 200 {"disponivel":true,"categoria_sugerida":"BURACO","confianca":0.48850846627913974,...}
+  texto curto demais: HTTP 422 VALIDACAO
+  (nos dois primeiros a confiança fica abaixo de 50%: o app mostra só como palpite, sem botão de trocar)
+App: tipo, leitura da resposta, evento "trocar_categoria" no redutor (volta a verificar parecidos com a
+categoria nova) e decisão concorda/sugere/incerta com textos. Antes da implementação:
+  SyntaxError: The requested module './analise.ts' does not provide an export named 'decidirSugestaoRegistro'
+  SyntaxError: The requested module './respostas.ts' does not provide an export named 'parseSugestaoIA'
+
+## 4. Verificação final
+$ python -m pytest -q        (backend, PostgreSQL 18.4 local)
+170 passed in 16.41s
+$ npm test                   (app)
+ℹ tests 136
+ℹ pass 136
+ℹ fail 0
+$ npx tsc --noEmit  /  npx eslint .
+(sem saída: nenhum erro)
+Coleção do Insomnia contra o OpenAPI da API em execução: 75 requisições, todas apontando para operações
+existentes; as 23 operações cobertas (pasta 15 nova, com 2 requisições).
+Bundle iOS servido pelo Metro: HTTP 200, com os textos novos da IA e a URL da API configurada.
+
+## O que esta evidência NÃO comprova
+- A tela do registro com a sugestão e o botão "Trocar para …" no iPhone (teste manual pendente).
+- Desempenho da IA em relatos reais (treino e fictícios são sintéticos).

@@ -67,7 +67,7 @@ Transições de status e cálculo de prioridade: ver [REGRAS_DE_NEGOCIO.md](REGR
   "status": "ok",
   "banco": "ok",
   "modelo_ia": { "disponivel": true, "versao": "bridge-text-classifier-1.0.0" },
-  "versao_api": "1.0.0"
+  "versao_api": "2.0.0"
 }
 ```
 Sem modelo de IA configurado (ou se o arquivo não puder ser carregado): `"modelo_ia": { "disponivel": false, "versao": null }`.
@@ -415,6 +415,28 @@ Cabeçalho **`X-Identificacao-Id`** obrigatório. Resposta:
   pode avisar.
 - `GET /ocorrencias/{id}` passa a trazer `avisos_nao_resolvido` (contagem) e, com o
   cabeçalho, `minha_relacao.avisei_nao_resolvido`.
+
+### 3.20 `POST /ia/sugestao-categoria` (sugestão da IA no registro)
+
+O app pergunta antes de enviar, na revisão. **Não grava nada.** Corpo com as mesmas regras do
+cadastro (sem `identificacao_id` e `endereco`):
+
+```json
+{ "titulo": "Poste apagado na esquina", "descricao": "A lâmpada está queimada e a rua fica escura à noite.",
+  "categoria": "OUTRO", "latitude": -23.5503, "longitude": -46.634,
+  "risco_imediato": false, "bloqueia_passagem": false, "afeta_acessibilidade": false }
+```
+
+`200`:
+
+```json
+{ "disponivel": true, "categoria_sugerida": "ILUMINACAO_DEFEITUOSA", "confianca": 0.71, "versao_modelo": "bridge-text-classifier-1.0.0" }
+```
+
+_Valor de `confianca` ilustrativo._ Sem modelo (ou se o modelo falhar): `200` com
+`{"disponivel": false, "categoria_sugerida": null, "confianca": null, "versao_modelo": null}`.
+Campos inválidos: `422` (`VALIDACAO`), como no cadastro. A categoria escolhida pela pessoa só
+muda se ela aceitar a sugestão no app.
 
 ## 4. Fluxo de cadastro com foto (decisão)
 

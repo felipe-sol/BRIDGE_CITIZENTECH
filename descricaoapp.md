@@ -62,7 +62,8 @@ Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão
   arrastar não reagrupa nem move as bolhas.
 - **Cartão da ocorrência:** tocar num ícone abre um cartão com foto (toque → tela cheia com
   zoom), categoria, status, prioridade, endereço, quantas pessoas também relataram, última
-  atualização da equipe, "Eu também vi" e "Ver detalhe". O app encontra o ícone mais próximo
+  atualização da equipe, a sugestão de categoria da IA (marcada como "incerta" abaixo de 50%),
+  "Eu também vi" e "Ver detalhe". O app encontra o ícone mais próximo
   do dedo (até cerca de 28 pontos da tela), porque no iPhone o toque nem sempre chega ao
   marcador. Tocar num lugar vazio fecha o cartão.
 - **Alerta Bridge:** regiões em alerta ganham contorno tracejado.
@@ -81,7 +82,10 @@ Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão
   ou segue com "é outro".
 - **Foto e detalhes:** câmera ou galeria (a foto é opcional), descrição e a situação no local
   (risco imediato, bloqueia a passagem, afeta acessibilidade).
-- **Revisão e envio:** o envio usa uma chave de idempotência, então repetir o envio não cria
+- **Revisão e envio:** antes de enviar, a IA dá a opinião dela pelo que a pessoa escreveu. Se
+  sugerir outra categoria com confiança de 50% ou mais, aparece o botão "Trocar para …" (o app
+  verifica de novo os parecidos com a categoria nova); abaixo disso, é só um palpite. O envio usa
+  uma chave de idempotência, então repetir o envio não cria
   duplicata; se só a foto falhar, o app reenvia só a foto.
 
 ### Prioridade e Alerta Bridge
@@ -117,7 +121,8 @@ Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão
 
 - Participação da pessoa: registradas, confirmadas, resolvidas que acompanha e avisos.
 - Trocar o apelido e criar uma nova identificação.
-- **Texto maior** (aumenta letras e espaçamento) e **avisos de atualização no app**, guardados
+- **Texto maior** (aumenta letras e espaçamento, inclusive nas abas e nos títulos) e **avisos de
+  atualização no app**, guardados
   no aparelho.
 - Páginas informativas e a equipe (nomes vindos do `authors` do `package.json`).
 
@@ -196,7 +201,7 @@ A regra do app fica em **funções puras** (sem tela), testadas com `node --test
 ## Qualidade
 
 - `tsc --noEmit` sem erros, **nenhum `any`** nem `@ts-ignore`.
-- **118 testes** de funções puras passando (`npm test`).
+- **136 testes** de funções puras passando (`npm test`).
 - ESLint sem problemas e `expo-doctor` 20/20.
 - Evidência: [`docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt`](docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt).
 
@@ -209,5 +214,5 @@ A regra do app fica em **funções puras** (sem tela), testadas com `node --test
   aparelho físico. No Android, a foto em tela cheia aparece sem zoom de pinça.
 - **Sugestão da IA:** um classificador de texto (pasta `ia_ml/`) sugere a categoria pelo título e
   pela descrição, com a confiança. Foi treinado com dados sintéticos e pode errar; nunca muda a
-  categoria escolhida nem a prioridade. Ocorrências registradas antes do modelo ser ativado (e
-  as fictícias) aparecem como "Análise de IA indisponível".
+  categoria escolhida nem a prioridade. Registros feitos antes de o modelo ser ativado aparecem como
+  "Análise de IA indisponível" até alguém rodar `backend/scripts/analisar_ia.py`.

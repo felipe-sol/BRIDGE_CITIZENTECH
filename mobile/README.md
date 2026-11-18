@@ -48,12 +48,12 @@ demonstração, sempre com a faixa "DADOS FICTÍCIOS").
 |---|---|---|
 | Identificação | `/identificacao` | Cria o apelido salvo no aparelho (só aparece sem identificação) |
 | Início | `/` (aba) | Placa com o bairro e a subprefeitura de onde a pessoa está, faixa do **Alerta Bridge** mais relevante (ou "Sem alertas na sua região"), mapa real pequeno e as ocorrências que ela acompanha |
-| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Regiões em **Alerta Bridge** ganham contorno tracejado. Tocar num ponto abre um **cartão completo** (foto que abre em tela cheia com zoom, prioridade, relatos, última atualização da equipe, "Eu também vi" e "Ver detalhe"). Tem busca por região, endereço ou texto, filtros, atualização automática a cada 15 s (Ao vivo) e o modo **Exemplo** |
+| Mapa | `/mapa` (aba) | Mapa real (Apple Maps no iPhone) com a localização da pessoa. **Pontos** mostra a gravidade por forma e cor, com agrupamento no zoom afastado. **Densidade** pinta as 32 subprefeituras pelas ocorrências por km². Regiões em **Alerta Bridge** ganham contorno tracejado. Tocar num ponto abre um **cartão completo** (foto que abre em tela cheia com zoom, prioridade, relatos, última atualização da equipe, a sugestão de categoria da IA, "Eu também vi" e "Ver detalhe"). Tem busca por região, endereço ou texto, filtros, atualização automática a cada 15 s (Ao vivo) e o modo **Exemplo** |
 | Andamento | `/andamento` (aba) | O que a pessoa registrou ou confirmou, com etapas e o selo "Atualizada"; tem estados de carregando, erro e vazio e puxar para atualizar |
 | Análises | `/analises` (aba) | Indicadores (registradas, % resolvidas, tempo médio até resolver, regiões em alerta) e gráficos: por categoria, evolução semanal (registradas × resolvidas, com leitura ao tocar e tabela) e regiões com mais relatos; Ao vivo ou Exemplo |
-| Perfil | `/perfil` (aba) | Apelido (com troca), o que a pessoa já fez (registradas, confirmadas, resolvidas que acompanha, avisos), ajustes **Texto maior** e **Avisos de atualização no app**, links para as páginas informativas, versão e criar nova identificação |
+| Perfil | `/perfil` (aba) | Apelido (com troca), o que a pessoa já fez (registradas, confirmadas, resolvidas que acompanha, avisos), ajustes **Texto maior** (também nas abas e nos títulos) e **Avisos de atualização no app**, links para as páginas informativas, versão e criar nova identificação |
 | Sobre | `/sobre/[pagina]` | Páginas: como a prioridade é calculada, como funcionam os alertas, privacidade e dados, sobre o Bridge e equipe (nomes vindos de `authors`) |
-| Registrar | `/registrar` | Etapas: local no mapa (pino central e endereço sugerido) → categoria → parecidos a até 100 m (confirmar ou "é outro") → foto e detalhes → revisão e envio |
+| Registrar | `/registrar` | Etapas: local no mapa (pino central e endereço sugerido) → categoria → parecidos a até 100 m (confirmar ou "é outro") → foto e detalhes → revisão (com a sugestão da IA, que pode trocar a categoria) e envio |
 | Detalhe | `/ocorrencias/[id]` | Foto (toque → tela cheia com zoom), local no mapa, prioridade e justificativa, "Eu também vi", **"Ainda não foi resolvido? Avise"** nas resolvidas, linha do tempo com a equipe responsável, compartilhar e análise de IA |
 | Região | `/regiao/[codigo]` | Folha com os números de uma subprefeitura (total, abertas, alta gravidade, resolvidas, densidade) e o nível do Alerta Bridge com o motivo |
 
@@ -144,16 +144,17 @@ npx expo-doctor      # compatibilidade das dependências com o SDK
 ```
 
 Resultados em `../docs/evidencias/2026-11-13_verificacao-mobile-fase3.txt` (com os
-adendos das correções do mapa):
+adendos das correções do mapa) e `../docs/evidencias/2026-11-17_melhorias-ia.txt`:
 - `tsc` sem erros e ESLint sem problemas;
-- **118/118 testes**;
+- **136/136 testes**;
 - expo-doctor 20/20;
 - bundle iOS gerado;
 - nenhum `any` ou `@ts-ignore`;
 - nenhum segredo no bundle.
 
 Os testes cobrem: regiões e ponto em polígono, agrupamento do mapa (no máximo 64 itens,
-grade presa ao mapa), toque no mapa (ícone mais próximo do dedo), área pedida com folga,
+grade presa ao mapa), toque no mapa (ícone mais próximo do dedo), área pedida com folga, textos e decisão da sugestão
+da IA ("incerta" abaixo de 50%), troca de categoria pela IA no registro,
 distâncias, densidade, enquadramento, endereço, etapas do registro, selo "Atualizada",
 compartilhamento (inclusive o rótulo de dado fictício), validação do formulário, parsers
 das respostas da API, regra de exibição do alerta no Início, modo Ao vivo/Exemplo (resposta
@@ -198,8 +199,9 @@ src/
   integração oficial com a Prefeitura nem notificação push. O aviso de atualização
   aparece dentro do app.
 - **IA:** o detalhe mostra a categoria sugerida pelo modelo de texto e a confiança, só como
-  sugestão (o modelo foi treinado com dados sintéticos e pode errar). Ocorrências registradas
-  antes da ativação do modelo e as fictícias mostram "Análise de IA indisponível".
+  sugestão (o modelo foi treinado com dados sintéticos e pode errar). Registros anteriores à
+  ativação do modelo mostram "Análise de IA indisponível" até alguém rodar
+  `backend/scripts/analisar_ia.py`.
 - **Testes no aparelho:**
   - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e as fases 1
     e 2 do Bridge 2.0 em 13/11/2026;
@@ -226,7 +228,8 @@ O contrato está em `docs/CONTRATO_API.md` do repositório. Rotas usadas:
 - `/regioes`;
 - `/estatisticas/regioes` e `/estatisticas/resumo`;
 - `/identificacoes`, `/identificacoes/atual` (consultar e trocar apelido) e
-  `/identificacoes/atual/participacao`.
+  `/identificacoes/atual/participacao`;
+- `/ia/sugestao-categoria` (sugestão da IA na revisão do registro).
 
 O UUID da identificação vai sempre no cabeçalho `X-Identificacao-Id`, nunca na URL.
 As decisões de projeto estão em [`DECISOES.md`](DECISOES.md).

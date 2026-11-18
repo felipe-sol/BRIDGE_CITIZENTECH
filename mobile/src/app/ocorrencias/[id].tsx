@@ -23,13 +23,8 @@ import { MarcadorGravidade } from '../../components/MarcadorGravidade';
 import { SeloStatus } from '../../components/Sinalizacao';
 import { Texto } from '../../components/Texto';
 import { useIdentificacao } from '../../context/IdentificacaoContext';
-import {
-  ROTULO_CATEGORIA,
-  ROTULO_PRIORIDADE,
-  ehCategoria,
-  type AnaliseIA,
-  type OcorrenciaDetalhe,
-} from '../../models/ocorrencia';
+import { descreverAnaliseIA } from '../../ia/analise';
+import { ROTULO_CATEGORIA, ROTULO_PRIORIDADE, type OcorrenciaDetalhe } from '../../models/ocorrencia';
 import { ErroApi, mensagemDeErro, urlAbsoluta } from '../../services/http';
 import {
   aplicarAtualizacaoDetalhe,
@@ -46,35 +41,8 @@ import {
 } from '../../services/ocorrenciasService';
 import { marcarVisto } from '../../services/vistos';
 import { ALVO_TOQUE, cores, espaco, fontes, raio, sombra } from '../../theme/tema';
-import { formatarPercentual } from '../../utils/formatacao';
 import { ROTAS, interpretarIdRota, type ParametrosDetalhe } from '../../validation/rotas';
 
-/** Texto da análise de IA. Nunca inventa previsão quando ela não existe. */
-function descreverAnalise(analise: AnaliseIA): { titulo: string; texto: string } {
-  switch (analise.status) {
-    case 'INDISPONIVEL':
-      return {
-        titulo: 'Análise de IA indisponível',
-        texto:
-          'Não havia modelo de IA ativo no servidor quando esta ocorrência foi registrada. Ela segue normalmente para a equipe responsável.',
-      };
-    case 'PENDENTE':
-      return { titulo: 'Análise de IA pendente', texto: 'A análise automática ainda não foi feita para esta ocorrência.' };
-    case 'FALHOU':
-      return {
-        titulo: 'Análise de IA indisponível',
-        texto: 'O modelo de IA não conseguiu processar esta ocorrência. Os dados registrados não foram afetados.',
-      };
-    case 'CONCLUIDA': {
-      const sugerida = analise.categoriaSugerida;
-      const nome = sugerida && ehCategoria(sugerida) ? ROTULO_CATEGORIA[sugerida] : (sugerida ?? 'sem categoria');
-      const partes = [`Categoria sugerida: ${nome}.`];
-      if (analise.confianca !== null) partes.push(`Confiança informada pelo modelo: ${formatarPercentual(analise.confianca)}.`);
-      if (analise.versaoModelo) partes.push(`Modelo ${analise.versaoModelo}.`);
-      return { titulo: 'Sugestão da IA', texto: partes.join(' ') };
-    }
-  }
-}
 
 function FotoRemota({ caminho }: { caminho: string }) {
   const [estado, setEstado] = useState<'carregando' | 'ok' | 'erro'>('carregando');
@@ -229,7 +197,7 @@ export default function TelaDetalheOcorrencia() {
   }
 
   const o = estado.ocorrencia;
-  const analise = descreverAnalise(o.analiseIa);
+  const analise = descreverAnaliseIA(o.analiseIa);
   const encerrada = o.status === 'RESOLVIDA' || o.status === 'REJEITADA';
   const local = o.endereco ?? (o.subprefeitura ? `Subprefeitura ${o.subprefeitura.nome}` : 'Local sem endereço');
   const regiaoMapa = { latitude: o.latitude, longitude: o.longitude, latitudeDelta: 0.006, longitudeDelta: 0.006 };

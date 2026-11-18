@@ -467,6 +467,8 @@ export default function TelaMapa() {
 
       {selecaoAtual ? (
         <CartaoOcorrenciaMapa
+          // Um cartão por ocorrência: trocar de ponto zera a foto aberta e o relógio do "há X".
+          key={selecaoAtual.id}
           basico={selecaoAtual}
           detalhe={cartao.estado}
           ficticio={modo === 'exemplo'}

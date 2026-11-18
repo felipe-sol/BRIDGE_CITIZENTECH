@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.deps import Classificador, DbSession
 from app.schemas import HealthResposta, ModeloIAStatus
 
-VERSAO_API = "1.0.0"
+VERSAO_API = "2.0.0"
 
 router = APIRouter(tags=["health"])
 

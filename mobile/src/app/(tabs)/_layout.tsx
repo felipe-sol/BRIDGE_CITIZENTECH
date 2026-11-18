@@ -3,6 +3,8 @@ import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
 
 import { Icone, type NomeIcone } from '../../components/Icone';
+import { useEscalaTexto } from '../../context/PreferenciasContext';
+import { escalarEstiloTexto } from '../../preferencias/preferencias';
 import { cores, fontes } from '../../theme/tema';
 
 function iconeDaAba(ativo: NomeIcone, inativo: NomeIcone) {
@@ -15,13 +17,15 @@ function iconeDaAba(ativo: NomeIcone, inativo: NomeIcone) {
 }
 
 export default function LayoutAbas() {
+  // "Texto maior" também nos rótulos das abas (desenhados pela navegação, fora dos nossos componentes).
+  const escala = useEscalaTexto();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: cores.placa,
         tabBarInactiveTintColor: cores.textoSuave,
-        tabBarLabelStyle: { fontFamily: fontes.extrabold, fontSize: 11, letterSpacing: 0.3 },
+        tabBarLabelStyle: { fontFamily: fontes.extrabold, ...escalarEstiloTexto({ fontSize: 11 }, escala), letterSpacing: 0.3 },
         tabBarStyle: { backgroundColor: cores.papel, borderTopColor: cores.borda },
       }}
     >

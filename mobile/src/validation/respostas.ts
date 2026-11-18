@@ -26,6 +26,7 @@ import {
   type ResultadoConfirmacao,
   type ResumoEstatisticas,
   type Subprefeitura,
+  type SugestaoIA,
 } from '../models/ocorrencia.ts';
 import {
   ErroFormato,
@@ -161,6 +162,16 @@ export function parseParticipacao(valor: unknown): Participacao {
 }
 
 /** POST/DELETE /ocorrencias/{id}/confirmacoes */
+export function parseSugestaoIA(valor: unknown): SugestaoIA {
+  const o = objeto(valor, 'Sugestão da IA');
+  return {
+    disponivel: booleano(o, 'disponivel'),
+    categoriaSugerida: textoOuNulo(o, 'categoria_sugerida'),
+    confianca: numeroOuNulo(o, 'confianca'),
+    versaoModelo: textoOuNulo(o, 'versao_modelo'),
+  };
+}
+
 export function parseConfirmacao(valor: unknown): ResultadoConfirmacao {
   const o = objeto(valor, 'Confirmação');
   return { ocorrenciaId: inteiro(o, 'ocorrencia_id'), confirmacoes: inteiro(o, 'confirmacoes'), confirmado: booleano(o, 'confirmado') };
