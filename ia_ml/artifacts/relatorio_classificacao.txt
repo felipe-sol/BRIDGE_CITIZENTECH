@@ -1,0 +1,11 @@
+                       precision    recall  f1-score   support
+
+   CALCADA_DANIFICADA     1.0000    1.0000    1.0000       160
+               BURACO     1.0000    1.0000    1.0000       160
+ILUMINACAO_DEFEITUOSA     1.0000    1.0000    1.0000       160
+ OBSTACULO_CIRCULACAO     1.0000    1.0000    1.0000       160
+                OUTRO     1.0000    1.0000    1.0000       160
+
+             accuracy                         1.0000       800
+            macro avg     1.0000    1.0000    1.0000       800
+         weighted avg     1.0000    1.0000    1.0000       800

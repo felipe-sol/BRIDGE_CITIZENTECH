@@ -23,7 +23,7 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 | Cidadão beneficiado | Pedestres que dependem da calçada — em especial pessoas com deficiência ou mobilidade reduzida, idosos e quem anda com carrinho de bebê — e moradores que querem acompanhar a zeladoria do bairro |
 | Problema, em uma frase | Calçadas quebradas, buracos, postes apagados e obstáculos colocam pedestres em risco, e o cidadão não tem um jeito simples de registrar o problema e acompanhar o que foi feito |
 | Como funciona | O cidadão registra pelo app (categoria, descrição, foto, localização GPS e situação no local); a API valida, calcula a prioridade por regras documentadas, grava no PostgreSQL e mantém o histórico de cada mudança de status; um operador atualiza o andamento |
-| O que cada parte faz | **SOA:** backend REST, domínio, banco, migrações (este repositório, `backend/`) · **Mobile:** app React Native/Expo (`mobile/`) · **IA & ML:** modelo do colega, ainda não entregue (`docs/CONTRATO_IA.md`) · **Demais disciplinas:** **[PREENCHER]** |
+| O que cada parte faz | **SOA:** backend REST, domínio, banco, migrações (este repositório, `backend/`) · **Mobile:** app React Native/Expo (`mobile/`) · **IA & ML:** classificador textual de categoria (`ia_ml/`), integrado ao contrato do backend (`docs/CONTRATO_IA.md`) · **Demais disciplinas:** **[PREENCHER]** |
 | Link do repositório | **[PREENCHER: URL do GitHub]** |
 | Indicador de impacto (proposto, **não medido**) | Tempo entre registro e resolução (calculável pelo `historico_status`); nº de ocorrências registradas × resolvidas; % das ocorrências de prioridade alta resolvidas em até N dias |
 | ODS conectados | 11, 9 e 10 (ver abaixo) |
@@ -150,6 +150,39 @@ Ordem para subir tudo do zero (Windows PowerShell). Cada passo tem detalhes nas 
    Code ou digite `exp://<IP-do-computador>:8081`. Ver
    [Acesso pelo celular](#acesso-pelo-celular-app-mobile) e o
    [README do app](mobile/README.md#instalação-e-execução).
+
+## Começar a trabalhar nesta cópia e validar a IA
+
+1. Extraia o ZIP do projeto completo para uma pasta local fora do OneDrive e abra a
+   pasta raiz `BRIDGE_CITIZENTECH-main` no VS Code (a pasta que contém `backend/`,
+   `mobile/`, `ia_ml/` e `docs/`).
+2. No terminal PowerShell do VS Code, entre em `backend/`, crie o ambiente virtual,
+   instale as dependências e copie o arquivo de ambiente:
+
+   ```powershell
+   cd backend
+   python -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+   Copy-Item .env.example .env
+   ```
+
+3. Ainda em `backend/`, valide o classificador sem precisar iniciar o PostgreSQL:
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m pytest tests/test_ia_classificador_texto.py -q
+   ```
+
+4. Para executar a API completa, ligue o PostgreSQL, aplique as migrações e inicie o
+   servidor conforme a seção [Como rodar](#como-rodar). O `backend/.env.example` já
+   contém o caminho relativo para o artefato treinado em `ia_ml/artifacts/`.
+5. Para executar o app, use outro terminal na pasta `mobile/`, rode `npm ci`, copie
+   `.env.example` para `.env`, ajuste `EXPO_PUBLIC_API_URL` para o IP do computador e
+   execute `npx expo start -c`.
+
+Para reproduzir o treinamento, consulte [`ia_ml/README.md`](ia_ml/README.md). Antes de
+publicar no GitHub, preencha os campos `[PREENCHER]` deste README e de `mobile/README.md`,
+confira os nomes/RMs/papéis com a equipe e revise a URL do repositório. Não versione
+arquivos `.env`, tokens, senhas ou dados pessoais.
 
 ## Instalação
 
@@ -396,13 +429,17 @@ persistência após reiniciar a API):
 
 ## IA: situação real e limitações
 
-- O modelo é de outro integrante e **ainda não foi entregue**.
-- O backend tem uma interface isolada (`app/services/ia/`), carregada uma vez na
-  inicialização. Sem modelo, toda ocorrência fica com `analise_ia.status = "INDISPONIVEL"`
-  e **nenhuma** categoria ou confiança é inventada.
-- O que precisamos receber e como integrar: [`docs/CONTRATO_IA.md`](docs/CONTRATO_IA.md).
-- A **prioridade não é IA**: é uma pontuação por regras fixas, documentada e testada.
-  Não é avaliação oficial de segurança.
+- O classificador textual está implementado em `ia_ml/` e integrado ao contrato do
+  backend em `backend/app/services/ia/`.
+- A previsão usa somente `titulo` e `descricao` e sugere uma das cinco categorias oficiais.
+  A categoria selecionada pelo cidadão é preservada e não é usada como atributo do modelo.
+- A tela de detalhe do app apresenta a sugestão e o score retornados pela API quando a
+  análise está concluída.
+- O dataset é sintético/simulado (4.000 registros gerados por templates). As métricas
+  perfeitas demonstram o funcionamento do pipeline nesse conjunto controlado; não
+  comprovam desempenho em relatos reais. Consulte [`ia_ml/README.md`](ia_ml/README.md).
+- A **prioridade não é IA**: continua sendo uma pontuação por regras fixas, documentada
+  e testada. Não é avaliação oficial de segurança.
 
 ## Evidências
 
@@ -420,4 +457,8 @@ persistência após reiniciar a API):
 | Testes automatizados (159, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Integração com o modelo de IA | **Pendente** — aguardando o material do colega |
+| Integração com o modelo de IA | **Implementada**: classificador textual carregado pelo backend; teste de inferência automatizado em `backend/tests/test_ia_classificador_texto.py` |
+
+## Inteligência Artificial & Machine Learning
+
+O componente acadêmico de IA está em [`ia_ml/`](ia_ml/README.md). Ele sugere uma categoria para ocorrências a partir de título e descrição. O conjunto fornecido é sintético e suas métricas não representam validação em campo. A prioridade permanece determinada pelas regras de negócio documentadas.
