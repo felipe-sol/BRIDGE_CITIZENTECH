@@ -44,14 +44,14 @@ O reinício da API e do PostgreSQL antes da 08.1 está registrado em
 
 | # | Requisição | Esperado | Print |
 |---|---|---|---|
-| 01.1 | GET /health | 200, `status: ok`, `banco: ok`, `modelo_ia.disponivel: false` | ☑ `01-1-health.png` |
+| 01.1 | GET /health | 200, `status: ok`, `banco: ok`, `modelo_ia.disponivel: false` (Rodada 1, sem modelo; com o modelo ativo desde 17/11: `true`) | ☑ `01-1-health.png` |
 | 02.1 | POST /identificacoes (válida) | 201 com `id` UUID → **copie para `identificacao_id`** | ☑ `02-1-identificacao.png` |
 | 02.2 | POST /identificacoes (apelido "A") | 422 `VALIDACAO`, campo `apelido` | ☑ `02-2-identificacao-invalida.png` |
 | 02.3 | GET /identificacoes/{id} | 200, mesma identificação | ☑ `02-3-identificacao-get.png` |
 | 02.4 | GET /identificacoes/{id inexistente} | 404 `NAO_ENCONTRADO` | ☑ `02-4-identificacao-404.png` |
 | 02.5 | POST /identificacoes (2ª pessoa) | 201 → **copie para `outra_identificacao_id`** | ☑ `02-5-segunda-identificacao.png` |
 | 03.1 | GET /ocorrencias (vazia) | 200, `itens: []`, `total: 0` | ☑ `03-1-lista-vazia.png` |
-| 04.1 | POST /ocorrencias (válida) | 201, `ABERTA`, `ALTA`, pontuação 7, IA `INDISPONIVEL` → **anote `ocorrencia_id`** | ☑ `04-1-cadastro.png` |
+| 04.1 | POST /ocorrencias (válida) | 201, `ABERTA`, `ALTA`, pontuação 7, IA `INDISPONIVEL` na Rodada 1 (sem modelo; com o modelo ativo: `CONCLUIDA` + sugestão) → **anote `ocorrencia_id`** | ☑ `04-1-cadastro.png` |
 | 04.2 | POST /ocorrencias (mesma Idempotency-Key) | **200** com o mesmo `id` (sem duplicar) | ☑ `04-2-idempotencia.png` |
 | 04.3 | POST /ocorrencias (campos inválidos) | 422, detalhes de 5 campos | ☑ `04-3-campos-invalidos.png` |
 | 04.4 | POST /ocorrencias (latitude 91) | 422, campo `latitude` | ☑ `04-4-latitude.png` |

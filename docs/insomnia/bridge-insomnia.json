@@ -56,7 +56,7 @@
       "headers": [],
       "parameters": [],
       "authentication": {},
-      "description": "**Esperado:** 200 com {\"status\":\"ok\",\"banco\":\"ok\",\"modelo_ia\":{\"disponivel\":false,\"versao\":null}}.",
+      "description": "**Esperado:** 200 com status ok e banco ok. Com o modelo de IA ativo (padrão do .env.example desde 17/11): modelo_ia {\"disponivel\":true,\"versao\":\"bridge-text-classifier-1.0.0\"}. Na Rodada 1 (12/11, ainda sem modelo) era {\"disponivel\":false,\"versao\":null}.",
       "metaSortKey": 2
     },
     {
@@ -214,7 +214,7 @@
       ],
       "parameters": [],
       "authentication": {},
-      "description": "**Esperado:** 201; status ABERTA; prioridade ALTA, pontuação 7; analise_ia.status INDISPONIVEL (sem modelo). **Anote o id em ocorrencia_id.**",
+      "description": "**Esperado:** 201; status ABERTA; prioridade ALTA, pontuação 7; analise_ia.status CONCLUIDA com categoria_sugerida e confianca (modelo ativo; na Rodada 1, sem modelo, era INDISPONIVEL). **Anote o id em ocorrencia_id.**",
       "metaSortKey": 12
     },
     {

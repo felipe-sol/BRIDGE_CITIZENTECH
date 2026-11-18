@@ -20,7 +20,7 @@ responsável numa linha do tempo.
 | Problema, em uma frase | Calçadas quebradas, buracos, postes apagados e obstáculos colocam pedestres em risco, e o cidadão não tem um jeito simples de registrar e acompanhar o problema |
 | Solução | App para registrar a ocorrência com foto e localização no mapa, somar o próprio relato ao de outras pessoas e acompanhar o andamento; a API calcula a prioridade por regras transparentes e mantém o histórico de status |
 | Benefício esperado | Registro mais completo (foto, coordenadas e endereço), menos duplicatas e acompanhamento visível do andamento; priorização explícita do que afeta a acessibilidade. _Benefício esperado, não medido._ |
-| O que cada parte faz | **Mobile:** este app · **SOA:** API REST + PostgreSQL (`../backend`) · **IA & ML:** modelo do colega, ainda não entregue |
+| O que cada parte faz | **Mobile:** este app · **SOA:** API REST + PostgreSQL (`../backend`) · **IA & ML:** classificador de texto que sugere a categoria (`../ia_ml`) |
 | Link do repositório | **[PREENCHER: URL do GitHub]** |
 | Indicador de impacto (proposto) | Tempo entre registro e resolução; ocorrências registradas × resolvidas; confirmações por ocorrência |
 | ODS | 11 (meta 11.7), 9 (meta 9.1) e 10 (meta 10.2) |
@@ -197,8 +197,9 @@ src/
 - **Status** quem muda é a equipe responsável do projeto (rota administrativa). Não há
   integração oficial com a Prefeitura nem notificação push. O aviso de atualização
   aparece dentro do app.
-- **IA:** o modelo do colega ainda não foi entregue. O detalhe mostra "Análise
-  indisponível" e nada é inventado.
+- **IA:** o detalhe mostra a categoria sugerida pelo modelo de texto e a confiança, só como
+  sugestão (o modelo foi treinado com dados sintéticos e pode errar). Ocorrências registradas
+  antes da ativação do modelo e as fictícias mostram "Análise de IA indisponível".
 - **Testes no aparelho:**
   - a versão 1.0 foi testada pela equipe num iPhone pelo Expo Go em 12/11/2026, e as fases 1
     e 2 do Bridge 2.0 em 13/11/2026;

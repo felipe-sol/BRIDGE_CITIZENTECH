@@ -54,13 +54,14 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 
 | Camada | Tecnologia (versão testada) |
 |---|---|
-| Linguagem | Python 3.14.3 (requer ≥ 3.11) |
+| Linguagem | Python 3.14.3; também verificado com 3.11 (requer ≥ 3.11) |
 | API REST | FastAPI 0.162.4 + Uvicorn 0.54.0 |
 | Validação/contrato | Pydantic 2.14 (schemas) · OpenAPI gerado em `/docs` |
 | ORM | SQLAlchemy 2.1.8 (consultas parametrizadas, sem SQL concatenado) |
 | Migrações | Alembic 1.20.1 |
 | Banco | PostgreSQL (driver psycopg 3.3.8) |
 | Imagens | Pillow 13.0.0 (validação de conteúdo e remoção de EXIF) |
+| IA (`ia_ml/`) | scikit-learn 1.8.0 (TF-IDF + regressão logística), joblib 1.5.3, numpy 2.3.5 |
 | Testes | pytest 9.2.0 + TestClient (httpx2) · Insomnia (manuais) |
 
 Dependências fixadas em [`backend/requirements.txt`](backend/requirements.txt) e
@@ -86,13 +87,14 @@ bridge/
 │   │       ├── transicoes.py  #   transições de status
 │   │       ├── armazenamento.py # upload seguro de fotos
 │   │       ├── ocorrencias.py / identificacoes.py
-│   │       └── ia/            #   interface isolada do modelo de IA
-│   ├── alembic/versions/      # 0001 e 0002 (migrações reais)
+│   │       └── ia/            #   interface do modelo de IA + adaptador do classificador textual
+│   ├── alembic/versions/      # 0001 a 0004 (migrações reais)
 │   ├── tests/                 # pytest (unitários + integração com PostgreSQL)
-│   ├── scripts/               # criar_banco.sql, verificar_api.py
+│   ├── scripts/               # criar_banco.sql, verificar_api.py, dados_ficticios.py
 │   └── .env.example
+├── ia_ml/                     # modelo de IA: notebook, dataset sintético e artefato treinado
 ├── mobile/                    # app React Native + Expo (entrega Mobile)
-└── docs/                      # contratos, regras, Insomnia, evidências, requisitos
+└── docs/                      # contratos, regras, Insomnia e evidências
 ```
 
 ## Domínio
@@ -134,7 +136,8 @@ Ordem para subir tudo do zero (Windows PowerShell). Cada passo tem detalhes nas 
 
    Confira em <http://localhost:8000/health> (deve mostrar `"status": "ok"`) e na
    documentação interativa em <http://localhost:8000/docs>. As rotas administrativas só
-   funcionam com `ADMIN_TOKEN` definido no `.env`.
+   funcionam com `ADMIN_TOKEN` definido no `.env`. O `.env.example` já liga o modelo de IA
+   (`ia_ml/`): o `/health` deve mostrar `"modelo_ia": {"disponivel": true, ...}`.
 3. **Dados fictícios** (opcional, para o modo Exemplo do app), na pasta `backend/`:
    `.\.venv\Scripts\python.exe scripts\dados_ficticios.py gerar`. Ver
    [Dados fictícios](#dados-fictícios-de-demonstração-modo-exemplo).
@@ -150,39 +153,6 @@ Ordem para subir tudo do zero (Windows PowerShell). Cada passo tem detalhes nas 
    Code ou digite `exp://<IP-do-computador>:8081`. Ver
    [Acesso pelo celular](#acesso-pelo-celular-app-mobile) e o
    [README do app](mobile/README.md#instalação-e-execução).
-
-## Começar a trabalhar nesta cópia e validar a IA
-
-1. Extraia o ZIP do projeto completo para uma pasta local fora do OneDrive e abra a
-   pasta raiz `BRIDGE_CITIZENTECH-main` no VS Code (a pasta que contém `backend/`,
-   `mobile/`, `ia_ml/` e `docs/`).
-2. No terminal PowerShell do VS Code, entre em `backend/`, crie o ambiente virtual,
-   instale as dependências e copie o arquivo de ambiente:
-
-   ```powershell
-   cd backend
-   python -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-   Copy-Item .env.example .env
-   ```
-
-3. Ainda em `backend/`, valide o classificador sem precisar iniciar o PostgreSQL:
-
-   ```powershell
-   .\.venv\Scripts\python.exe -m pytest tests/test_ia_classificador_texto.py -q
-   ```
-
-4. Para executar a API completa, ligue o PostgreSQL, aplique as migrações e inicie o
-   servidor conforme a seção [Como rodar](#como-rodar). O `backend/.env.example` já
-   contém o caminho relativo para o artefato treinado em `ia_ml/artifacts/`.
-5. Para executar o app, use outro terminal na pasta `mobile/`, rode `npm ci`, copie
-   `.env.example` para `.env`, ajuste `EXPO_PUBLIC_API_URL` para o IP do computador e
-   execute `npx expo start -c`.
-
-Para reproduzir o treinamento, consulte [`ia_ml/README.md`](ia_ml/README.md). Antes de
-publicar no GitHub, preencha os campos `[PREENCHER]` deste README e de `mobile/README.md`,
-confira os nomes/RMs/papéis com a equipe e revise a URL do repositório. Não versione
-arquivos `.env`, tokens, senhas ou dados pessoais.
 
 ## Instalação
 
@@ -401,16 +371,22 @@ cd backend
 - **Fase 3 (`test_api_avisos.py`, `test_api_identificacao.py` e acréscimos):** migração 0004
   com ida e volta, "ainda não foi resolvido" (regras, idempotência, não reabre), trocar
   apelido, participação e remoção de fictícios à prova de uso indevido.
+- **IA (`test_ia_classificador_texto.py`):** o modelo entregue sugere a categoria pelo texto;
+  o cadastro pela API grava a sugestão sem mudar a categoria escolhida nem a prioridade;
+  modelo ausente ou corrompido não derruba a API.
 
-Última execução: **159 passaram, 0 pulados**, em
-[`docs/evidencias/2026-11-13_pytest-backend-fase3.txt`](docs/evidencias/2026-11-13_pytest-backend-fase3.txt)
-(a execução do 1.0, com 95, está em `2026-11-11_pytest-backend-com-banco.txt`).
+Última execução: **163 passaram, 0 pulados**, em
+[`docs/evidencias/2026-11-17_integracao-ia.txt`](docs/evidencias/2026-11-17_integracao-ia.txt)
+(fim da fase 3: 159, em `2026-11-13_pytest-backend-fase3.txt`; versão 1.0: 95, em
+`2026-11-11_pytest-backend-com-banco.txt`).
 
 Verificação ponta a ponta contra a API rodando (complementar):
 `python scripts/verificar_api.py --base-url http://localhost:8000 --admin-token <token>`.
 Resultado com as fases 1 a 3 (79 verificações, conferindo também o conteúdo, e
 persistência após reiniciar a API):
-[`docs/evidencias/2026-11-13_verificacao-api-fase3.txt`](docs/evidencias/2026-11-13_verificacao-api-fase3.txt).
+[`docs/evidencias/2026-11-13_verificacao-api-fase3.txt`](docs/evidencias/2026-11-13_verificacao-api-fase3.txt);
+repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
+[`docs/evidencias/2026-11-17_integracao-ia.txt`](docs/evidencias/2026-11-17_integracao-ia.txt).
 
 ### Manuais (Insomnia) — exigência da disciplina
 
@@ -435,6 +411,12 @@ persistência após reiniciar a API):
   A categoria selecionada pelo cidadão é preservada e não é usada como atributo do modelo.
 - A tela de detalhe do app apresenta a sugestão e o score retornados pela API quando a
   análise está concluída.
+- **Ativação:** `MODELO_IA_CAMINHO` e `MODELO_IA_VERSAO` no `backend/.env` (o `.env.example` já
+  aponta para `ia_ml/artifacts/`). Se o arquivo faltar ou estiver corrompido, a API sobe do
+  mesmo jeito e as análises ficam `INDISPONIVEL`; se a inferência falhar, a ocorrência é
+  salva com a análise `FALHOU`.
+- Só as ocorrências registradas com o modelo ativo recebem sugestão. As anteriores e as
+  fictícias continuam com a análise `INDISPONIVEL`.
 - O dataset é sintético/simulado (4.000 registros gerados por templates). As métricas
   perfeitas demonstram o funcionamento do pipeline nesse conjunto controlado; não
   comprovam desempenho em relatos reais. Consulte [`ia_ml/README.md`](ia_ml/README.md).
@@ -445,7 +427,7 @@ persistência após reiniciar a API):
 
 Índice em [`docs/evidencias/README.md`](docs/evidencias/README.md).
 
-## Situação atual (13/11/2026, fim da fase 3)
+## Situação atual (17/11/2026)
 
 | Item | Situação |
 |---|---|
@@ -454,11 +436,7 @@ persistência após reiniciar a API):
 | Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
-| Testes automatizados (159, com PostgreSQL) | **Passando** |
+| Testes automatizados (163, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |
-| Integração com o modelo de IA | **Implementada**: classificador textual carregado pelo backend; teste de inferência automatizado em `backend/tests/test_ia_classificador_texto.py` |
-
-## Inteligência Artificial & Machine Learning
-
-O componente acadêmico de IA está em [`ia_ml/`](ia_ml/README.md). Ele sugere uma categoria para ocorrências a partir de título e descrição. O conjunto fornecido é sintético e suas métricas não representam validação em campo. A prioridade permanece determinada pelas regras de negócio documentadas.
+| Integração com o modelo de IA | **Implementada e verificada automaticamente** (17/11): classificador textual de `ia_ml/` carregado pelo backend, sugestão gravada no cadastro; teste no iPhone **pendente** |

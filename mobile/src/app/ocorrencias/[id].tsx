@@ -55,7 +55,8 @@ function descreverAnalise(analise: AnaliseIA): { titulo: string; texto: string }
     case 'INDISPONIVEL':
       return {
         titulo: 'Análise de IA indisponível',
-        texto: 'Nenhum modelo de IA está configurado no servidor. A ocorrência segue normalmente para a equipe responsável.',
+        texto:
+          'Não havia modelo de IA ativo no servidor quando esta ocorrência foi registrada. Ela segue normalmente para a equipe responsável.',
       };
     case 'PENDENTE':
       return { titulo: 'Análise de IA pendente', texto: 'A análise automática ainda não foi feita para esta ocorrência.' };

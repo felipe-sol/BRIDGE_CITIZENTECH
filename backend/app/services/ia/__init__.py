@@ -20,17 +20,25 @@ __all__ = [
 def criar_classificador(settings: Settings) -> ClassificadorOcorrencia:
     """Chamado UMA vez na inicialização da API (lifespan).
 
-    Enquanto o modelo do colega não for entregue e um adaptador não for escrito
-    para ele, devolve sempre o classificador indisponível.
+    Com `MODELO_IA_CAMINHO` definido, carrega o classificador textual (`ia_ml/`).
+    Sem o caminho, ou se o modelo não puder ser carregado (arquivo ausente ou
+    corrompido, dependência faltando), a API sobe do mesmo jeito com o
+    classificador indisponível: as análises ficam "INDISPONIVEL".
     """
     if not settings.modelo_ia_caminho:
         logger.info("IA: nenhum modelo configurado (MODELO_IA_CAMINHO vazio). Análises ficarão INDISPONIVEL.")
         return ClassificadorIndisponivel()
 
-    # Ponto de extensão: quando o modelo chegar, instanciar aqui o adaptador real
-    # (ex.: ClassificadorImagemSklearn(settings.modelo_ia_caminho, settings.modelo_ia_versao)).
-    logger.warning(
-        "IA: MODELO_IA_CAMINHO foi definido, mas nenhum adaptador foi implementado ainda. "
-        "Usando classificador indisponível."
-    )
-    return ClassificadorIndisponivel()
+    try:
+        # Importado só aqui: o scikit-learn só é carregado quando há modelo configurado.
+        from app.services.ia.classificador_texto import ClassificadorTextoSklearn
+
+        classificador = ClassificadorTextoSklearn(settings.modelo_ia_caminho, settings.modelo_ia_versao or None)
+    except Exception:
+        logger.exception(
+            "IA: não foi possível carregar o modelo de MODELO_IA_CAMINHO. A API segue sem IA (análises INDISPONIVEL)."
+        )
+        return ClassificadorIndisponivel()
+
+    logger.info("IA: modelo %s carregado.", classificador.versao)
+    return classificador

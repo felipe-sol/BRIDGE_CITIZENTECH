@@ -99,7 +99,7 @@ Implementação: [`backend/app/services/transicoes.py`](../backend/app/services/
 
 | Status | Significado |
 |---|---|
-| `INDISPONIVEL` | Nenhum modelo está carregado neste servidor. Nada é inferido. |
+| `INDISPONIVEL` | Não havia modelo carregado no servidor quando a ocorrência foi registrada (sem `MODELO_IA_CAMINHO`, ou arquivo ausente/corrompido). Nada é inferido. |
 | `PENDENTE` | Há modelo, mas a análise ainda não rodou (ex.: aguardando a foto). |
 | `CONCLUIDA` | O modelo rodou; `categoria_sugerida` e, se o modelo fornecer, `confianca` foram gravadas. |
 | `FALHOU` | O modelo gerou erro; a ocorrência continua válida e salva. |

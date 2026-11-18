@@ -41,7 +41,7 @@ Barra de abas: **Início · Mapa · Andamento · Análises · Perfil**. O botão
 | **Início** | Vê o bairro e a subprefeitura onde está, o Alerta Bridge mais relevante (ou "Sem alertas na sua região"), um mapa pequeno e as ocorrências que acompanha |
 | **Mapa** | Explora o mapa real (Apple Maps no iPhone) com pontos, densidade, busca, filtros e o cartão de cada ocorrência (detalhes abaixo) |
 | **Registrar** | Registra em etapas: local no mapa (pino central e endereço sugerido) → categoria → parecidos a até 100 m → foto e detalhes → revisão e envio |
-| **Detalhe** | Vê foto (tela cheia com zoom), local, prioridade e o porquê dela, "Eu também vi", "Ainda não foi resolvido? Avise", linha do tempo da equipe e compartilhar |
+| **Detalhe** | Vê foto (tela cheia com zoom), local, prioridade e o porquê dela, "Eu também vi", "Ainda não foi resolvido? Avise", linha do tempo da equipe, sugestão de categoria da IA e compartilhar |
 | **Andamento** | Acompanha o que registrou ou confirmou, com etapas, selo "Atualizada" e puxar para atualizar |
 | **Análises** | Indicadores e gráficos da cidade (detalhes abaixo) |
 | **Perfil** | Vê a própria participação, troca o apelido, ajusta Texto maior e avisos no app, lê as páginas informativas e a equipe |
@@ -207,5 +207,7 @@ A regra do app fica em **funções puras** (sem tela), testadas com `node --test
   digitado continua no formulário.
 - Testado em iPhone pelo Expo Go, em modo retrato e tema claro; Android não foi testado em
   aparelho físico. No Android, a foto em tela cheia aparece sem zoom de pinça.
-- O modelo de IA de outro integrante ainda não foi entregue: o detalhe mostra "Análise
-  indisponível" e nada é inventado.
+- **Sugestão da IA:** um classificador de texto (pasta `ia_ml/`) sugere a categoria pelo título e
+  pela descrição, com a confiança. Foi treinado com dados sintéticos e pode errar; nunca muda a
+  categoria escolhida nem a prioridade. Ocorrências registradas antes do modelo ser ativado (e
+  as fictícias) aparecem como "Análise de IA indisponível".

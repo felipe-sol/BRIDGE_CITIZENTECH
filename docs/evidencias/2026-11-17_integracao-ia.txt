@@ -1,0 +1,178 @@
+# Integração do modelo de IA (PR #1, classificador textual de ia_ml/)
+Data: 2026-11-17
+Modelo: bridge-text-classifier-1.0.0 (TF-IDF + regressão logística, scikit-learn 1.8.0), entregue por
+outro integrante no PR #1. Treinado com dados SINTÉTICOS (4.000 registros gerados por templates).
+
+## 0. Revisão do PR antes da integração
+- O próprio teste do PR falhava: criar_classificador (backend/app/services/ia/__init__.py) não carregava o
+  modelo, e backend/requirements.txt e .env.example não tinham as dependências e o caminho.
+- Segurança do artefato .joblib (carregar um pickle executa código): antes de carregar, os módulos
+  referenciados no arquivo foram listados. Só aparecem as classes esperadas:
+  sklearn.pipeline.Pipeline, sklearn.feature_extraction.text.TfidfVectorizer,
+  sklearn.linear_model._logistic.LogisticRegression, numpy (ndarray, float64, _reconstruct) e
+  joblib.numpy_pickle.NumpyArrayWrapper. Nenhuma referência a os/subprocess/eval/exec.
+- Dataset (ia_ml/dataset): 3 colunas (titulo, descricao, categoria); nenhum e-mail, CPF, telefone,
+  senha, token ou caminho de computador encontrado no dataset, no notebook e nos READMEs do PR.
+
+## 1. Testes primeiro (RED), antes de ligar o modelo
+$ python -m pytest tests/test_ia_classificador_texto.py -q
+E       RuntimeError: Nenhum modelo de IA configurado; classificar() não deve ser chamado.
+>       assert analise["status"] == "CONCLUIDA"
+E       AssertionError: assert 'INDISPONIVEL' == 'CONCLUIDA'
+FAILED tests/test_ia_classificador_texto.py::test_classificador_textual_sugere_categoria_pelo_texto
+FAILED tests/test_ia_classificador_texto.py::test_cadastro_com_modelo_grava_sugestao_sem_mudar_categoria_nem_prioridade
+2 failed, 2 passed in 5.02s
+(os 2 que passaram são os de proteção: modelo ausente e arquivo corrompido não derrubam a API)
+
+## 2. Depois da integração (GREEN)
+Mudanças: criar_classificador carrega ClassificadorTextoSklearn quando MODELO_IA_CAMINHO está definido e,
+se o modelo não puder ser carregado, volta para "indisponível" sem derrubar a API; requirements.txt com
+scikit-learn==1.8.0, joblib==1.5.3, numpy==2.3.5; .env.example com o caminho do artefato.
+$ python -m pytest tests/test_ia_classificador_texto.py -v
+tests/test_ia_classificador_texto.py::test_classificador_textual_sugere_categoria_pelo_texto PASSED
+tests/test_ia_classificador_texto.py::test_modelo_ausente_nao_derruba_a_api PASSED
+tests/test_ia_classificador_texto.py::test_arquivo_de_modelo_corrompido_nao_derruba_a_api PASSED
+tests/test_ia_classificador_texto.py::test_cadastro_com_modelo_grava_sugestao_sem_mudar_categoria_nem_prioridade PASSED
+4 passed in 8.88s
+
+Suíte completa (PostgreSQL 18.4 local, banco de testes):
+$ python -m pytest -q
+163 passed in 31.72s
+[código de saída: 0]
+
+Python 3.11 (versão mínima do README), ambiente novo:
+$ pip install -r requirements-dev.txt   -> [código de saída: 0]
+$ python -m pytest tests/test_ia_classificador_texto.py -k "not cadastro" -q
+3 passed, 1 deselected in 15.07s
+
+## 3. API de desenvolvimento com o modelo ativo
+Log da inicialização:
+2026-11-17 22:23:53,829 INFO bridge.ia: IA: modelo bridge-text-classifier-1.0.0 carregado.
+GET /health -> {"status":"ok","banco":"ok","modelo_ia":{"disponivel":true,"versao":"bridge-text-classifier-1.0.0"},"versao_api":"1.0.0"}
+
+## 4. Verificação HTTP completa com o modelo ativo (API ligada ao banco de testes, porta 8001)
+[OK  ] GET   /health                                -> 200 (esperado 200) — API e banco respondendo
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria identificação
+[OK  ] POST  /identificacoes                        -> 201 (esperado 201) — cria 2ª identificação
+[OK  ] POST  /identificacoes                        -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro válido
+        prioridade=ALTA pontuação=7 ia=CONCLUIDA
+[OK  ] POST  /ocorrencias                           -> 200 (esperado 200) — mesma Idempotency-Key não duplica
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — latitude 91
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — coordenadas (0,0)
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — identificação inexistente
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — 2ª ocorrência
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — listagem
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ordenação por prioridade
+[OK  ] GET   /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — tamanho inválido
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — detalhe
+[OK  ] GET   /ocorrencias/999999                    -> 404 (esperado 404 (NAO_ENCONTRADO)) — detalhe inexistente
+[OK  ] POST  /ocorrencias/1/imagem                  -> 200 (esperado 200) — upload válido
+[OK  ] GET   /ocorrencias/1/imagem                  -> 200 (esperado 200) — download da imagem
+[OK  ] POST  /ocorrencias/1/imagem                  -> 409 (esperado 409 (IMAGEM_JA_ENVIADA)) — upload repetido
+[OK  ] POST  /ocorrencias/2/imagem                  -> 415 (esperado 415 (FORMATO_NAO_SUPORTADO)) — texto com extensão .jpg
+[OK  ] POST  /ocorrencias/2/imagem                  -> 403 (esperado 403 (PROIBIDO)) — upload por outra identificação
+[OK  ] PATCH /ocorrencias/1/status                  -> 401 (esperado 401) — status sem token
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — ABERTA → EM_ANALISE
+[OK  ] PATCH /ocorrencias/1/status                  -> 409 (esperado 409 (TRANSICAO_INVALIDA)) — EM_ANALISE → RESOLVIDA (inválida)
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANALISE → EM_ANDAMENTO
+[OK  ] PATCH /ocorrencias/1/status                  -> 200 (esperado 200) — EM_ANDAMENTO → RESOLVIDA
+        histórico: ['ABERTA', 'EM_ANALISE', 'EM_ANDAMENTO', 'RESOLVIDA']
+
+--- Bridge 2.0 (fase 1) ---
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro com endereço (Sé)
+        [OK  ] região Sé, endereço, 0 confirmações, origem APP
+[OK  ] POST  /ocorrencias                           -> 201 (esperado 201) — cadastro fora de SP
+        [OK  ] fora de SP: subprefeitura nula
+[OK  ] POST  /ocorrencias                           -> 422 (esperado 422 (VALIDACAO)) — endereço com 201 caracteres
+[OK  ] GET   /regioes                               -> 200 (esperado 200) — limites das regiões
+        [OK  ] 32 subprefeituras
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — estatísticas por região
+        [OK  ] 32 itens; Sé com ≥ 1
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — ocorrências na área do mapa
+        [OK  ] a da Sé está na caixa; a do Rio não
+[OK  ] GET   /ocorrencias                           -> 200 (esperado 200) — busca por texto
+        [OK  ] busca acha a ocorrência pelo título/endereço
+[OK  ] GET   /ocorrencias/proximas                  -> 200 (esperado 200) — próximas (100 m, calçada)
+        [OK  ] a ocorrência da Sé aparece como parecida
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 201 (esperado 201) — 'eu também vi' (outra pessoa)
+        [OK  ] 1 confirmação
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 200 (esperado 200) — confirmação repetida (idempotente)
+[OK  ] POST  /ocorrencias/3/confirmacoes            -> 409 (esperado 409 (PROPRIA_OCORRENCIA)) — autor não confirma a própria
+[OK  ] POST  /ocorrencias/1/confirmacoes            -> 409 (esperado 409 (OCORRENCIA_ENCERRADA)) — ocorrência resolvida não recebe confirmação
+[OK  ] GET   /ocorrencias/3                         -> 200 (esperado 200) — detalhe com a relação de quem pergunta
+        [OK  ] relação confirmei=true; prioridade não mudou
+[OK  ] GET   /ocorrencias/minhas                    -> 200 (esperado 200) — minhas confirmadas (cabeçalho, não URL)
+        [OK  ] a confirmada aparece no Andamento da outra pessoa
+[OK  ] DELETE /ocorrencias/3/confirmacoes            -> 200 (esperado 200) — desfazer confirmação
+        [OK  ] 0 confirmações depois de desfazer
+[OK  ] GET   /ocorrencias/minhas                    -> 422 (esperado 422 (IDENTIFICACAO_INEXISTENTE)) — minhas com identificação inexistente
+
+--- Bridge 2.0 (fase 2) ---
+[OK  ] GET   /identificacoes/atual                  -> 200 (esperado 200) — identificação pelo cabeçalho
+        [OK  ] a identificação devolvida é a do cabeçalho
+[OK  ] GET   /identificacoes/atual                  -> 404 (esperado 404 (NAO_ENCONTRADO)) — identificação inexistente
+[OK  ] GET   /identificacoes/atual                  -> 422 (esperado 422 (VALIDACAO)) — identificação sem cabeçalho
+[OK  ] GET   /ocorrencias/mapa                      -> 200 (esperado 200) — pontos do mapa (Sé)
+        [OK  ] formato enxuto, total ≥ 1, sem corte
+[OK  ] GET   /ocorrencias/mapa                      -> 422 (esperado 422 (VALIDACAO)) — pontos do mapa sem bbox
+[OK  ] GET   /estatisticas/regioes                  -> 200 (esperado 200) — Alerta Bridge por região
+        [OK  ] 32 regiões, cada uma com nível
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (reais)
+        [OK  ] total ≥ 1, 5 categorias, ao menos 1 semana
+        [OK  ] categorias somam o total
+[OK  ] GET   /estatisticas/resumo                   -> 200 (esperado 200) — resumo das Análises (fictícios)
+        [OK  ] sem fictícios neste banco: % nulo, não zero
+[OK  ] GET   /estatisticas/resumo                   -> 422 (esperado 422 (VALIDACAO)) — resumo com dias inválido
+
+--- Bridge 2.0 (fase 3) ---
+[OK  ] PATCH /identificacoes/atual                  -> 200 (esperado 200) — trocar apelido pelo cabeçalho
+        [OK  ] apelido trocado, mesmo id
+[OK  ] PATCH /identificacoes/atual                  -> 422 (esperado 422 (VALIDACAO)) — apelido curto
+[OK  ] GET   /identificacoes/atual/participacao     -> 200 (esperado 200) — participação da pessoa
+        [OK  ] números da participação
+[OK  ] POST  /ocorrencias/1/nao-resolvido           -> 201 (esperado 201) — ainda não foi resolvido
+        [OK  ] 1 aviso registrado
+[OK  ] POST  /ocorrencias/1/nao-resolvido           -> 200 (esperado 200) — aviso repetido
+[OK  ] GET   /ocorrencias/1                         -> 200 (esperado 200) — detalhe com o aviso
+        [OK  ] continua RESOLVIDA; aviso contado e marcado
+[OK  ] DELETE /ocorrencias/1/nao-resolvido           -> 200 (esperado 200) — desfazer aviso
+        [OK  ] 0 avisos depois de desfazer
+
+Ocorrência de referência para o teste de persistência: 1
+Depois de reiniciar a API: python scripts/verificar_api.py --base-url http://127.0.0.1:8001 --persistencia 1
+
+Resultado: SUCESSO
+
+Análise gravada na ocorrência criada pela verificação (GET /ocorrencias/1):
+categoria informada: CALCADA_DANIFICADA | prioridade: ALTA 7
+analise_ia: {"status": "CONCLUIDA", "categoria_sugerida": "CALCADA_DANIFICADA", "confianca": 0.5434065928414791, "versao_modelo": "bridge-text-classifier-1.0.0", "analisada_em": "2026-11-18T01:24:13.774175Z"}
+
+## 5. Sondagem do modelo fora do conjunto sintético
+Registros reais do banco de desenvolvimento (só a categoria; os textos não são reproduzidos aqui):
+  acertou  real 1: informada=CALCADA_DANIFICADA     sugerida=CALCADA_DANIFICADA     confiança=0.75
+  acertou  real 2: informada=BURACO                 sugerida=BURACO                 confiança=0.78
+  acertou  real 3: informada=CALCADA_DANIFICADA     sugerida=CALCADA_DANIFICADA     confiança=0.69
+  acertou  real 4: informada=OBSTACULO_CIRCULACAO   sugerida=OBSTACULO_CIRCULACAO   confiança=0.59
+Frases de sondagem escritas pela equipe de desenvolvimento (não são relatos reais):
+  acertou  esperado=BURACO                 sugerida=BURACO                 confiança=0.78 | tem um buraco enorme no meio da rua, quase caí de moto
+  acertou  esperado=BURACO                 sugerida=BURACO                 confiança=0.57 | cratera na avenida depois da chuva
+  acertou  esperado=ILUMINACAO_DEFEITUOSA  sugerida=ILUMINACAO_DEFEITUOSA  confiança=0.58 | o poste da esquina está apagado faz uma semana
+  acertou  esperado=ILUMINACAO_DEFEITUOSA  sugerida=ILUMINACAO_DEFEITUOSA  confiança=0.68 | rua escura, lâmpada queimada
+  acertou  esperado=CALCADA_DANIFICADA     sugerida=CALCADA_DANIFICADA     confiança=0.84 | calçada toda quebrada e cheia de desnível, minha avó tropeçou
+  acertou  esperado=CALCADA_DANIFICADA     sugerida=CALCADA_DANIFICADA     confiança=0.69 | piso solto na frente da padaria
+  acertou  esperado=OBSTACULO_CIRCULACAO   sugerida=OBSTACULO_CIRCULACAO   confiança=0.40 | carro estacionado em cima da calçada, tive que andar na rua
+  acertou  esperado=OBSTACULO_CIRCULACAO   sugerida=OBSTACULO_CIRCULACAO   confiança=0.68 | árvore caída bloqueando a passagem
+  acertou  esperado=OBSTACULO_CIRCULACAO   sugerida=OBSTACULO_CIRCULACAO   confiança=0.79 | entulho de obra largado no passeio
+  acertou  esperado=OUTRO                  sugerida=OUTRO                  confiança=0.40 | bueiro sem tampa
+  errou    esperado=OUTRO                  sugerida=BURACO                 confiança=0.40 | pichação no muro da escola
+  errou    esperado=OUTRO                  sugerida=CALCADA_DANIFICADA     confiança=0.25 | asdf teste
+Acertos nas frases de sondagem: 10/12
+Observação: as duas frases erradas têm confiança baixa (0,40 e 0,25). A sugestão nunca muda a categoria
+escolhida pela pessoa nem a prioridade (regras fixas).
+
+## O que esta evidência NÃO comprova
+- Desempenho do modelo em relatos reais: as métricas de 100% do PR são no conjunto sintético, e a
+  sondagem acima tem só 4 registros reais e 12 frases.
+- A exibição da sugestão no iPhone (teste manual pendente).
+- Ocorrências registradas antes da ativação (e as fictícias) continuam com a análise INDISPONIVEL.

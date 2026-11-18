@@ -66,10 +66,11 @@ Transições de status e cálculo de prioridade: ver [REGRAS_DE_NEGOCIO.md](REGR
 {
   "status": "ok",
   "banco": "ok",
-  "modelo_ia": { "disponivel": false, "versao": null },
+  "modelo_ia": { "disponivel": true, "versao": "bridge-text-classifier-1.0.0" },
   "versao_api": "1.0.0"
 }
 ```
+Sem modelo de IA configurado (ou se o arquivo não puder ser carregado): `"modelo_ia": { "disponivel": false, "versao": null }`.
 Se o banco não responder: `503` com `"status": "degradado"` e `"banco": "indisponivel"`.
 
 ### 3.2 `POST /identificacoes`
