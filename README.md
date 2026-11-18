@@ -23,8 +23,8 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 | Cidadão beneficiado | Pedestres que dependem da calçada — em especial pessoas com deficiência ou mobilidade reduzida, idosos e quem anda com carrinho de bebê — e moradores que querem acompanhar a zeladoria do bairro |
 | Problema, em uma frase | Calçadas quebradas, buracos, postes apagados e obstáculos colocam pedestres em risco, e o cidadão não tem um jeito simples de registrar o problema e acompanhar o que foi feito |
 | Como funciona | O cidadão registra pelo app (categoria, descrição, foto, localização GPS e situação no local); a API valida, calcula a prioridade por regras documentadas, grava no PostgreSQL e mantém o histórico de cada mudança de status; um operador atualiza o andamento |
-| O que cada parte faz | **SOA:** backend REST, domínio, banco, migrações (este repositório, `backend/`) · **Mobile:** app React Native/Expo (`mobile/`) · **IA & ML:** classificador textual de categoria (`ia_ml/`), integrado ao contrato do backend (`docs/CONTRATO_IA.md`) · **Demais disciplinas:** **[PREENCHER]** |
-| Link do repositório | **[PREENCHER: URL do GitHub]** |
+| O que cada parte faz | **SOA:** backend REST, domínio, banco, migrações (este repositório, `backend/`) · **Mobile:** app React Native/Expo (`mobile/`) · **IA & ML:** classificador textual de categoria (`ia_ml/`), integrado ao contrato do backend (`docs/CONTRATO_IA.md`) · as demais disciplinas da GS têm entregas próprias |
+| Link do repositório | https://github.com/felipe-sol/BRIDGE_CITIZENTECH |
 | Indicador de impacto (proposto, **não medido**) | Tempo entre registro e resolução (calculável pelo `historico_status`); nº de ocorrências registradas × resolvidas; % das ocorrências de prioridade alta resolvidas em até N dias |
 | ODS conectados | 11, 9 e 10 (ver abaixo) |
 
@@ -40,13 +40,16 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 
 ## Integrantes
 
-| Nome completo | RM | Papel no projeto |
-|---|---|---|
-| Leonardo Luiz Jardim Queijo | 559842 | **[PREENCHER: parte no projeto]** |
-| Kauã Rodrigues de Souza | 559335 | **[PREENCHER: parte no projeto]** |
-| Felipe Santos Marceli | 560456 | Backend (SOA) e app Mobile |
-| Enzo Galhardo | 561001 | **[PREENCHER: parte no projeto]** |
-| Kauan Diogo | 560727 | **[PREENCHER: parte no projeto]** |
+| Nome completo | RM |
+|---|---|
+| Leonardo Luiz Jardim Queijo | 559842 |
+| Kauã Rodrigues de Souza | 559335 |
+| Felipe Santos Marceli | 560456 |
+| Enzo Galhardo | 561001 |
+| Kauan Diogo | 560727 |
+
+Neste repositório: backend (SOA) e app (Mobile) por Felipe Santos Marceli; modelo de IA
+(`ia_ml/`) por Leonardo Luiz Jardim Queijo (PR #1).
 
 ---
 
@@ -71,7 +74,11 @@ Dependências fixadas em [`backend/requirements.txt`](backend/requirements.txt) 
 
 ```
 bridge/
-├── backend/
+├── README.md                  # este arquivo (entrega de SOA)
+├── descricaoapp.md            # descrição completa do app
+├── prompts.md                 # registro do uso de IA no desenvolvimento
+├── docker-compose.yml         # PostgreSQL opcional via Docker
+├── backend/                   # API REST (entrega de SOA)
 │   ├── app/
 │   │   ├── main.py            # criação da API, middlewares, handlers de erro
 │   │   ├── config.py          # configuração via .env (pydantic-settings)
@@ -81,36 +88,66 @@ bridge/
 │   │   ├── schemas.py         # contrato de entrada/saída (Pydantic)
 │   │   ├── errors.py          # formato único de erro
 │   │   ├── deps.py            # dependências (sessão, token admin, IA)
-│   │   ├── routes/            # health, identificacoes, ocorrencias
-│   │   └── services/          # regras e casos de uso
-│   │       ├── prioridade.py  #   pontuação determinística
-│   │       ├── transicoes.py  #   transições de status
-│   │       ├── armazenamento.py # upload seguro de fotos
-│   │       ├── ocorrencias.py / identificacoes.py
-│   │       └── ia/            #   interface do modelo de IA + adaptador do classificador textual
+│   │   ├── routes/            # health, identificacoes, ocorrencias, regioes, estatisticas, ia
+│   │   ├── services/          # regras e casos de uso
+│   │   │   ├── prioridade.py, transicoes.py           # pontuação e transições de status
+│   │   │   ├── ocorrencias.py, identificacoes.py, confirmacoes.py, avisos.py
+│   │   │   ├── regioes.py, geo.py, alertas.py, estatisticas.py
+│   │   │   ├── armazenamento.py                       # upload seguro de fotos
+│   │   │   ├── ficticios.py                           # dados fictícios do modo Exemplo
+│   │   │   └── ia/                                    # contrato do modelo de IA + adaptador
+│   │   └── dados/             # limites das 32 subprefeituras (GeoSampa) e a fonte
 │   ├── alembic/versions/      # 0001 a 0004 (migrações reais)
 │   ├── tests/                 # pytest (unitários + integração com PostgreSQL)
-│   ├── scripts/               # criar_banco.sql, verificar_api.py, dados_ficticios.py
+│   ├── scripts/               # criar_banco.sql, verificar_api.py, dados_ficticios.py, analisar_ia.py
 │   └── .env.example
-├── ia_ml/                     # modelo de IA: notebook, dataset sintético e artefato treinado
-├── mobile/                    # app React Native + Expo (entrega Mobile)
-└── docs/                      # contratos, regras, Insomnia e evidências
+├── ia_ml/                     # modelo de IA (IA & ML): notebook, dataset sintético, artefato treinado
+├── mobile/                    # app React Native + Expo (entrega de Mobile)
+└── docs/                      # contratos, regras de negócio, Insomnia e evidências
 ```
+
+## Organização e boas práticas
+
+- **Uma pasta por parte da solução:** `backend/` (SOA), `mobile/` (Mobile), `ia_ml/` (IA & ML) e
+  `docs/` (contratos, regras, testes manuais e evidências). Cada parte tem o próprio README.
+- **Camadas no backend:** `routes/` só recebe e responde; `schemas.py` valida a entrada
+  (`extra="forbid"`); `services/` concentra as regras; `models.py` e o Alembic cuidam do banco.
+  Uma rota nova segue esse caminho e entra com teste.
+- **Banco só por migração:** o esquema muda apenas pelo Alembic (nunca `create_all`), e cada
+  migração é testada em banco vazio, com ida e volta.
+- **Testes antes do código:** cada regra nova começa por um teste que falha. São 174 testes no
+  backend (pytest com PostgreSQL real) e 138 no app (funções puras). As evidências trazem a
+  saída real dos comandos, com data, em [`docs/evidencias/`](docs/evidencias/README.md).
+- **Tipos:** TypeScript estrito no app, sem `any` nem `@ts-ignore`; as respostas da API são
+  validadas antes do uso.
+- **Segurança e dados:** segredos só no `.env` (fora do Git) e `.env.example` com valores
+  demonstrativos; nenhum dado pessoal real; logs sem textos do cidadão nem imagens; fotos sem EXIF.
+- **Nomes e idioma:** código, mensagens e documentação em português, com os nomes do domínio
+  (`ocorrencia`, `confirmacao`, `prioridade`).
+- **Histórico:** commits pequenos no formato `Área: o que mudou`; contribuições de outro
+  integrante entram por pull request revisado (o modelo de IA entrou pelo PR #1).
 
 ## Domínio
 
 ```
 Identificacao 1 ──── N Ocorrencia 1 ──── N HistoricoStatus
 (pseudônimo)          (problema urbano)     (trilha de mudanças)
+
+Identificacao N ──── N Ocorrencia, por meio de:
+  Confirmacao          ("eu também vi": no máximo uma por pessoa e ocorrência)
+  AvisoNaoResolvido    ("ainda não foi resolvido": no máximo um por pessoa e ocorrência)
 ```
 
 - **Identificacao** — `id` (UUID gerado pelo servidor), `apelido`, `criado_em`.
   É um pseudônimo guardado no aparelho, **não é login nem autenticação**.
 - **Ocorrencia** — título, descrição, categoria informada, latitude/longitude
-  (`NUMERIC(9,6)`), três fatores informados pelo cidadão, status, prioridade
-  (pontuação + justificativa), referência da imagem (nome gerado pelo servidor),
+  (`NUMERIC(9,6)`), endereço sugerido pelo aparelho, subprefeitura (calculada pelo servidor),
+  origem (`APP` real ou `SIMULADA` fictícia), três fatores informados pelo cidadão, status,
+  prioridade (pontuação + justificativa), referência da imagem (nome gerado pelo servidor),
   resultado da IA (status, categoria sugerida, confiança, versão do modelo) e datas.
 - **HistoricoStatus** — status anterior, novo, observação e data de cada mudança.
+- **Confirmacao** e **AvisoNaoResolvido** — ligação entre uma identificação e uma ocorrência,
+  com `UNIQUE (ocorrencia_id, identificacao_id)`: repetir não duplica.
 
 Valores controlados (enums + `CHECK` no banco): categoria, status, prioridade e
 status da análise de IA. Regras de prioridade e transições de status:
@@ -436,6 +473,9 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 - O dataset é sintético/simulado (4.000 registros gerados por templates). As métricas
   perfeitas demonstram o funcionamento do pipeline nesse conjunto controlado; não
   comprovam desempenho em relatos reais. Consulte [`ia_ml/README.md`](ia_ml/README.md).
+- **Limites conhecidos:** o modelo conhece cerca de 327 palavras e foi treinado com frases de
+  modelo, então textos vagos ou muito informais o confundem; e ele **não usa a foto**. Por isso o
+  app trata a resposta como sugestão, sempre com a confiança visível.
 - A **prioridade não é IA**: continua sendo uma pontuação por regras fixas, documentada
   e testada. Não é avaliação oficial de segurança.
 
@@ -443,7 +483,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 
 Índice em [`docs/evidencias/README.md`](docs/evidencias/README.md).
 
-## Situação atual (17/11/2026)
+## Situação atual (18/11/2026)
 
 | Item | Situação |
 |---|---|
@@ -451,7 +491,7 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
 | Migrações 0001 a 0004 | **Verificadas** em banco vazio: `upgrade`, `check`, `downgrade` e migração de dados |
 | Bridge 2.0, fase 1 (regiões oficiais, endereço, mapa, proximidade, confirmações, "minhas") | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
 | Bridge 2.0, fase 2 (Alerta Bridge, resumo/Análises, pontos do mapa, dados fictícios, identificação pelo cabeçalho) | Implementado, **verificado automaticamente** e testado no iPhone (13/11) |
-| Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; teste no iPhone **pendente** |
+| Bridge 2.0, fase 3 (Perfil completo, "ainda não foi resolvido", mapa interativo com foto, acabamento, versão 2.0.0) | Implementado e **verificado automaticamente**; cartão do mapa testado no iPhone (13/11 e 17/11); Perfil e "ainda não foi resolvido" no iPhone **pendentes** |
 | Testes automatizados (174, com PostgreSQL) | **Passando** |
 | Persistência após reinício | **Verificada** automaticamente e no Insomnia (Rodada 1) |
 | Testes manuais no Insomnia | Rodada 1 **feita** (33/33 em 12/11/2026); Rodada 2 **pendente** |

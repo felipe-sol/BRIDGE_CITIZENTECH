@@ -15,13 +15,13 @@ responsável numa linha do tempo.
 | Campo | Conteúdo |
 |---|---|
 | Nome | Bridge |
-| Cidade e bairro | São Paulo (SP) — bairro: **[PREENCHER pela equipe: bairro real observado]** |
+| Cidade e bairro | São Paulo (SP) — bairro: Santo Amaro |
 | Público / cidadão beneficiado | Pedestres que dependem da calçada — em especial pessoas com deficiência ou mobilidade reduzida, idosos e quem anda com carrinho de bebê — e moradores que acompanham a zeladoria do bairro |
 | Problema, em uma frase | Calçadas quebradas, buracos, postes apagados e obstáculos colocam pedestres em risco, e o cidadão não tem um jeito simples de registrar e acompanhar o problema |
 | Solução | App para registrar a ocorrência com foto e localização no mapa, somar o próprio relato ao de outras pessoas e acompanhar o andamento; a API calcula a prioridade por regras transparentes e mantém o histórico de status |
 | Benefício esperado | Registro mais completo (foto, coordenadas e endereço), menos duplicatas e acompanhamento visível do andamento; priorização explícita do que afeta a acessibilidade. _Benefício esperado, não medido._ |
 | O que cada parte faz | **Mobile:** este app · **SOA:** API REST + PostgreSQL (`../backend`) · **IA & ML:** classificador de texto que sugere a categoria (`../ia_ml`) |
-| Link do repositório | **[PREENCHER: URL do GitHub]** |
+| Link do repositório | https://github.com/felipe-sol/BRIDGE_CITIZENTECH |
 | Indicador de impacto (proposto) | Tempo entre registro e resolução; ocorrências registradas × resolvidas; confirmações por ocorrência |
 | ODS | 11 (meta 11.7), 9 (meta 9.1) e 10 (meta 10.2) |
 
@@ -173,9 +173,10 @@ src/
 ├── preferencias/    # Texto maior e avisos no app (guardados no aparelho)
 ├── alertas/         # Alerta Bridge: texto do motivo e qual alerta o Início mostra
 ├── analises/        # escalas, marcas de eixo e resumos em texto dos gráficos
-├── hooks/           # atualização periódica do "ao vivo"
+├── ia/              # textos e decisões da sugestão da IA ("incerta", trocar a categoria)
+├── hooks/           # atualização periódica do "ao vivo", relógio do "há X" e cartão do mapa
 ├── context/         # IdentificacaoContext (estado global da identificação)
-├── services/        # http, ocorrências, regiões, estatísticas, geocodificação, câmera, localização, vistos
+├── services/        # http, ocorrências, IA, regiões, estatísticas, geocodificação, câmera, localização, vistos
 ├── validation/      # funções puras: formulário, apelido, rotas, URL, parsers das respostas e das regiões
 ├── models/          # tipos do domínio
 ├── config/          # leitura da URL da API
@@ -199,7 +200,7 @@ src/
   integração oficial com a Prefeitura nem notificação push. O aviso de atualização
   aparece dentro do app.
 - **IA:** o detalhe mostra a categoria sugerida pelo modelo de texto e a confiança, só como
-  sugestão (o modelo foi treinado com dados sintéticos e pode errar). Registros anteriores à
+  sugestão (o modelo foi treinado com dados sintéticos, pode errar e não olha a foto). Registros anteriores à
   ativação do modelo mostram "Análise de IA indisponível" até alguém rodar
   `backend/scripts/analisar_ia.py`.
 - **Testes no aparelho:**

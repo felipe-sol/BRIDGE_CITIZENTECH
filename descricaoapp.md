@@ -215,6 +215,6 @@ A regra do app fica em **funções puras** (sem tela), testadas com `node --test
 - Testado em iPhone pelo Expo Go, em modo retrato e tema claro; Android não foi testado em
   aparelho físico. No Android, a foto em tela cheia aparece sem zoom de pinça.
 - **Sugestão da IA:** um classificador de texto (pasta `ia_ml/`) sugere a categoria pelo título e
-  pela descrição, com a confiança. Foi treinado com dados sintéticos e pode errar; nunca muda a
+  pela descrição, com a confiança. Foi treinado com dados sintéticos, pode errar e não olha a foto; nunca muda a
   categoria escolhida nem a prioridade. Registros feitos antes de o modelo ser ativado aparecem como
   "Análise de IA indisponível" até alguém rodar `backend/scripts/analisar_ia.py`.
