@@ -1,0 +1,8 @@
+{
+  "accuracy": 1.0,
+  "precision_macro": 1.0,
+  "recall_macro": 1.0,
+  "f1_macro": 1.0,
+  "f1_macro_baseline": 0.06666666666666667,
+  "f1_macro_cv_treino": 1.0
+}

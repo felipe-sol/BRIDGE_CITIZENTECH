@@ -1,0 +1,52 @@
+{
+  "nome": "BRIDGE Text Classifier",
+  "versao": "bridge-text-classifier-1.0.0",
+  "tarefa": "classificacao_multiclasse_de_texto",
+  "entradas": [
+    "titulo",
+    "descricao"
+  ],
+  "saida": "categoria_sugerida",
+  "classes": [
+    "CALCADA_DANIFICADA",
+    "BURACO",
+    "ILUMINACAO_DEFEITUOSA",
+    "OBSTACULO_CIRCULACAO",
+    "OUTRO"
+  ],
+  "algoritmo": "TfidfVectorizer + LogisticRegression",
+  "semente": 42,
+  "amostras_total": 4000,
+  "amostras_por_classe": 800,
+  "origem_dataset": "Sintético/simulado; gerado por templates e combinações aleatórias documentadas neste notebook; não são registros reais de cidadãos.",
+  "divisao": {
+    "treino": 0.8,
+    "teste": 0.2,
+    "estratificada": true
+  },
+  "validacao_cruzada": {
+    "metodo": "StratifiedKFold",
+    "n_splits": 3,
+    "criterio": "f1_macro"
+  },
+  "melhores_parametros": {
+    "logreg__C": "0.5",
+    "tfidf__ngram_range": "(1, 1)"
+  },
+  "metricas_teste": {
+    "accuracy": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "f1_macro_baseline": 0.06666666666666667,
+    "f1_macro_cv_treino": 1.0
+  },
+  "versoes": {
+    "python": "3.13.5",
+    "scikit_learn": "1.8.0",
+    "pandas": "2.2.3",
+    "numpy": "2.3.5",
+    "joblib": "1.5.3"
+  },
+  "observacao": "Resultados em dados sintéticos; não representam desempenho comprovado em dados reais. Probabilidades não calibradas."
+}
