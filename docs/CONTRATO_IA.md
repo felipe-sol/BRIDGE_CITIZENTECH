@@ -69,6 +69,8 @@ class ClassificadorOcorrencia(Protocol):
 - Antes da inferência, um título que seja só o nome de uma categoria (o app preenche o título
   com a categoria escolhida) é descartado (`app/services/ia/texto.py`): senão a IA leria a
   escolha da pessoa e só a repetiria.
+- Pelo mesmo motivo, o aviso que os registros de demonstração (`backend/dados_demo/`) têm no fim
+  da descrição também é tirado antes da inferência (`descricao_para_ia`).
 - O classificador é criado **uma vez por processo**, na inicialização da API
   (`lifespan` do FastAPI), e reutilizado em todas as requisições.
 - Nunca há treinamento em requisição e **não** existe rota para enviar modelos:

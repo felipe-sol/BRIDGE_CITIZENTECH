@@ -25,7 +25,7 @@ from app.models import Confirmacao, HistoricoStatus, Identificacao, Ocorrencia
 from app.schemas import OcorrenciaCriar, StatusAtualizar
 from app.services.armazenamento import ImagemInvalida, caminho_seguro, remover_imagem, salvar_imagem
 from app.services.ia import ClassificadorOcorrencia, EntradaClassificacao
-from app.services.ia.texto import titulo_para_ia
+from app.services.ia.texto import descricao_para_ia, titulo_para_ia
 from app.services.prioridade import calcular_prioridade
 from app.services.geo import distancia_metros
 from app.services.regioes import localizar_regiao
@@ -434,7 +434,7 @@ def _executar_analise(
     entrada = EntradaClassificacao(
         # Título que é só o nome da categoria (preenchido pelo app) não vai: a IA repetiria a escolha.
         titulo=titulo_para_ia(ocorrencia.titulo),
-        descricao=ocorrencia.descricao,
+        descricao=descricao_para_ia(ocorrencia.descricao),
         categoria_informada=ocorrencia.categoria,
         latitude=float(ocorrencia.latitude),
         longitude=float(ocorrencia.longitude),

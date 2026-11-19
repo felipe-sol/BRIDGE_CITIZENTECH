@@ -9,7 +9,8 @@ Os testes automatizados (`pytest`) **não substituem** este roteiro.
 
 ## 1. Preparação
 
-1. Banco vazio e migrado (ver README, seções "Banco de dados" e "Migrações"):
+1. Banco vazio e migrado (ver README, seções "Banco de dados" e "Migrações"). Não importe os
+   registros de demonstração (`scripts/dados_demo.py`) antes da Rodada 1, que espera a lista vazia:
    ```powershell
    cd backend
    .\.venv\Scripts\alembic.exe upgrade head

@@ -31,3 +31,10 @@ _TITULOS_AUTOMATICOS = {_normalizar(rotulo) for rotulo in ROTULOS_DAS_CATEGORIAS
 def titulo_para_ia(titulo: str) -> str:
     """O título, ou "" se ele for só o nome de uma categoria (preenchido pelo app)."""
     return "" if _normalizar(titulo) in _TITULOS_AUTOMATICOS else titulo
+
+
+def descricao_para_ia(descricao: str) -> str:
+    """A descrição sem o aviso do pacote de demonstração, que não foi escrito pela pessoa."""
+    from app.services.demonstracao import NOTA_DEMONSTRACAO  # import local: evita ciclo na carga
+
+    return descricao.removesuffix(NOTA_DEMONSTRACAO).rstrip()

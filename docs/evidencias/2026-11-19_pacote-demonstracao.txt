@@ -1,0 +1,94 @@
+Evidência — Pacote de demonstração (registros da equipe numa instalação nova)
+Data: 19/11/2026
+Tipo: automática (pytest + comandos reais), PostgreSQL 18.4 local, banco de testes (bridge_test)
+
+Por quê: as migrações criam só a estrutura; numa máquina nova o banco começa vazio. O pacote
+backend/dados_demo/ traz 10 registros feitos pela equipe no app (iPhone, 12 a 19/11), com:
+- textos, categorias, fatores e datas como a equipe informou;
+- localização deslocada entre 40 e 80 m, sem trocar de subprefeitura (1 registro já estava
+  fora do município de SP, em São Caetano do Sul, e continua fora, como o cadastro permite);
+- endereço sem número;
+- foto ILUSTRATIVA do Wikimedia Commons (autor e licença de cada uma em dados_demo/CREDITOS.md:
+  CC0, domínio público, CC BY ou CC BY-SA). A descrição de cada registro termina avisando isso.
+
+------------------------------------------------------------------------
+1) Testes (TDD): tests/test_demonstracao.py
+
+Primeira execução, antes do serviço existir:
+  E   ModuleNotFoundError: No module named 'app.services.demonstracao'
+
+Depois do serviço, antes de existir o pacote do repositório:
+  FAILED tests/test_demonstracao.py::test_pacote_do_repositorio_e_valido - app....
+  1 failed, 7 passed
+
+Achado durante a verificação: o aviso de demonstração, no fim da descrição, ia para a IA e
+derrubava a confiança (ex.: "muito pouca luz": 0,78 sem o aviso, 0,43 com o aviso).
+Correção: descricao_para_ia() tira o aviso antes da inferência (como já era feito com o título
+automático). O teste de integração foi conferido falhando sem a correção:
+  >       assert analise["confianca"] == pytest.approx(sem_aviso.confianca)
+  E       assert 0.7266893896175224 == 0.903934466923494 ± 9.0e-07
+e passando com ela:
+  11 passed
+
+Suíte completa do backend:
+  185 passed in 22.87s
+
+------------------------------------------------------------------------
+2) Instalação nova simulada (banco vazio + migrações + importação)
+
+  alembic downgrade base; alembic upgrade head
+  INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Bridge 2.0, fase 3: tabela de avisos "ainda não foi resolvido".
+
+  python scripts/dados_demo.py importar
+  Importados: 10 registros de demonstração (com foto ilustrativa).
+  IA: 10 analisados pelo modelo bridge-text-classifier-1.0.0 (0 com falha).
+  exit=0
+
+  python scripts/dados_demo.py importar      (de novo)
+  A demonstração já foi importada. Use 'remover' antes de importar de novo.
+  exit=1
+
+3) O que uma pessoa nova vê (API de verificação na porta 8001, ligada a esse banco)
+
+  professor criado: Professor
+  Ao vivo: 10 registros
+    Buraco                   | BURACO       | Sé             | foto 200 image/jpeg | IA CONCLUIDA BURACO
+    Iluminação defeituosa    | ILUMINACAO_D | Butantã        | foto 200 image/jpeg | IA CONCLUIDA ILUMINACAO_DEFEITUOSA
+    Calçada danificada       | CALCADA_DANI | (fora de SP)   | foto 200 image/jpeg | IA CONCLUIDA BURACO
+    Buraco                   | BURACO       | Ipiranga       | foto 200 image/jpeg | IA CONCLUIDA BURACO
+    Calçada danificada       | CALCADA_DANI | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA ILUMINACAO_DEFEITUOSA
+    Calçada danificada       | CALCADA_DANI | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA CALCADA_DANIFICADA
+    Iluminação defeituosa    | ILUMINACAO_D | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA CALCADA_DANIFICADA
+    Iluminação defeituosa    | ILUMINACAO_D | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA ILUMINACAO_DEFEITUOSA
+    Obstáculo à circulação   | OBSTACULO_CI | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA OUTRO
+    Calçada véia             | CALCADA_DANI | Santo Amaro    | foto 200 image/jpeg | IA CONCLUIDA CALCADA_DANIFICADA
+  descricao exemplo: Calçada quebrada. Registro de demonstração feito pela equipe no app; local aproximado; foto ilustrativa do Wikimedia Commons (créditos em backend/dados_demo/CREDITOS.md).
+  mapa (cidade): 10
+  minhas do professor: 0
+
+  (Essa primeira análise ainda incluía o aviso no texto da IA; ver o achado no item 1.)
+
+4) Depois da correção da IA (remover + importar de novo)
+
+  Importados: 10 registros de demonstração (com foto ilustrativa).
+  Sugestões (escolhida → IA, confiança) — o texto é só o que a pessoa escreveu:
+    Buraco                 BURACO → BURACO 0,85            "Buraco na via"
+    Iluminação defeituosa  ILUMINACAO → ILUMINACAO 0,83    "Iluminação com problemas"
+    Calçada danificada     CALCADA → BURACO 0,70           "Calçada com buraco"
+    Buraco                 BURACO → BURACO 0,87            "buraco na rua"
+    Calçada danificada     CALCADA → ILUMINACAO 0,44       "luz danificada"  (descompasso proposital do teste no iPhone)
+    Calçada danificada     CALCADA → CALCADA 0,65          "Calçada quebrada"
+    Iluminação defeituosa  ILUMINACAO → CALCADA 0,65       "Calçada tá quebrada"  (descompasso proposital)
+    Iluminação defeituosa  ILUMINACAO → ILUMINACAO 0,78    "muito pouca luz"
+    Obstáculo à circulação OBSTACULO → OUTRO 0,33          "Muito tempo, caiu gente"
+    Calçada véia           CALCADA → CALCADA 0,69          "Calçada quebrada"
+
+5) Remover
+
+  fotos antes: 20     (10 eram sobra da 1ª importação, cujo banco a suíte de testes já tinha esvaziado)
+  Removidos: 10 registros de demonstração e 2 autores.
+  fotos depois: 10
+  restam 1 ['Calçada quebrada em frente à escola']   (registro que não é da demonstração: ficou)
+
+O que NÃO comprova: a exibição no celular do professor (depende da rede dele) e que as fotos
+mostrem os locais reais (elas são ilustrativas, por decisão da equipe).
