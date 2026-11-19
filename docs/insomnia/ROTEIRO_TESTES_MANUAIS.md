@@ -97,69 +97,128 @@ python -c "open(r'C:\temp\grande.jpg','wb').write(b'\xff\xd8' + b'0' * 6 * 1024 
 - Salve em `docs/evidencias/insomnia/` com o nome indicado.
 - Marque ☑ nesta tabela somente depois disso.
 
-## 4. Rodada 2 — Bridge 2.0 (pastas 09 a 15)
+## 4. Rodada 2 — Bridge 2.0 (pastas 09 a 15, 42 requisições)
 
 Testa as rotas novas: endereço e região, mapa e densidade, proximidade (duplicatas),
 "eu também vi", a lista do Andamento e, na pasta 13, a identificação pelo cabeçalho, os
 pontos do mapa, o Alerta Bridge e o resumo da aba Análises; na pasta 14, trocar o apelido,
-a participação da pessoa e o aviso "ainda não foi resolvido"; na pasta 15, a sugestão da IA no registro. Pode ser feita depois da Rodada 1, **no mesmo
-banco** (ela usa a ocorrência 1, resolvida na Rodada 1, e as duas identificações).
+a participação da pessoa e o aviso "ainda não foi resolvido"; na pasta 15, a sugestão da IA
+no registro. É feita **no mesmo banco** da Rodada 1: usa a ocorrência 1 (resolvida no
+bloco 06), a ocorrência 2 (aberta) e as duas identificações da 02.1 e da 02.5.
 
-**Preparação**
-1. A API precisa estar com o código da fase 3 (reiniciada depois da atualização) e o banco
-   na migração 0004 (`alembic upgrade head`).
-   Para a pasta 13, gere antes os dados fictícios (na pasta `backend/`):
-   `python scripts/dados_ficticios.py gerar` (se já existirem, use `--recriar`).
-2. No Insomnia, importe de novo `bridge-insomnia.json`. A coleção mantém os mesmos IDs
-   e ganha as pastas 09 a 15. Se aparecer uma cópia duplicada, apague a antiga.
-3. No ambiente "Local (demonstração)", confira `identificacao_id`, `outra_identificacao_id`
-   e `admin_token` (os mesmos da Rodada 1). A variável nova `terceira_ocorrencia_id` é
-   preenchida na 09.1.
+> **Execução registrada em 19/11/2026:** as 42 requisições foram executadas manualmente no
+> Insomnia pela equipe, contra a API local com PostgreSQL, e todas deram o resultado esperado.
+> Os prints estão em [`docs/evidencias/insomnia/`](../evidencias/insomnia/) com os nomes da
+> tabela. Os prints com sufixo `b` (e `13-7-alertas-corpo.png`) são complementos da mesma
+> resposta: aba Headers (09.4), filtro do Insomnia sobre a resposta já recebida, sem reenviar
+> (10.1, 11.5, 11.8, 12.1, 13.7, 14.8), ou o fim do corpo (13.5).
+> Observações: a 1ª tentativa da 09.1 e da 09.2 falhou com 422 (`identificacao_id` ainda com o
+> texto de exemplo no ambiente; nada foi gravado) e a pasta 09 foi refeita do início; as
+> identificações usadas foram criadas de novo pela 02.1 e pela 02.5 nesse dia, por isso a 12.1
+> lista só as ocorrências criadas na 09.1 e na 09.2 (ids 2409 e 2410).
+
+> **Ensaio automático (19/11/2026):** as 42 requisições da coleção foram executadas por
+> script contra uma **cópia** do banco de desenvolvimento, e todas deram o status e o código
+> de erro da coluna "Esperado". Isso só confirma que o roteiro está certo; **não substitui**
+> a execução manual nem os prints.
+
+### 4.1 Preparação (uma vez)
+
+1. **API e banco.** A API rodando na porta 8000 (seção 1, passo 3) e o banco na migração
+   0004: na pasta `backend/`, `.\.venv\Scripts\alembic.exe current` mostra `0004 (head)`.
+2. **Dados fictícios recém-gerados** (o alerta olha os últimos 30 dias; com fictícios
+   antigos os números da 13.7 mudam). Na pasta `backend/`:
+   ```powershell
+   .\.venv\Scripts\python.exe scripts\dados_ficticios.py gerar --recriar
+   ```
+   A saída deve terminar com `Alerta Bridge no Exemplo: 3 em ALERTA, 7 em ATENCAO`.
+   Só os fictícios são apagados e recriados; os dados reais não mudam.
+3. **Importe de novo** `bridge-insomnia.json` no Insomnia. Ele pode criar uma **segunda
+   cópia** (pastas 01 a 08 repetidas e outro ambiente "Local (demonstração)"). Use a cópia
+   que tem as pastas 09 a 15; a antiga pode ficar, não atrapalha.
+4. **Ambiente da cópia nova** (ícone de ambiente → "Local (demonstração)" → editar). Troque
+   os textos `COLE_O_ID...` pelos valores da Rodada 1, que estão no ambiente da cópia antiga
+   (ou nos prints `02-1` e `02-5`):
+   - `identificacao_id`: o `id` da 02.1 (apelido "Vizinha da Rua 7");
+   - `outra_identificacao_id`: o `id` da 02.5 (apelido "Morador do Bloco B");
+   - `admin_token`: o mesmo valor do `backend/.env`.
+
+   Deixe `terceira_ocorrencia_id` como está: ele é preenchido na 09.1.
+5. Selecione esse ambiente e confira com a 01.1 (GET /health): 200 e `modelo_ia.disponivel: true`.
+
+### 4.2 Como executar cada requisição (igual à Rodada 1)
+
+1. Abra a requisição **na ordem da tabela** (09.1 → 15.2) e clique em **Send**.
+2. Compare o status e o corpo com a coluna **Esperado**.
+3. Tire o print (Win+Shift+S) com o **nome da requisição, o status e o corpo** visíveis.
+4. Salve em `docs/evidencias/insomnia/` com o nome da coluna **Print**.
+5. Só então marque ☑ na tabela.
+6. Se o resultado for diferente, **pare** e registre: várias requisições dependem da anterior
+   (a 09.1 cria a ocorrência das pastas 10 e 11; a 11.1 cria a confirmação que a 11.2 repete).
 
 | # | Requisição | Esperado | Print |
 |---|---|---|---|
-| 09.1 | POST /ocorrencias com endereço (Sé) | 201; `endereco`; `subprefeitura` {"codigo":"09","nome":"Sé"}; `confirmacoes` 0; `origem` "APP" → **copie o `id` para `terceira_ocorrencia_id`** | ☐ `09-1-cadastro-endereco-regiao.png` |
-| 09.2 | POST /ocorrencias fora de SP | 201; `subprefeitura` null | ☐ `09-2-fora-de-sp.png` |
-| 09.3 | POST /ocorrencias endereço com 201 caracteres | 422; campo `endereco` | ☐ `09-3-endereco-longo.png` |
-| 09.4 | GET /regioes | 200; 32 `features`; cabeçalho `Cache-Control` | ☐ `09-4-regioes.png` |
-| 09.5 | GET /estatisticas/regioes | 200; 32 itens; "09" com total ≥ 1 | ☐ `09-5-estatisticas.png` |
-| 09.6 | GET /ocorrencias?bbox=… | 200; a 09.1 aparece, a 09.2 (Rio) não | ☐ `09-6-bbox.png` |
-| 09.7 | GET /ocorrencias?q=praça | 200; inclui a 09.1 | ☐ `09-7-busca.png` |
-| 09.8 | GET /ocorrencias?bbox=1,2,3 | 422; campo `bbox` | ☐ `09-8-bbox-invalido.png` |
-| 10.1 | GET /ocorrencias/proximas (calçada, 100 m) | 200; a 09.1 com `distancia_m` ≈ 0 | ☐ `10-1-proximas.png` |
-| 10.2 | GET /ocorrencias/proximas raio 1000 | 422; campo `raio_m` | ☐ `10-2-raio-invalido.png` |
-| 11.1 | POST confirmação (outra pessoa) | 201; `confirmacoes` 1 | ☐ `11-1-confirmacao.png` |
-| 11.2 | POST confirmação repetida | 200; continua 1 | ☐ `11-2-confirmacao-repetida.png` |
-| 11.3 | POST confirmação pelo autor | 409 `PROPRIA_OCORRENCIA` | ☐ `11-3-propria.png` |
-| 11.4 | POST confirmação na ocorrência 1 (resolvida) | 409 `OCORRENCIA_ENCERRADA` | ☐ `11-4-encerrada.png` |
-| 11.5 | GET detalhe com `X-Identificacao-Id` da outra pessoa | 200; `minha_relacao` {"registrei": false, "confirmei": true}; prioridade igual à da 09.1 | ☐ `11-5-detalhe-relacao.png` |
-| 11.6 | GET /ocorrencias/minhas?relacao=confirmadas (outra) | 200; inclui a 09.1 | ☐ `11-6-minhas-confirmadas.png` |
-| 11.7 | DELETE confirmação | 200; `confirmacoes` 0 | ☐ `11-7-desfazer.png` |
-| 11.8 | GET detalhe sem cabeçalho | 200; `minha_relacao` null | ☐ `11-8-detalhe-sem-relacao.png` |
-| 12.1 | GET /ocorrencias/minhas (registradas) | 200; as desta identificação, a mais recentemente atualizada primeiro | ☐ `12-1-minhas-registradas.png` |
-| 12.2 | GET /ocorrencias/minhas sem cabeçalho | 422 | ☐ `12-2-minhas-sem-cabecalho.png` |
-| 12.3 | GET /ocorrencias/minhas com UUID inexistente | 422 `IDENTIFICACAO_INEXISTENTE` | ☐ `12-3-minhas-inexistente.png` |
-| 13.1 | GET /identificacoes/atual (cabeçalho) | 200; `id` e `apelido` da 02.1 | ☐ `13-1-identificacao-atual.png` |
-| 13.2 | GET /identificacoes/atual (UUID inexistente) | 404 `NAO_ENCONTRADO` | ☐ `13-2-identificacao-inexistente.png` |
-| 13.3 | GET /identificacoes/atual sem cabeçalho | 422 `VALIDACAO` | ☐ `13-3-identificacao-sem-cabecalho.png` |
-| 13.4 | GET /ocorrencias/mapa (Sé, reais) | 200; itens enxutos, `total`, `truncado` false | ☐ `13-4-mapa-se.png` |
-| 13.5 | GET /ocorrencias/mapa (cidade, fictícios) | 200; `total` 1200, `truncado` false; só SIMULADA | ☐ `13-5-mapa-ficticios.png` |
-| 13.6 | GET /ocorrencias/mapa sem bbox | 422 `VALIDACAO` | ☐ `13-6-mapa-sem-bbox.png` |
-| 13.7 | GET /estatisticas/regioes?origem=SIMULADA | 200; 32 itens com `alerta`; 3 em ALERTA e 7 em ATENCAO | ☐ `13-7-alertas.png` |
-| 13.8 | GET /estatisticas/resumo (reais) | 200; indicadores, 5 categorias, semanas, ranking | ☐ `13-8-resumo-reais.png` |
-| 13.9 | GET /estatisticas/resumo?origem=SIMULADA | 200; `total` 1200, cerca de 18 semanas | ☐ `13-9-resumo-ficticios.png` |
-| 13.10 | GET /estatisticas/resumo?dias=0 | 422 `VALIDACAO` | ☐ `13-10-resumo-dias-invalido.png` |
-| 14.1 | PATCH /identificacoes/atual (trocar apelido) | 200; mesmo `id`, apelido novo | ☐ `14-1-trocar-apelido.png` |
-| 14.2 | PATCH /identificacoes/atual apelido "A" | 422 `VALIDACAO` | ☐ `14-2-apelido-curto.png` |
-| 14.3 | PATCH /identificacoes/atual (UUID inexistente) | 404 `NAO_ENCONTRADO` | ☐ `14-3-apelido-inexistente.png` |
-| 14.4 | GET /identificacoes/atual/participacao | 200; registradas, confirmadas, resolvidas acompanhadas, avisos | ☐ `14-4-participacao.png` |
-| 14.5 | POST /ocorrencias/1/nao-resolvido (outra pessoa) | 201; `avisos_nao_resolvido` 1, `avisado` true | ☐ `14-5-aviso-nao-resolvido.png` |
-| 14.6 | POST repetido | 200; continua 1 | ☐ `14-6-aviso-repetido.png` |
-| 14.7 | POST na ocorrência 2 (aberta) | 409 `OCORRENCIA_NAO_RESOLVIDA` | ☐ `14-7-aviso-em-aberta.png` |
-| 14.8 | GET detalhe com o cabeçalho da outra pessoa | 200; RESOLVIDA, `avisos_nao_resolvido` 1, `avisei_nao_resolvido` true | ☐ `14-8-detalhe-com-aviso.png` |
-| 14.9 | DELETE /ocorrencias/1/nao-resolvido | 200; `avisos_nao_resolvido` 0 | ☐ `14-9-desfazer-aviso.png` |
-| 15.1 | POST /ia/sugestao-categoria (poste apagado, categoria OUTRO) | 200; `disponivel` true, `ILUMINACAO_DEFEITUOSA`, `confianca` entre 0 e 1; nada é gravado | ☐ `15-1-sugestao-ia.png` |
-| 15.2 | POST /ia/sugestao-categoria (textos curtos) | 422 `VALIDACAO` (`titulo` e `descricao`) | ☐ `15-2-sugestao-invalida.png` |
+| 09.1 | POST /ocorrencias com endereço (Sé) | 201; `endereco`; `subprefeitura` {"codigo":"09","nome":"Sé"}; `confirmacoes` 0; `origem` "APP" → **copie o `id` para `terceira_ocorrencia_id`** | ☑ `09-1-cadastro-endereco-regiao.png` |
+| 09.2 | POST /ocorrencias fora de SP | 201; `subprefeitura` null | ☑ `09-2-fora-de-sp.png` |
+| 09.3 | POST /ocorrencias endereço com 201 caracteres | 422; campo `endereco` | ☑ `09-3-endereco-longo.png` |
+| 09.4 | GET /regioes | 200; 32 `features`; cabeçalho `Cache-Control` | ☑ `09-4-regioes.png` + `09-4b-headers.png` |
+| 09.5 | GET /estatisticas/regioes | 200; 32 itens; "09" com total ≥ 1 | ☑ `09-5-estatisticas.png` |
+| 09.6 | GET /ocorrencias?bbox=… | 200; a 09.1 aparece, a 09.2 (Rio) não | ☑ `09-6-bbox.png` |
+| 09.7 | GET /ocorrencias?q=praça | 200; inclui a 09.1 | ☑ `09-7-busca.png` |
+| 09.8 | GET /ocorrencias?bbox=1,2,3 | 422; campo `bbox` | ☑ `09-8-bbox-invalido.png` |
+| 10.1 | GET /ocorrencias/proximas (calçada, 100 m) | 200; a 09.1 com `distancia_m` ≈ 0 | ☑ `10-1-proximas.png` + `10-1b-distancia.png` |
+| 10.2 | GET /ocorrencias/proximas raio 1000 | 422; campo `raio_m` | ☑ `10-2-raio-invalido.png` |
+| 11.1 | POST confirmação (outra pessoa) | 201; `confirmacoes` 1 | ☑ `11-1-confirmacao.png` |
+| 11.2 | POST confirmação repetida | 200; continua 1 | ☑ `11-2-confirmacao-repetida.png` |
+| 11.3 | POST confirmação pelo autor | 409 `PROPRIA_OCORRENCIA` | ☑ `11-3-propria.png` |
+| 11.4 | POST confirmação na ocorrência 1 (resolvida) | 409 `OCORRENCIA_ENCERRADA` | ☑ `11-4-encerrada.png` |
+| 11.5 | GET detalhe com `X-Identificacao-Id` da outra pessoa | 200; `minha_relacao` {"registrei": false, "confirmei": true}; prioridade igual à da 09.1 | ☑ `11-5-detalhe-relacao.png` + `11-5b-minha-relacao.png` |
+| 11.6 | GET /ocorrencias/minhas?relacao=confirmadas (outra) | 200; inclui a 09.1 | ☑ `11-6-minhas-confirmadas.png` |
+| 11.7 | DELETE confirmação | 200; `confirmacoes` 0 | ☑ `11-7-desfazer.png` |
+| 11.8 | GET detalhe sem cabeçalho | 200; `minha_relacao` null | ☑ `11-8-detalhe-sem-relacao.png` + `11-8b-minha-relacao-nula.png` |
+| 12.1 | GET /ocorrencias/minhas (registradas) | 200; as desta identificação, a mais recentemente atualizada primeiro | ☑ `12-1-minhas-registradas.png` + `12-1b-ordem-ids.png` |
+| 12.2 | GET /ocorrencias/minhas sem cabeçalho | 422 | ☑ `12-2-minhas-sem-cabecalho.png` |
+| 12.3 | GET /ocorrencias/minhas com UUID inexistente | 422 `IDENTIFICACAO_INEXISTENTE` | ☑ `12-3-minhas-inexistente.png` |
+| 13.1 | GET /identificacoes/atual (cabeçalho) | 200; `id` e `apelido` da 02.1 | ☑ `13-1-identificacao-atual.png` |
+| 13.2 | GET /identificacoes/atual (UUID inexistente) | 404 `NAO_ENCONTRADO` | ☑ `13-2-identificacao-inexistente.png` |
+| 13.3 | GET /identificacoes/atual sem cabeçalho | 422 `VALIDACAO` | ☑ `13-3-identificacao-sem-cabecalho.png` |
+| 13.4 | GET /ocorrencias/mapa (Sé, reais) | 200; itens enxutos, `total`, `truncado` false | ☑ `13-4-mapa-se.png` |
+| 13.5 | GET /ocorrencias/mapa (cidade, fictícios) | 200; `total` 1200, `truncado` false; só SIMULADA | ☑ `13-5-mapa-ficticios.png` + `13-5b-total.png` |
+| 13.6 | GET /ocorrencias/mapa sem bbox | 422 `VALIDACAO` | ☑ `13-6-mapa-sem-bbox.png` |
+| 13.7 | GET /estatisticas/regioes?origem=SIMULADA | 200; 32 itens com `alerta`; 3 em ALERTA e 7 em ATENCAO | ☑ `13-7-alertas.png` + `13-7b-atencao.png` + `13-7-alertas-corpo.png` |
+| 13.8 | GET /estatisticas/resumo (reais) | 200; indicadores, 5 categorias, semanas, ranking | ☑ `13-8-resumo-reais.png` |
+| 13.9 | GET /estatisticas/resumo?origem=SIMULADA | 200; `total` 1200, cerca de 18 semanas | ☑ `13-9-resumo-ficticios.png` |
+| 13.10 | GET /estatisticas/resumo?dias=0 | 422 `VALIDACAO` | ☑ `13-10-resumo-dias-invalido.png` |
+| 14.1 | PATCH /identificacoes/atual (trocar apelido) | 200; mesmo `id`, apelido novo | ☑ `14-1-trocar-apelido.png` |
+| 14.2 | PATCH /identificacoes/atual apelido "A" | 422 `VALIDACAO` | ☑ `14-2-apelido-curto.png` |
+| 14.3 | PATCH /identificacoes/atual (UUID inexistente) | 404 `NAO_ENCONTRADO` | ☑ `14-3-apelido-inexistente.png` |
+| 14.4 | GET /identificacoes/atual/participacao | 200; registradas, confirmadas, resolvidas acompanhadas, avisos | ☑ `14-4-participacao.png` |
+| 14.5 | POST /ocorrencias/1/nao-resolvido (outra pessoa) | 201; `avisos_nao_resolvido` 1, `avisado` true | ☑ `14-5-aviso-nao-resolvido.png` |
+| 14.6 | POST repetido | 200; continua 1 | ☑ `14-6-aviso-repetido.png` |
+| 14.7 | POST na ocorrência 2 (aberta) | 409 `OCORRENCIA_NAO_RESOLVIDA` | ☑ `14-7-aviso-em-aberta.png` |
+| 14.8 | GET detalhe com o cabeçalho da outra pessoa | 200; RESOLVIDA, `avisos_nao_resolvido` 1, `avisei_nao_resolvido` true | ☑ `14-8-detalhe-com-aviso.png` + `14-8b-minha-relacao.png` |
+| 14.9 | DELETE /ocorrencias/1/nao-resolvido | 200; `avisos_nao_resolvido` 0 | ☑ `14-9-desfazer-aviso.png` |
+| 15.1 | POST /ia/sugestao-categoria (poste apagado, categoria OUTRO) | 200; `disponivel` true, `ILUMINACAO_DEFEITUOSA`, `confianca` entre 0 e 1; nada é gravado | ☑ `15-1-sugestao-ia.png` |
+| 15.2 | POST /ia/sugestao-categoria (textos curtos) | 422 `VALIDACAO` (`titulo` e `descricao`) | ☑ `15-2-sugestao-invalida.png` |
+
+### 4.3 Dicas para os prints
+
+- **09.1:** depois do print, copie o `id` da resposta para `terceira_ocorrencia_id`. O número
+  muda a cada banco; não use o de outra execução.
+- **09.4:** a resposta tem as 32 regiões e é enorme. Mostre a aba **Headers** da resposta com
+  `Cache-Control: public, max-age=86400` e o status 200.
+- **13.5:** `total` e `truncado` ficam **no fim** do corpo, depois dos 1.200 itens. Clique no
+  corpo e role até o fim (Ctrl+End), mostrando `"total": 1200` e `"truncado": false`.
+- **13.7:** para mostrar os níveis sem rolar 32 itens, use o **filtro** no rodapé da resposta:
+  `$.itens[?(@.alerta.nivel=='ALERTA')].nome` (3 regiões: Freguesia/Brasilândia, Sé, Mooca)
+  no print `13-7-alertas.png`, e `$.itens[?(@.alerta.nivel=='ATENCAO')].nome` (7 regiões) num
+  print extra `13-7b-atencao.png`. Se o filtro não funcionar na sua versão do Insomnia, role e
+  tire os prints necessários.
+- **13.8 e 13.9:** os indicadores (`total`, `percentual_resolvidas`, `alertas_ativos`…) ficam
+  no começo do corpo; basta o topo da resposta.
+- **13.1 antes da 14.1:** a 14.1 troca o apelido da 02.1, por isso a 13.1 (que espera o
+  apelido original) vem antes.
+- **14.5 a 14.9:** usam a ocorrência 1 (resolvida) e a 2 (aberta) da Rodada 1.
 
 Observação: os números da 13.5, 13.7 e 13.9 valem para os fictícios recém-gerados com a
 semente padrão; com o passar dos dias, os alertas (janela de 30 dias) podem diminuir —

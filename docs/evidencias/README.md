@@ -13,6 +13,7 @@ Nenhuma foi editada para parecer melhor do que é.
 | `2026-11-11_verificacao-api-com-banco.txt` | Automática (API em execução + PostgreSQL) | Fluxo completo 25/25 (cadastro, idempotência, validações, listagem, upload, status/histórico, 401/403/404/409/415/422); persistência após reiniciar **API e PostgreSQL** (ocorrência, histórico e foto) | Testes manuais no Insomnia (exigência da disciplina) |
 | `2026-11-11_verificacao-mobile.txt` | Automática | `tsc --noEmit` limpo, ESLint sem problemas, 18 testes puros, expo-doctor 20/20, 0 `any` | Funcionamento no celular |
 | `insomnia/` (35 prints) | **Manual** (12/11/2026) | Testes manuais exigidos pela disciplina de SOA: as 33 requisições do [roteiro](../insomnia/ROTEIRO_TESTES_MANUAIS.md), executadas no Insomnia, cada uma com o print da resposta real (+2 prints extras explicados no roteiro) | App mobile |
+| `insomnia/` (prints 09-x a 15-x) | **Manual** (19/11/2026) | Rodada 2 do Insomnia: as 42 requisições das pastas 09 a 15 (endereço e região, mapa, proximidade, confirmações, Andamento, identificação pelo cabeçalho, alertas, resumo, apelido, participação, "ainda não foi resolvido" e sugestão da IA), cada uma com o print da resposta real; complementos com sufixo `b` explicados na seção 4 do [roteiro](../insomnia/ROTEIRO_TESTES_MANUAIS.md) | App mobile |
 | `2026-11-12_reinicio-para-insomnia-08-1.txt` | Automática (apoio ao teste manual) | API e PostgreSQL foram desligados e religados antes do teste 08.1 (persistência) | — |
 | `2026-11-12_alembic-0003.txt` | Automática (Bridge 2.0) | Migração 0003 em banco vazio (`bridge_test`): `upgrade`, `check` sem diferenças, colunas/constraints/índices criados, `downgrade -1` e reaplicação; banco de desenvolvimento só atualizado (sem perda) e regiões preenchidas pelo script | Banco de outra máquina |
 | `2026-11-12_pytest-backend-fase1.txt` | Automática (Bridge 2.0) | 127 testes, 0 pulados: regiões oficiais, geometria, migração, endereço/região, filtros, densidade, proximidade, confirmações | Testes manuais |
@@ -39,7 +40,7 @@ Nenhuma foi editada para parecer melhor do que é.
 ## Pendentes (manuais)
 
 1. Mobile no celular físico: prints/vídeo do fluxo real do Bridge 2.0.
-2. Insomnia, Rodada 2 (pastas 09 a 12 da coleção): executar e salvar os prints em `insomnia/`.
+2. ~~Insomnia, Rodada 2~~: feita em 19/11/2026 (42/42, prints em `insomnia/`).
 3. A verificação da `2026-11-13_verificacao-api-fase1.txt` usou o banco de testes de
    propósito, para não colocar dados de teste no banco que o app usa.
 

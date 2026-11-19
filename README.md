@@ -445,8 +445,10 @@ repetida com o modelo de IA ativo em 17/11 (79 OK, análise `CONCLUIDA`) em
   Eles foram feitos antes do Bridge 2.0. Por isso as respostas não mostram os campos novos
   (`endereco`, `subprefeitura`, `confirmacoes`, `origem`), mas o comportamento testado
   não mudou.
-- **Rodada 2 (pastas 09 a 15): pendente**, a ser executada pela equipe (a pasta 13 precisa
-  dos dados fictícios gerados; a 14, do banco na migração 0004).
+- **Rodada 2 executada em 19/11/2026:** as 42 requisições das pastas 09 a 15 (rotas do
+  Bridge 2.0 e da IA), todas com o resultado esperado, com os prints em
+  [`docs/evidencias/insomnia/`](docs/evidencias/insomnia/). Com as duas rodadas, as 23
+  operações da API têm teste manual.
 
 ## IA: situação real e limitações
 
