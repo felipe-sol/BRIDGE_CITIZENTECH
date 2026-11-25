@@ -48,6 +48,38 @@ Projeto acadêmico: **não há integração oficial com prefeitura** ou órgão 
 | Enzo Galhardo | 561001 |
 | Kauan Diogo | 560727 |
 
+## BRIDGE IoT — Detecção de Irregularidades
+
+Módulo IoT do **BRIDGE AI** desenvolvido com **ESP32, MPU6050 e GPS NEO-6M** para detectar possíveis irregularidades em vias durante o deslocamento.
+
+O MPU6050 monitora continuamente as acelerações e identifica impactos acima de determinados limites, classificando-os como **MÉDIO, ALTO ou SEVERO**. Quando um impacto é detectado, o ESP32 obtém as **coordenadas GPS**, a intensidade do impacto, sua duração e a velocidade do dispositivo.
+
+O dispositivo pode ser implementado em **carros de fiscalização urbana, como os utilizados pela CET**, permitindo que esses veículos atuem como pontos móveis de coleta de dados. Os dados são enviados automaticamente para a **API do BRIDGE** através de requisições HTTP POST, registrando um **chamado diretamente no aplicativo do BRIDGE** para posterior análise e priorização.
+
+**Fluxo:**
+
+`MPU6050 → ESP32 → Detecção do impacto → GPS → API BRIDGE → Chamado no aplicativo`
+
+**Principais tecnologias:**
+
+- ESP32
+- MPU6050
+- GPS NEO-6M
+- Wi-Fi
+- HTTP/REST
+- FreeRTOS/Tasks
+- Wokwi para simulação
+
+**Links:**
+
+- **Projeto Wokwi:** [https://wokwi.com/projects/480892854202213377](https://wokwi.com/projects/480892854202213377)
+- **Vídeo de demonstração:** [https://youtu.be/H-JoD8FT2_4](https://youtu.be/H-JoD8FT2_4)
+
+- <img width="400" height="391" alt="2db2a9eb-cc5b-484b-b963-ef7e6da7fbe5" src="https://github.com/user-attachments/assets/396c6df8-6495-46cc-bde8-4429af0672ac" />
+
+
+
+
 Neste repositório: backend (SOA) e app (Mobile) por Felipe Santos Marceli; modelo de IA
 (`ia_ml/`) por Leonardo Luiz Jardim Queijo (PR #1).
 
